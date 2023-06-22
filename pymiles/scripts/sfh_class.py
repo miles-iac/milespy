@@ -11,11 +11,10 @@ from   scipy.integrate     import simps
 from   copy import copy
 import pymiles.scripts.misc_functions      as misc
 import pymiles.scripts.pymiles_utils       as utils
-from   pymiles.scripts.tuning_tools_class  import tuning_tools
 from   pymiles.scripts.ssp_models_class import ssp_models
 # from ipdb import set_trace as stop
 #==============================================================================
-class sfh(tuning_tools, ssp_models):
+class sfh(ssp_models):
 
 # -----------------------------------------------------------------------------
     def __init__(self, source='MILES_SSP', version='9.1', isochrone='T', imf_type='ch', alp_type='fix', show_tree=False, verbose=False):
@@ -46,7 +45,6 @@ class sfh(tuning_tools, ssp_models):
        """
        # Inheriting classes
        ssp_models.__init__(self,source=source,version=version,isochrone=isochrone,imf_type=imf_type, alp_type=alp_type)
-       tuning_tools.__init__(self,source=self.source,wave=self.wave,spec=self.spec)
 
        # The SFH is defined based on a time array
        self.time       = np.sort(list(set(self.age)))

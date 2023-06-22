@@ -41,14 +41,12 @@ if (__name__ == '__main__'):
     plt.title(tmp.starname)
     plt.show()
     
-    """
     # Get spectrum by params (gets interpolated spectrum for those params)
     print("# Get spectrum by params (gets interpolated spectrum for those params)")
-    tmp = lib.search_by_params(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
-    wave, spec = lib.get_spectrum_by_params_delaunay(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
-    plt.plot(tmp.wave, tmp.spec, label="Closest star")
-    plt.plot(wave,spec,label="Interpolated star")
+    tmp1 = lib.search_by_params(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
+    tmp2 = lib.get_spectrum_by_params_delaunay(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
+    plt.plot(tmp1.wave, tmp1.spec, label="Closest star")
+    plt.plot(tmp2.wave, tmp2.spec,label="Interpolated star")
     plt.legend()
     plt.show()
-    """
       

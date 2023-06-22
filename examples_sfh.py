@@ -1,9 +1,8 @@
 import numpy             as np
 import matplotlib.pyplot as plt
 from   astropy.io        import ascii
-from   sfh_class         import sfh as sfh
+from   pymiles.scripts.sfh_class         import sfh as sfh
 
-from ipdb import set_trace as stop
 from   scipy.integrate     import simps
 
 #==============================================================================

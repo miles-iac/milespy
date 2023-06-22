@@ -101,6 +101,7 @@ if (__name__ == '__main__'):
 #         outmls['SLOAN_SDSS.u'][i], outmls['SLOAN_SDSS.g'][i],outmls['SLOAN_SDSS.r'][i], outmls['SLOAN_SDSS.i'][i],outmls['SLOAN_SDSS.z'][i]) !Revisar  
 
     """
+    # IA: NOTE, THIS IS VERY SIMILAR TO examples_sfh ... is this here by mistake??
     # Extract SFHs ---------------------------------------------------
     print("# Creating SFH spectra and predictions")
     
