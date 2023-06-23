@@ -7,6 +7,10 @@ from   pymiles.scripts.tuning_tools_class import tuning_tools as tt
 #==============================================================================
 if (__name__ == '__main__'):
 
+    import logging
+    logger = logging.getLogger('pymiles')
+
+    logger.setLevel(logging.INFO)
 # -------------------------------------------------------------------------------
 # SSP MODELS EXAMPLES
 # -------------------------------------------------------------------------------

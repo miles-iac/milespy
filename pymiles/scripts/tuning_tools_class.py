@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import logging
 import glob
 import h5py
 import warnings
@@ -14,6 +15,9 @@ from   copy                import copy
 from   scipy               import interpolate
 from astropy.units import mG
 #==============================================================================
+
+logger = logging.getLogger('pymiles.tuning_tools')
+
 class tuning_tools:
    
    warnings.filterwarnings("ignore")  
@@ -51,7 +55,7 @@ class tuning_tools:
       Object instance
     
       """
-      print(wave)
+      logger.debug(wave)
       if (len(wave) == 0):
          wave = np.zeros(10)
       if (len(spec) == 0):
@@ -98,17 +102,14 @@ class tuning_tools:
           wave_last = np.amax(wave)
 
       if len(wave) != self.npix:
-          misc.printFAILED("Number of pixels in WAVE not equal to SPEC.")
-          sys.exit
+          raise ValueError("Number of pixels in WAVE not equal to SPEC.")
 
       sampling_list = ['lin','ln']
       if sampling not in sampling_list:
-          misc.printFAILED("SAMPLING has to be lin/ln")
-          sys.exit
+          raise ValueError("SAMPLING has to be lin/ln")
 
       if redshift < 0.0:
-          misc.printFAILED("REDSHIFT cannot be lower than 0.0")
-          sys.exit
+          raise ValueError("REDSHIFT cannot be lower than 0.0")
 
       return
 
@@ -141,11 +142,8 @@ class tuning_tools:
             idx[i] = True
 
       if np.sum(idx) == 0:
-         misc.printFAILED("Cannot find filter in our database")
-         print(" Available filters are:")
-         print()
-         print(list(self.filter_names))
-         sys.exit
+          logger.error("Cannot find filter in our database\n Available filters are:\n\n"+list(self.filter_names))
+          sys.exit
 
       return list(self.filter_names[idx])
 
@@ -171,7 +169,7 @@ class tuning_tools:
       for i in range(nfilters):
          filename = "./pymiles/config_files/filters/"+filter_names[i]+".dat"
          if not os.path.exists(filename):
-            misc.printWARNING("Filter "+filter_names[i]+" does not exist in database")
+            logger.warning("Filter "+filter_names[i]+" does not exist in database")
             # sys.exit
          else:
             tab = ascii.read(filename, names=['wave','trans'])
@@ -202,7 +200,7 @@ class tuning_tools:
       for i in range(nfilters):
          filename = "./pymiles/config_files/filters/"+filter_names[i]+".dat"
          if not os.path.exists(filename):
-            misc.printWARNING("Filter "+filter_names[i]+" does not exist in database")
+            logger.warning("Filter "+filter_names[i]+" does not exist in database")
          else:
             tab = ascii.read(filename, names=['wave','trans'])
             tab['trans'] /= np.amax(tab['trans'])
@@ -282,8 +280,7 @@ class tuning_tools:
           self.lsf_vdisp = f_vdisp(self.wave)
 
       else:
-          misc.printFAILED(self.source+" is not a valid entry. Allowed values: MILES_SSP/MILES_STARS/CaT_SSP/CaT_STARS/EMILES")
-          sys.exit   
+          raise ValueError(self.source+" is not a valid entry. Allowed values: MILES_SSP/MILES_STARS/CaT_SSP/CaT_STARS/EMILES")
 
       return
 
@@ -303,8 +300,7 @@ class tuning_tools:
       Object instance with spectra trimmed and updated info
     
       """
-      if verbose:
-        print("# Trimming spectra in wavelength ...")
+      logger.info("# Trimming spectra in wavelength ...")
 
       out   = copy(self)
       idx   = (out.wave >= wave_lims[0]) & (out.wave <= wave_lims[1]) 
@@ -333,8 +329,7 @@ class tuning_tools:
       Object instance with spectra resampled and updated info
     
       """
-      if verbose:
-        print("# Resampling spectra ...")
+      logger.info("# Resampling spectra ...")
 
       out      = copy(self)
       new_wave = np.arange(wave_lims[0],wave_lims[1],dwave)
@@ -365,8 +360,7 @@ class tuning_tools:
       Object instance with spectra redshifted and updated info
     
       """
-      if verbose:
-        print("# Redshifting spectra ...")
+      logger.info("# Redshifting spectra ...")
 
       out   = copy(self)
       wave  = out.wave * (1.0 + redshift)
@@ -395,12 +389,11 @@ class tuning_tools:
       Object instance with ln-rebinned spectra and updated info
     
       """
-      if verbose:
-        print("# Ln-rebining the spectra ...")
+      logger.info("# Ln-rebining the spectra ...")
 
       if self.sampling == 'ln':
-          misc.printFAILED("Spectra already in ln-lambda.")
-          sys.exit
+          logger.warning("Spectra already in ln-lambda.")
+          return copy(self)
   
       out      = copy(self)
       lamRange = [out.wave_init,out.wave_last]
@@ -433,12 +426,11 @@ class tuning_tools:
     
       """
 
-      if verbose:
-        print("# Unbin ln spectra ...")
+      logger.info("# Unbin ln spectra ...")
 
       if self.sampling == 'lin':
-          misc.printFAILED("Spectra already in linear lambda.")
-          sys.exit
+          logger.warning("Spectra already in linear lambda.")
+          return copy(self)
           
       out      = copy(self)
       lamRange = [out.wave_init,out.wave_last]
@@ -480,8 +472,7 @@ class tuning_tools:
     
       """
 
-      if verbose:
-        print("# Convolving spectra ...")
+      logger.info("# Convolving spectra ...")
 
       out = copy(self)
       if mode == "FWHM":
@@ -495,8 +486,7 @@ class tuning_tools:
          in_lsf  = out.lsf_vdisp
          out.lsf_vdisp = out_lsf
       else:
-         misc.printFAILED("Mode "+mode+" not a valid entry. Allowed values are FWHM/VDISP") 
-         sys.exit
+         raise ValueError("Mode "+mode+" not a valid entry. Allowed values are FWHM/VDISP") 
   
       sigma    = np.sqrt(out_lsf**2 - in_lsf**2) / out.dwave
       bad = np.isnan(sigma)
@@ -537,9 +527,7 @@ class tuning_tools:
     
       """
 
-      if verbose:
-        print("# Tuning spectra ----------------------")
-        print("")
+      logger.info("# Tuning spectra ----------------------")
 
       out = copy(self)
       if lsf_wave is None:
@@ -581,8 +569,7 @@ class tuning_tools:
       If option saveCSV=True, returns .csv file with the magnitudes
     
       """
-      if verbose:
-         print("# Computing absolute magnitudes...")
+      logger.info("# Computing absolute magnitudes...")
 
       nfilters = len(filters.keys())
       zerosed  = utils.load_zerofile(zeropoint)   
@@ -597,7 +584,7 @@ class tuning_tools:
           outmags[list(filters.keys())[i]] = mags[i,:]
 
       if (saveCSV == True):
-          print('Warning! Previous \'saved_mags.csv\' will be overwritten.')
+          logger.warning('Previous \'saved_mags.csv\' will be overwritten.')
           f=open('./pymiles/saved_files/saved_mags.csv', 'w') 
           writer = csv.writer(f)
           writer.writerows(outmags)
@@ -621,8 +608,7 @@ class tuning_tools:
       If option saveCSV=True, returns .csv file with the LS indices
 
       """
-      if verbose:
-         print("# Computing Line-Strength indices ...")
+      logger.info("# Computing Line-Strength indices ...")
 
       # Getting the dimensions      
       names, indices, dummy = utils.lsindex(self.wave, self.spec[:,0], 0.0, self.redshift, 0.0, self.lsfile, plot=False, sims=0)
@@ -639,7 +625,7 @@ class tuning_tools:
           outls[names[i]] = indices[i,:]
  
       if (saveCSV == True):
-          print('Warning! Previous \'saved_ls_indices.csv\' will be overwritten.')
+          logger.warning('Previous \'saved_ls_indices.csv\' will be overwritten.')
           f=open('./pymiles/saved_files/saved_ls_indices.csv', 'w') 
           writer = csv.writer(f)
           writer.writerows(outls)
@@ -664,8 +650,7 @@ class tuning_tools:
     
       """
 
-      if verbose:
-         print("# Saving object to "+filename)
+      logger.info("# Saving object to "+filename)
 
       # Converting object to dictionary
       obj = self.__dict__
@@ -678,8 +663,7 @@ class tuning_tools:
       #------------------------------
       for key, value in obj.items():
           value = np.array(value)
-          if verbose:
-             print(" - "+key, value.dtype.str)
+          logger.debug(" - "+key, value.dtype.str)
           if value.dtype.str[1] == 'O':
               continue
           if np.ndim(obj[key]) == 1:
@@ -757,8 +741,7 @@ class tuning_tools:
       Dictionary with solar mags for each filter
     
       """
-      if verbose:
-         print("# Computing solar absolute magnitudes...")
+      logger.info("# Computing solar absolute magnitudes...")
 
       wave, flux = self.load_solar_spectrum()
       nfilters   = len(filters.keys())

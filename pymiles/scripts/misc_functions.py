@@ -27,44 +27,6 @@ def printProgress (iteration, total, prefix = '', suffix = '', decimals = 2, bar
     if iteration == total:
         print("\n")
 
-#==============================================================================
-def printDONE(outstr=""):
-
-    print("")
-    print("")
-    sys.stdout.write("\033[F"); sys.stdout.write("\033[K")
-    sys.stdout.write("\r\r[ "+'\033[0;32m'+"DONE "+'\033[0;39m'+"] "+outstr)
-    sys.stdout.flush()
-    print("")
-    print("")
-
-    return
-
-#==============================================================================
-def printFAILED(outstr=""):
-
-    print("")
-    print("")
-    sys.stdout.write("\033[F"); sys.stdout.write("\033[K")
-    sys.stdout.write("\r\r[ "+'\033[0;31m'+"FAILED "+'\033[0;39m'+"] "+outstr)
-    sys.stdout.flush()
-    print("")
-    print("")
-
-    return
-
-#==============================================================================
-def printWARNING(outstr=""):
-
-    print("")
-    print("")
-    sys.stdout.write("\033[F"); sys.stdout.write("\033[K")
-    sys.stdout.write("\r\r[ "+'\033[0;33m'+"WARNING "+'\033[0;39m'+"] "+outstr)
-    sys.stdout.flush()
-    print("")
-    print("")
-
-    return
     
 #==============================================================================
 def get_zscores(val):

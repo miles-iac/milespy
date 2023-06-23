@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import logging
 import h5py
 import numpy               as np
 import matplotlib.pyplot   as plt
@@ -14,6 +15,9 @@ import pymiles.scripts.pymiles_utils       as utils
 from   pymiles.scripts.ssp_models_class import ssp_models
 # from ipdb import set_trace as stop
 #==============================================================================
+
+logger = logging.getLogger('pymiles.sfh')
+
 class sfh(ssp_models):
 
 # -----------------------------------------------------------------------------
@@ -62,8 +66,31 @@ class sfh(ssp_models):
 
        self.main_keys = list(self.__dict__.keys())
 
-       if verbose:
-           misc.printDONE(source+" models loaded")
+       logger.info(source+" models loaded")
+
+
+    @staticmethod
+    def _process_param(argname, arg, refname, ref, offset=0):
+        if np.isscalar(arg):
+            arg = np.full_like(ref, arg)
+        elif len(arg) == len(ref)+offset:
+            arg = np.array(arg)
+        else:
+            raise ValueError(f"{refname} and {argname} arrays should be the same length")
+
+    @staticmethod
+    def _validate_scalar(arg, argname="Input"):
+        if not np.isscalar(arg):
+            raise ValueError(f"{argname} should be scalar")
+
+    @staticmethod
+    def _validate_in_range(arg, low, high, argname="Input"):
+        if arg < low or arg > high:
+            raise ValueError(f"{argname} is out of range")
+
+    def _validate_sfh(self):
+        if not self.sfh_check_ssp_range():
+           raise ValueError("Input SFH params are outside the MILES model grid you loaded")
 
     # ----------
     # Methods to define the time array. This is the fundation of 
@@ -93,10 +120,10 @@ class sfh(ssp_models):
        update the rest of the variables accordingly
        """
        
-       assert ( np.isscalar(start) and np.isscalar(end) ), \
-                "Start and end times must be scalar" 
-       assert (start > end), \
-                "Start date must be older than end date" 
+       self._validate_scalar(start, "Start")
+       self._validate_scalar(end, "End")
+       if start < end:
+           raise ValueError("Start date must be older than end date")
 
 
        idx = (self.age <= start) & (self.age >= end) 
@@ -169,12 +196,11 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """  
 
-        assert (
-            np.isscalar(start) and np.isscalar(end) and np.isscalar(met) and np.isscalar(alpha) and np.isscalar(imf_slope) 
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (start, end, met, alpha, imf_slope):
+            self._validate_scalar(inp)
 
-        assert (start >= end), "Start time must happen befor the end of the burst"
+        if (start < end):
+            raise ValueError("Start time must happen befor the end of the burst")
 
         # Constant SFR
         self.sfr  = np.zeros_like(self.time)
@@ -195,8 +221,7 @@ class sfh(ssp_models):
         self.imf_evol = np.zeros_like(self.time) + imf_slope
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
 
     def tau_sfr(self,start=10, tau=1, met=0, alpha=0, imf_slope=1.3):
         """Exponentially declinging SFR
@@ -226,10 +251,8 @@ class sfh(ssp_models):
 
        Updates the SFH parameters of the instance
        """  
-        assert (
-            np.isscalar(start) and np.isscalar(tau) and np.isscalar(met) and np.isscalar(alpha) and np.isscalar(imf_slope) 
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (start,tau,met,alpha,imf_slope):
+            self._validate_scalar(inp)
 
         # Exponentially declinging SFR
         self.sfr  = np.zeros_like(self.time)
@@ -250,8 +273,7 @@ class sfh(ssp_models):
         self.imf_evol = np.zeros_like(self.time) + imf_slope
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
 
     def delayed_tau_sfr(self,start=10, tau=1, met=0, alpha=0, imf_slope=1.3):
         """Delayed exponentially declinging SFR
@@ -282,10 +304,8 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """  
 
-        assert (
-            np.isscalar(start) and np.isscalar(tau) and np.isscalar(met) and np.isscalar(alpha) and np.isscalar(imf_slope) 
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (start,tau,met,alpha,imf_slope):
+            self._validate_scalar(inp)
 
         # Exponentially declinging SFR
         self.sfr  = np.zeros_like(self.time)
@@ -306,8 +326,7 @@ class sfh(ssp_models):
         self.imf_evol = np.zeros_like(self.time) + imf_slope
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded" 
+        self._validate_sfh()
 
     def lognormal_sfr(self, Tpeak=10, tau=1, met=0, alpha=0, imf_slope=1.3):
         """Lognormal SFR
@@ -341,10 +360,8 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """  
 
-        assert (
-            np.isscalar(Tpeak) and np.isscalar(tau) and np.isscalar(met) and np.isscalar(alpha) and np.isscalar(imf_slope) 
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (Tpeak,tau,met,alpha,imf_slope):
+            self._validate_scalar(inp)
 
         # While SSPs are based on lookback times we will use in this case
         # time since the oldest age in the grid (~ time since the Big Bang)
@@ -369,8 +386,7 @@ class sfh(ssp_models):
         self.imf_evol = np.zeros_like(self.time) + imf_slope
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"          
+        self._validate_sfh()
 
     def double_power_law_sfr(self, a=5, b=5, tp=10, met=0, alpha=0, imf_slope=1.3):
         """Double power law SFR evolution
@@ -403,10 +419,8 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """  
 
-        assert (
-            np.isscalar(a) and np.isscalar(b) and np.isscalar(tp) and np.isscalar(met) and np.isscalar(alpha) and np.isscalar(imf_slope) 
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (a,b,tp,met,alpha,imf_slope):
+            self._validate_scalar(inp)
 
         # While SSPs are based on lookback times we will use in this case
         # time since the oldest age in the grid (~ time since the Big Bang)
@@ -431,10 +445,9 @@ class sfh(ssp_models):
         self.imf_evol = np.zeros_like(self.time) + imf_slope
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"          
+        self._validate_sfh()
 
-    def bursty_sfr(self, ages=None, wts=None, mets=None,alphas=None, imfs=None):
+    def bursty_sfr(self, ages=None, wts=None, mets=0. ,alphas=0., imfs=1.3):
         """Bursty star formation history
 
         The SFH is given by bursts with weights and stellar population 
@@ -462,40 +475,31 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """  
         
-        assert(ages), "You forgot to include your bursts" 
+        if not ages:
+            raise ValueError("You forgot to include your bursts" )
         self.time = np.array(ages)
 
-        if not wts:
-            self.wts = np.zeros(len(self.time)) + 1
-        else:
-            self.wts = np.array(wts)
-            assert(len(ages) == len(wts)), "Age and weights arrays should be the same length " 
-            assert(np.all(self.wts >= 0)),  "Weight array should not be negative" 
+        self.wts = wts
+        self._process_param("Weights", self.wts, "Age", self.age, offset=1)
+        if np.any(self.wts<0):
+            raise ValueError("Weight array should not be negative")
         self.wts  = self.wts / np.sum(self.wts)
+
+        self.met_evol = mets
+        self._process_param("Metallicity", self.met_evol, "Age", self.age)
+
+        self.alpha_evol = alphas
+        self._process_param("[alpha/Fe]", self.alpha_evol, "Age", self.age)
+
+        self.imf_evol = imfs
+        self._process_param("IMF", self.imf_evol, "Age", self.age)
+
         # Since the SFR could be ill-define we set it to NaN (it won't be actually used)
         self.sfr = np.zeros(len(self.wts)) + float('NaN')
 
-        if not mets:
-            self.met_evol = np.zeros(len(self.time))
-        else:   
-            assert(len(ages) == len(mets)), "Age and metallicity arrays should be the same length " 
-            self.met_evol = np.array(mets)
-
-        if not alphas:
-            self.alpha_evol = np.zeros(len(self.time))
-        else:   
-            assert(len(ages) == len(alphas)), "Age and [alpha/Fe] arrays should be the same length " 
-            self.alpha_evol = np.array(alphas)                    
-
-        if not imfs:
-            self.imf_evol = np.zeros(len(self.time)) + 1.3
-        else:   
-            assert(len(ages) == len(imfs)), "Age and IMF arrays should be the same length " 
-            self.imf_evol = np.array(imfs)    
-
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
+
 
     # This method is effectively the same as bursty_sfh but with a different name. 
     # The idea is that a user may want to have a look at a bursty SFH but the term
@@ -527,18 +531,29 @@ class sfh(ssp_models):
 
        Updates the SFH parameters of the instance
        """  
+        if not ages:
+            raise ValueError("You forgot to include your bursts" )
+        self.time = np.array(ages)
+
+        self.wts = wts
+        self._process_param("Weights", self.wts, "Age", self.age, offset=1)
+        if np.any(self.wts<0):
+            raise ValueError("Weight array should not be negative")
+        self.wts  = self.wts / np.sum(self.wts)
+
+        self.met_evol = mets
+        self._process_param("Metallicity", self.met_evol, "Age", self.age)
+
+        self.alpha_evol = alphas
+        self._process_param("[alpha/Fe]", self.alpha_evol, "Age", self.age)
+
+        self.imf_evol = imfs
+        self._process_param("IMF", self.imf_evol, "Age", self.age)
         
-        assert(ages), "You forgot to include your bursts" 
         self.time = np.sort(list(set(ages)))
         dt = (self.time-np.roll(self.time,1))
         dt[0] = dt[1]
 
-        if not wts:
-            self.wts = np.zeros(len(self.time)) + 1
-        else:
-            self.wts = np.array(wts)
-            assert(len(ages) == len(wts)), "Age and weight arrays should be the same length " 
-            assert(np.all(self.wts >= 0)),  "Weight array should not be negative" 
 
         self.wts  = self.wts / np.sum(self.wts)
         self.sfr  = self.wts / dt
@@ -546,27 +561,8 @@ class sfh(ssp_models):
         norm = simps(self.sfr,self.time)
         self.sfr  = self.sfr / norm
 
-        if not mets:
-            self.met_evol = np.zeros(len(self.time))
-        else:   
-            assert(len(ages) == len(mets)), "Age and metallicity arrays should be the same length " 
-            self.met_evol = np.array(mets)
-
-        if not alphas:
-            self.alpha_evol = np.zeros(len(self.time))
-        else:   
-            assert(len(ages) == len(alphas)), "Age and [alpha/Fe] arrays should be the same length " 
-            self.alpha_evol = np.array(alphas)                    
-
-        if not imfs:
-            self.imf_evol = np.zeros(len(self.time)) + 1.3
-        else:   
-            assert(len(ages) == len(imfs)), "Age and IMF arrays should be the same length " 
-            self.imf_evol = np.array(imfs)    
-
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
 
     # The methods below are prescriptions for the metallicty, [alpha/Fe], 
     # and IMF time evolution. They do not describe any physical process 
@@ -596,21 +592,15 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """ 
 
-        assert (
-            np.isscalar(start) and np.isscalar(end) and np.isscalar(tc) and np.isscalar(gamma)
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (start, end, tc, gamma):
+            self._validate_scalar(inp)
 
-        assert (
-            (max(self.age) >= tc) and (min(self.age) <= tc)
-        ), \
-            "Transition time is outside of the loaded age range"
+        self._validate_in_range(tc, min(self.age), max(self.age), "Transition time")
 
         self.met_evol   = (end - start) / (1. +  np.exp(-gamma*(tc-self.time))) + start
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
 
     def met_evol_linear(self,start=-1.5,end=0.2,t_start=5, t_end=1):
         """Linear metallicity evolution
@@ -635,20 +625,11 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """ 
 
-        assert (
-            np.isscalar(start) and np.isscalar(end) and np.isscalar(t_start) and np.isscalar(t_end)
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (start, end, t_start, t_end):
+            self._validate_scalar(inp)
 
-        assert (
-            (max(self.age) >= t_start) and (min(self.age) <= t_start)
-        ), \
-            "Start time is outside of the loaded age range"
-
-        assert (
-            (max(self.age) >= t_end) and (min(self.age) <= t_end)
-        ), \
-            "End time is outside of the loaded age range"
+        self._validate_in_range(t_start, min(self.age), max(self.age), "Start time")
+        self._validate_in_range(t_end, min(self.age), max(self.age), "End time")
 
         slope = (start-end)/(t_start-t_end)
 
@@ -662,8 +643,7 @@ class sfh(ssp_models):
         self.met_evol[tgood] = end
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
 
     def alp_evol_sigmoid(self,start=0.4,end=0.0,tc=5.,gamma=1.):
         """Sigmoidal [alpha/Fe] evolution
@@ -690,21 +670,15 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """ 
 
-        assert (
-            np.isscalar(start) and np.isscalar(end) and np.isscalar(tc) and np.isscalar(gamma)
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (start, end, tc, gamma):
+            self._validate_scalar(inp)
 
-        assert (
-            (max(self.age) >= tc) and (min(self.age) <= tc)
-        ), \
-            "Transition time is outside of the loaded age range"
+        self._validate_in_range(tc, min(self.age), max(self.age), "Transition time")
 
         self.alp_evol   = (end - start) / (1. +  np.exp(-gamma*(tc-self.time))) + start
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
 
 
     def alp_evol_linear(self, start=-1.5,end=0.2,t_start=5, t_end=1):
@@ -730,20 +704,11 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """ 
 
-        assert (
-            np.isscalar(start) and np.isscalar(end) and np.isscalar(t_start) and np.isscalar(t_end)
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (start, end, t_start, t_end):
+            self._validate_scalar(inp)
 
-        assert (
-            (max(self.age) >= t_start) and (min(self.age) <= t_start)
-        ), \
-            "Start time is outside of the loaded age range"
-
-        assert (
-            (max(self.age) >= t_end) and (min(self.age) <= t_end)
-        ), \
-            "End time is outside of the loaded age range"
+        self._validate_in_range(t_start, min(self.age), max(self.age), "Start time")
+        self._validate_in_range(t_end, min(self.age), max(self.age), "End time")
 
         slope = (start-end)/(t_start-t_end)
 
@@ -757,8 +722,7 @@ class sfh(ssp_models):
         self.alp_evol[tgood] = end
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
 
     def imf_evol_sigmoid(self,start=0.5,end=3.0,tc=5.,gamma=1.):
         """Sigmoidal IMF slope evolution
@@ -785,21 +749,15 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """ 
 
-        assert (
-            np.isscalar(start) and np.isscalar(end) and np.isscalar(tc) and np.isscalar(gamma)
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (start, end, tc, gamma):
+            self._validate_scalar(inp)
 
-        assert (
-            (max(self.age) >= tc) and (min(self.age) <= tc)
-        ), \
-            "Transition time is outside of the loaded age range"
+        self._validate_in_range(tc, min(self.age), max(self.age), "Transition time")
 
         self.imf_evol   = (end - start) / (1. +  np.exp(-gamma*(tc-self.time))) + start
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
 
 
     def imf_evol_linear(self, start=-1.5,end=0.2,t_start=5, t_end=1):
@@ -825,20 +783,11 @@ class sfh(ssp_models):
        Updates the SFH parameters of the instance
        """ 
 
-        assert (
-            np.isscalar(start) and np.isscalar(end) and np.isscalar(t_start) and np.isscalar(t_end)
-            ), \
-            "Input parameters must be scalar" 
+        for inp in (start, end, t_start, t_end):
+            self._validate_scalar(inp)
 
-        assert (
-            (max(self.age) >= t_start) and (min(self.age) <= t_start)
-        ), \
-            "Start time is outside of the loaded age range"
-
-        assert (
-            (max(self.age) >= t_end) and (min(self.age) <= t_end)
-        ), \
-            "End time is outside of the loaded age range"
+        self._validate_in_range(t_start, min(self.age), max(self.age), "Start time")
+        self._validate_in_range(t_end, min(self.age), max(self.age), "End time")
 
         slope = (start-end)/(t_start-t_end)
 
@@ -852,8 +801,7 @@ class sfh(ssp_models):
         self.imf_evol[tgood] = end
 
         # Make sure everything is within the allowed range of models
-        assert (self.sfh_check_ssp_range() ),\
-          "Input SFH params are outside the MILES model grid you loaded"
+        self._validate_sfh()
         
     # This method (get_sfh_predictions) is the core of the SFH class. It takes the 
     # normalized input of the SFH instance (namely ages, weights, metallicities, 

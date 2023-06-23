@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import logging
 import h5py
 import time
 import warnings
@@ -15,6 +16,8 @@ from   copy                import copy
 from   pymiles.scripts.tuning_tools_class  import tuning_tools
 # from   pymiles.scripts.sfh_class           import sfh
 from itertools import compress
+
+logger = logging.getLogger('pymiles.ssp')
 
 # from ipdb import set_trace as stop
 #==============================================================================
@@ -52,11 +55,10 @@ class ssp_models(tuning_tools):
        repo_filename = "./pymiles/repository/"+source+"_v"+version+".hdf5"
       
        if verbose:
-           print("# Loading models in "+repo_filename+" for isochrone: "+isochrone+" and IMF_type: "+imf_type)
+           logger.info("# Loading models in "+repo_filename+" for isochrone: "+isochrone+" and IMF_type: "+imf_type)
            filesizeGB = os.path.getsize(repo_filename)/(1024*1024*1024)
            if (filesizeGB >= 0.05):
-              print(" [Be patient. The file is "+'{:4.2f}'.format(filesizeGB)+"Gb in size]")
-              print()
+              logger.info(" [Be patient. The file is "+'{:4.2f}'.format(filesizeGB)+"Gb in size]")
 
        # Opening the relevant file in the repository and selecting the desired models at init
        f            = h5py.File(repo_filename,"r")
@@ -65,22 +67,20 @@ class ssp_models(tuning_tools):
        tmp_imf_type = np.array(np.array(f['imf_type']), dtype='str')
        
        if (alp_type == 'variable') and (isochrone == 'P'):
-          misc.printFAILED("Variable [alpha/Fe] predictions are only available for BaSTI isochrones")
-          sys.exit
+          raise ValueError("Variable [alpha/Fe] predictions are only available for BaSTI isochrones")
 
        idx = (tmp_iso == isochrone) & (tmp_imf_type == imf_type) 
        if (np.sum(idx) == 0):
-           misc.printFAILED("No cases found with those specs. Returning NoneType object")
+           logger.error("No cases found with those specs. Returning NoneType object")
            return
-       if verbose:
-           print(" - "+str(np.sum(idx))+"/"+str(nspec)+" cases found")   
+
+       logger.debug(" - "+str(np.sum(idx))+"/"+str(nspec)+" cases found")
 
        # If requested, list instance attributes
        if show_tree == True:
-          print()
-          print("# Showing instance attributes...")
+          logger.info("# Showing instance attributes...")
           for item in list(f.keys()):
-              print(" - ",item)
+              logger.info(" - ",item)
           sys.exit
 
        # Extracting relevant info
@@ -132,8 +132,7 @@ class ssp_models(tuning_tools):
        
 #        super().__init__(source=self.source,wave=self.wave,spec=self.spec)
 
-       if verbose:
-           misc.printDONE(source+" models loaded")
+       logger.info(source+" models loaded")
    
 # -----------------------------------------------------------------------------
    def set_item(self,idx):
@@ -200,8 +199,7 @@ class ssp_models(tuning_tools):
 
        """
        
-       if verbose:
-           print("# Searching for models within parameters range")
+       logger.info("# Searching for models within parameters range")
        
        if self.alpha_flag == 1: 
           idx = (self.age >= age_lims[0]) & (self.age <= age_lims[1]) & \
@@ -214,17 +212,15 @@ class ssp_models(tuning_tools):
                 (self.imf_slope >= imf_slope_lims[0]) & (self.imf_slope <= imf_slope_lims[1]) 
 
        ncases = np.sum(idx)
-       if verbose:
-           print(" - "+str(ncases)+" cases found")
+       logger.debug(" - "+str(ncases)+" cases found")
+
        if (ncases == 0):
-           misc.printFAILED("Returning NoneType object")
+           logger.warning("get_ssp_in_range returning NoneType object")
            return
 
        out = self.set_item(idx)
        
-       if verbose:
-          misc.printDONE()
-
+       logger.info("DONE")
        return out
 
 # -----------------------------------------------------------------------------
@@ -260,18 +256,15 @@ class ssp_models(tuning_tools):
        imf_slope = np.array(imf_slope_list).ravel()
 
        # Checking they have the same number of elements
-       if self.alpha_flag == 1: 
-          check = len(set(map(len, (age,met,imf_slope)))) == 1
+       if self.alpha_flag == 1:
+           if len(set(map(len, (age,met,imf_slope)))) != 1:
+              raise ValueError("Input list values do not have the same length.")
        else:
-          check = len(set(map(len, (age,met,alpha,imf_slope)))) == 1
+           if len(set(map(len, (age,met,alpha,imf_slope)))) != 1:
+              raise ValueError("Input list values do not have the same length.")
 
-       if check == False:
-           misc.printFAILED("Input list values do not have the same length.")
-           print(len(age),len(met),len(alpha),len(imf_slope))
-           return
+       logger.info("# Searching for selected cases")
 
-       if verbose:
-           print("# Searching for selected cases")
        ncases = len(age)
        id = []
        for i in range(ncases):
@@ -290,16 +283,13 @@ class ssp_models(tuning_tools):
 
        good = np.array(id, dtype=int)
        ncases = len(good)
-       if verbose:
-           print(" - "+str(ncases)+" cases found")
-       if (ncases == 0):
-           misc.printFAILED("Check those values exist for isochrone: "+self.isochrone[0]+" and IMF_Type: "+self.imf_type[0]+". Please check this agrees with init instance.")
-           sys.exit
+       logger.debug(" - "+str(ncases)+" cases found")
+
+       assert ncases > 0, "Check those values exist for isochrone: "+self.isochrone[0]+" and IMF_Type: "+self.imf_type[0]+". Please check this agrees with init instance."
 
        out = self.set_item(good)
 
-       if verbose:
-           misc.printDONE()
+       logger.info("DONE")
  
        return out
 
@@ -340,8 +330,7 @@ class ssp_models(tuning_tools):
                  (imf_slope >= np.amin(self.imf_slope)) & (imf_slope <= np.amax(self.imf_slope))
    
        if np.sum(good) == 0:
-           misc.printFAILED("Desired point outside model grid")
-           sys.exit
+           raise RuntimeError("Desired point outside model grid")
 
        # Checking that the IMF_SLOPE desired is available
        uimf_slope = np.unique(self.imf_slope)
@@ -349,8 +338,7 @@ class ssp_models(tuning_tools):
        ok = (nimf_slope == 1)
       
        # Creating Delaunay triangulation of parameters
-       if verbose:
-         print("# Creating Delaunay triangulation")
+       logger.info("# Creating Delaunay triangulation")
        if self.alpha_flag == 1:
           if ok == True:
              self.params = np.empty((len(self.age),2))
@@ -377,8 +365,7 @@ class ssp_models(tuning_tools):
        self.tri = Delaunay(self.params, qhull_options='QJ')
 
       # Searching for the simplex that surrounds the desired point in parameter space
-       if verbose:
-           print("# Searching for the simplex that surrounds the desired point in parameter space")
+       logger.info("# Searching for the simplex that surrounds the desired point in parameter space")
 
        if self.alpha_flag == 1:
           if ok == True:
@@ -394,8 +381,7 @@ class ssp_models(tuning_tools):
        vtx, wts = utils.interp_weights(self.params, input_pt, self.tri)
        vtx, wts = vtx.ravel(), wts.ravel()
  
-       if verbose:
-           print("# Interpolating spectra around the desired point")
+       logger.info("# Interpolating spectra around the desired point")
        wave = self.wave
        spec = np.dot(self.spec[:,vtx],wts)
        # Saving all the new info into an object 
@@ -426,8 +412,7 @@ class ssp_models(tuning_tools):
       Dictionary with mass-to-light ratios for each SSP model and filter
     
       """
-      if verbose:
-         print("# Computing mass-to-light ratios -----------------")
+      logger.info("# Computing mass-to-light ratios -----------------")
 
       zeropoint = 'AB' # We need to choose a system. For M/Ls this is irrelevant
       nfilters  = len(filters.keys())
@@ -445,8 +430,7 @@ class ssp_models(tuning_tools):
       elif type == 'gas':
          mass = self.Mass_gas
       else:
-         misc.printFAILED("Mass type not allowed. Valid options are total/star/remn/star+remn/gas.")
-         sys.exit               
+         raise ValueError("Mass type not allowed. Valid options are total/star/remn/star+remn/gas.")
 
       outmls = {}
       fnames = list(filters.keys()) 

@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import logging
 import h5py
 import numpy                 as np
 import matplotlib.pyplot     as plt
@@ -11,6 +12,9 @@ from   scipy.spatial         import Delaunay
 from   copy                  import copy
 from   pymiles.scripts.tuning_tools_class    import tuning_tools
 #==============================================================================
+
+logger = logging.getLogger('pymiles.lib')
+
 class stellar_library(tuning_tools):
 
 # -----------------------------------------------------------------------------
@@ -128,8 +132,7 @@ class stellar_library(tuning_tools):
 
        idx = (np.array(self.id) == id)
        if (np.sum(idx) == 0):
-           misc.printFAILED("No star with that ID")
-           exit()
+           raise ValueError("No star with that ID")
        
        out = self.set_item(idx)
 
@@ -153,8 +156,7 @@ class stellar_library(tuning_tools):
 
        idx = (np.array(self.id) == id)
        if (np.sum(idx) == 0):
-           misc.printFAILED("No star with that ID")
-           exit()
+           raise ValueError("No star with that ID")
        
        out = self.set_item(idx)
        
