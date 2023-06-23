@@ -13,8 +13,7 @@ from   astropy.io          import ascii, fits
 from   astropy             import constants
 from   scipy.spatial       import Delaunay
 from   copy                import copy
-from   pymiles.scripts.tuning_tools_class  import tuning_tools
-# from   pymiles.scripts.sfh_class           import sfh
+from   pymiles.scripts.tuning_tools import tuning_tools
 from itertools import compress
 
 logger = logging.getLogger('pymiles.ssp')

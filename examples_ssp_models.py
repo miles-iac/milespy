@@ -2,8 +2,7 @@ import numpy             as np
 import matplotlib.pyplot as plt
 import h5py
 from   astropy.io        import ascii, fits
-from   pymiles.scripts.ssp_models_class  import ssp_models as ssp
-from   pymiles.scripts.tuning_tools_class import tuning_tools as tt
+from   pymiles.scripts.ssp_models  import ssp_models as ssp
 #==============================================================================
 if (__name__ == '__main__'):
 

@@ -12,7 +12,7 @@ from   scipy.integrate     import simps
 from   copy import copy
 import pymiles.scripts.misc_functions      as misc
 import pymiles.scripts.pymiles_utils       as utils
-from   pymiles.scripts.ssp_models_class import ssp_models
+from   pymiles.scripts.ssp_models import ssp_models
 # from ipdb import set_trace as stop
 #==============================================================================
 

@@ -10,7 +10,7 @@ import pymiles.scripts.pymiles_utils        as utils
 from   astropy.io            import ascii, fits
 from   scipy.spatial         import Delaunay
 from   copy                  import copy
-from   pymiles.scripts.tuning_tools_class    import tuning_tools
+from   pymiles.scripts.tuning_tools import tuning_tools
 #==============================================================================
 
 logger = logging.getLogger('pymiles.lib')
