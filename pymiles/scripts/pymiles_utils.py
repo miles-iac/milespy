@@ -2,12 +2,15 @@ import os
 import sys
 import glob
 import h5py
+import logging
 # import scipy.interpolate
 import scipy.ndimage
 import numpy                 as np
 import matplotlib.pyplot     as plt
 from   astropy.io            import fits, ascii
 from   scipy.interpolate   import interp1d
+
+logger = logging.getLogger('pymiles.utils')
 #==============================================================================
 def interp_weights(xyz, uvw, tri):
 
@@ -241,7 +244,7 @@ def compute_mags(wave, flux, filters, zerosed, zeropoint, sun=False):
     if sun == True:
        cfact = -5.0*np.log10(4.84E-6/10.0) # for absolute magnitudes
     else:
-       cfact = 5.0 * np.log10(1.7684E8 * dl) # from lum[erg/s/A] to flux [erg/s/A/cm²]
+       cfact = 5.0 * np.log10(1.7684E8 * dl) # from lum[erg/s/A] to flux [erg/s/A/cm2]
  
     # Getting info about filters
     nfilters     = len(filters.keys()) 
@@ -262,12 +265,14 @@ def compute_mags(wave, flux, filters, zerosed, zeropoint, sun=False):
         tmp_wave = wave[w]
         tmp_flux = flux[w]
         if (np.amin(wave) > wlow) or (np.amax(wave) < whi):
-           continue
+            logger.warning("Filter "+filter_names[i]+" ["+str(wlow)+","+str(whi)+"] is outside of spectral range ["+str(np.amin(wave))+","+str(np.amax(wave))+"]\t Returning nan")
+            continue
 
         # Identifying pixels with no flux
         bad = (tmp_flux == 0.0)
         if np.sum(bad) > 0:
-           continue 
+           logger.warning("Filter "+filter_names[i]+" ["+str(wlow)+","+str(whi)+"] has zero flux\t Returning nan")
+           continue
 
         # Interpolate the filter response to data wavelength
         interp   = interp1d(filters[filter_names[i]]['wave'][good],filters[filter_names[i]]['trans'][good])
