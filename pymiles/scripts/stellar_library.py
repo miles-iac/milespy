@@ -45,7 +45,7 @@ class stellar_library(tuning_tools):
        self.MgFe     = np.array(f['MgFe'])
        self.starname = [n.decode() for n in f['starname']]
        self.filename = [n.decode() for n in f['filename']]
-       self.id       = [np.int(n.decode()) for n in f['id']]
+       self.id       = [np.int32(n.decode()) for n in f['id']]
        self.nspec    = np.amax(self.index+1)
        self.wave     = np.array(f['wave'])
        self.spec     = np.array(f['spec'])
