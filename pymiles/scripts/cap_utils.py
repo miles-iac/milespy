@@ -1,10 +1,14 @@
 from __future__ import print_function
+from matplotlib import colors
+from scipy.spatial import distance
+from matplotlib.ticker import MaxNLocator
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from time import perf_counter as clock  # previusly from time import clock (py < 3.6)
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import distance, cKDTree
 from scipy import ndimage
-#==============================================================================
+# ==============================================================================
 """"
 #####################################################################
 
@@ -251,7 +255,8 @@ MODIFICATION HISTORY:
 
 """
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+
 
 def _sn_func(index, signal=None, noise=None):
     """
@@ -284,7 +289,7 @@ def _sn_func(index, signal=None, noise=None):
     :return: scalar S/N or another quantity that needs to be equalized.
     """
 
-    sn = np.sum(signal[index])/np.sqrt(np.sum(noise[index]**2))
+    sn = np.sum(signal[index]) / np.sqrt(np.sum(noise[index]**2))
 
     # The following commented line illustrates, as an example, how one
     # would include the effect of spatial covariance using the empirical
@@ -293,9 +298,10 @@ def _sn_func(index, signal=None, noise=None):
     #
     # sn /= 1 + 1.07*np.log10(index.size)
 
-    return  sn
+    return sn
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+
 
 def voronoi_tessellation(x, y, xnode, ynode, scale):
     """
@@ -307,15 +313,16 @@ def voronoi_tessellation(x, y, xnode, ynode, scale):
         classe = tree.query(np.column_stack([x, y]))[1]
     else:
         if x.size < 1e4:
-            classe = np.argmin(((x[:, None] - xnode)**2 + (y[:, None] - ynode)**2)/scale**2, axis=1)
+            classe = np.argmin(((x[:, None] - xnode)**2 + (y[:, None] - ynode)**2) / scale**2, axis=1)
         else:  # use for loop to reduce memory usage
             classe = np.zeros(x.size, dtype=int)
             for j, (xj, yj) in enumerate(zip(x, y)):
-                classe[j] = np.argmin(((xj - xnode)**2 + (yj - ynode)**2)/scale**2)
+                classe[j] = np.argmin(((xj - xnode)**2 + (yj - ynode)**2) / scale**2)
 
     return classe
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+
 
 def _centroid(x, y, density):
     """
@@ -324,12 +331,13 @@ def _centroid(x, y, density):
 
     """
     mass = np.sum(density)
-    xBar = x.dot(density)/mass
-    yBar = y.dot(density)/mass
+    xBar = x.dot(density) / mass
+    yBar = y.dot(density) / mass
 
     return xBar, yBar
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+
 
 def _roundness(x, y, pixelSize):
     """
@@ -337,14 +345,15 @@ def _roundness(x, y, pixelSize):
 
     """
     n = x.size
-    equivalentRadius = np.sqrt(n/np.pi)*pixelSize
+    equivalentRadius = np.sqrt(n / np.pi) * pixelSize
     xBar, yBar = np.mean(x), np.mean(y)  # Geometric centroid here!
     maxDistance = np.sqrt(np.max((x - xBar)**2 + (y - yBar)**2))
-    roundness = maxDistance/equivalentRadius - 1.
+    roundness = maxDistance / equivalentRadius - 1.
 
     return roundness
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+
 
 def _accretion(x, y, signal, noise, targetSN, pixelsize, quiet, sn_func):
     """
@@ -364,20 +373,20 @@ def _accretion(x, y, signal, noise, targetSN, pixelsize, quiet, sn_func):
         else:
             raise ValueError("Dataset is large: Provide `pixelsize`")
 
-    currentBin = np.argmax(signal/noise)  # Start from the pixel with highest S/N
+    currentBin = np.argmax(signal / noise)  # Start from the pixel with highest S/N
     SN = sn_func(currentBin, signal, noise)
 
     # Rough estimate of the expected final bins number.
     # This value is only used to give an idea of the expected
     # remaining computation time when binning very big dataset.
     #
-    w = signal/noise < targetSN
-    maxnum = int(np.sum((signal[w]/noise[w])**2)/targetSN**2 + np.sum(~w))
+    w = signal / noise < targetSN
+    maxnum = int(np.sum((signal[w] / noise[w])**2) / targetSN**2 + np.sum(~w))
 
     # The first bin will be assigned CLASS = 1
     # With N pixels there will be at most N bins
     #
-    for ind in range(1, n+1):
+    for ind in range(1, n + 1):
 
         if not quiet:
             print(ind, ' / ', maxnum)
@@ -414,9 +423,9 @@ def _accretion(x, y, signal, noise, targetSN, pixelsize, quiet, sn_func):
             # current bin, (2) whether the POSSIBLE new bin is round enough
             # and (3) whether the resulting S/N would get closer to targetSN
             #
-            if (np.sqrt(minDist) > 1.2*pixelsize or roundness > 0.3
-                or abs(SN - targetSN) > abs(SNOld - targetSN) or SNOld > SN):
-                if SNOld > 0.8*targetSN:
+            if (np.sqrt(minDist) > 1.2 * pixelsize or roundness > 0.3
+                    or abs(SN - targetSN) > abs(SNOld - targetSN) or SNOld > SN):
+                if SNOld > 0.8 * targetSN:
                     good[currentBin] = 1
                 break
 
@@ -449,7 +458,8 @@ def _accretion(x, y, signal, noise, targetSN, pixelsize, quiet, sn_func):
 
     return classe, pixelsize
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+
 
 def _reassign_bad_bins(classe, x, y):
     """
@@ -479,7 +489,8 @@ def _reassign_bad_bins(classe, x, y):
 
     return xnode, ynode
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+
 
 def _cvt_equal_mass(x, y, signal, noise, xnode, ynode, pixelsize, quiet, sn_func, wvt):
     """
@@ -490,7 +501,7 @@ def _cvt_equal_mass(x, y, signal, noise, xnode, ynode, pixelsize, quiet, sn_func
     the modification proposed by Diehl & Statler (2006).
 
     """
-    dens2 = (signal/noise)**4     # See beginning of section 4.1 of CC03
+    dens2 = (signal / noise)**4     # See beginning of section 4.1 of CC03
     scale = np.ones_like(xnode)   # Start with the same scale length for all bins
 
     for it in range(1, xnode.size):  # Do at most xnode.size iterations
@@ -508,14 +519,14 @@ def _cvt_equal_mass(x, y, signal, noise, xnode, ynode, pixelsize, quiet, sn_func
                 index = np.flatnonzero(classe == k)   # Find subscripts of pixels in bin k.
                 xnode[k], ynode[k] = np.mean(x[index]), np.mean(y[index])
                 sn = sn_func(index, signal, noise)
-                scale[k] = np.sqrt(index.size/sn)  # Eq. (4) of Diehl & Statler (2006)
+                scale[k] = np.sqrt(index.size / sn)  # Eq. (4) of Diehl & Statler (2006)
         else:
             mass = ndimage.sum(dens2, labels=classe, index=good)
-            xnode = ndimage.sum(x*dens2, labels=classe, index=good)/mass
-            ynode = ndimage.sum(y*dens2, labels=classe, index=good)/mass
+            xnode = ndimage.sum(x * dens2, labels=classe, index=good) / mass
+            ynode = ndimage.sum(y * dens2, labels=classe, index=good) / mass
 
         diff2 = np.sum((xnode - xnode_old)**2 + (ynode - ynode_old)**2)
-        diff = np.sqrt(diff2)/pixelsize
+        diff = np.sqrt(diff2) / pixelsize
 
         if not quiet:
             print('Iter: %4i  Diff: %.4g' % (it, diff))
@@ -533,7 +544,8 @@ def _cvt_equal_mass(x, y, signal, noise, xnode, ynode, pixelsize, quiet, sn_func
 
     return xnode[good], ynode[good], scale[good], it
 
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+
 
 def _compute_useful_bin_quantities(x, y, signal, noise, xnode, ynode, scale, sn_func):
     """
@@ -562,7 +574,8 @@ def _compute_useful_bin_quantities(x, y, signal, noise, xnode, ynode, scale, sn_
 
     return classe, xbar, ybar, sn, area
 
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+
 
 def _display_pixels(x, y, counts, pixelsize):
     """
@@ -573,22 +586,23 @@ def _display_pixels(x, y, counts, pixelsize):
     """
     xmin, xmax = np.min(x), np.max(x)
     ymin, ymax = np.min(y), np.max(y)
-    nx = int(round((xmax - xmin)/pixelsize) + 1)
-    ny = int(round((ymax - ymin)/pixelsize) + 1)
+    nx = int(round((xmax - xmin) / pixelsize) + 1)
+    ny = int(round((ymax - ymin) / pixelsize) + 1)
     img = np.full((nx, ny), np.nan)  # use nan for missing data
-    j = np.round((x - xmin)/pixelsize).astype(int)
-    k = np.round((y - ymin)/pixelsize).astype(int)
+    j = np.round((x - xmin) / pixelsize).astype(int)
+    k = np.round((y - ymin) / pixelsize).astype(int)
     img[j, k] = counts
 
     plt.imshow(np.rot90(img), interpolation='nearest', cmap='prism',
-               extent=[xmin - pixelsize/2, xmax + pixelsize/2,
-                       ymin - pixelsize/2, ymax + pixelsize/2])
+               extent=[xmin - pixelsize / 2, xmax + pixelsize / 2,
+                       ymin - pixelsize / 2, ymax + pixelsize / 2])
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+
 
 def voronoi_2d_binning(x, y, signal, noise, targetSN, cvt=True,
-                         pixelsize=None, plot=True, quiet=True,
-                         sn_func=None, wvt=True):
+                       pixelsize=None, plot=True, quiet=True,
+                       sn_func=None, wvt=True):
     """
     PURPOSE:
           Perform adaptive spatial binning of Integral-Field Spectroscopic
@@ -630,7 +644,7 @@ def voronoi_2d_binning(x, y, signal, noise, targetSN, cvt=True,
             They should not be included in the set to bin,
             or the pixels should be optimally weighted.
             See Cappellari & Copin (2003, Sec.2.1) and README file.""")
-    if np.min(signal/noise) > targetSN:
+    if np.min(signal / noise) > targetSN:
         raise ValueError('All pixels have enough S/N and binning is not needed')
 
     t = clock()
@@ -658,7 +672,7 @@ def voronoi_2d_binning(x, y, signal, noise, targetSN, cvt=True,
     w = area == 1
     if not quiet:
         print('Unbinned pixels: ', np.sum(w), ' / ', x.size)
-        print('Fractional S/N scatter (%):', np.std(sn[~w] - targetSN, ddof=1)/targetSN*100)
+        print('Fractional S/N scatter (%):', np.std(sn[~w] - targetSN, ddof=1) / targetSN * 100)
         print('Elapsed time: %.2f seconds' % (clock() - t))
 
     if plot:
@@ -666,7 +680,7 @@ def voronoi_2d_binning(x, y, signal, noise, targetSN, cvt=True,
         plt.subplot(211)
         rnd = np.argsort(np.random.random(xnode.size))  # Randomize bin colors
         _display_pixels(x, y, rnd[classe], pixelsize)
-        plt.plot(xnode, ynode, '+w', scalex=False, scaley=False) # do not rescale after imshow()
+        plt.plot(xnode, ynode, '+w', scalex=False, scaley=False)  # do not rescale after imshow()
         plt.xlabel('R (arcsec)')
         plt.ylabel('R (arcsec)')
         plt.title('Map of Voronoi bins')
@@ -685,7 +699,7 @@ def voronoi_2d_binning(x, y, signal, noise, targetSN, cvt=True,
 
     return classe, xnode, ynode, xBar, yBar, sn, area, scale
 
-#==============================================================================
+# ==============================================================================
 #
 # NAME:
 #   LOG_REBIN
@@ -710,6 +724,7 @@ def voronoi_2d_binning(x, y, signal, noise, targetSN, cvt=True,
 #   V3.1.0: Fully vectorized log_rebin. Typical speed up by two orders of magnitude.
 #       MC, Oxford, 4 March 2014
 #   V3.1.1: Updated documentation. MC, Oxford, 16 August 2016
+
 
 def log_rebin(lamRange, spec, oversample=False, velscale=None, flux=False):
     """
@@ -758,38 +773,38 @@ def log_rebin(lamRange, spec, oversample=False, velscale=None, flux=False):
         raise ValueError('input spectrum must be a vector')
     n = s[0]
     if oversample:
-        m = int(n*oversample)
+        m = int(n * oversample)
     else:
         m = int(n)
 
-    dLam = np.diff(lamRange)/(n - 1.)        # Assume constant dLam
-    lim = lamRange/dLam + [-0.5, 0.5]        # All in units of dLam
-    borders = np.linspace(*lim, num=n+1)     # Linearly
+    dLam = np.diff(lamRange) / (n - 1.)        # Assume constant dLam
+    lim = lamRange / dLam + [-0.5, 0.5]        # All in units of dLam
+    borders = np.linspace(*lim, num=n + 1)     # Linearly
     logLim = np.log(lim)
 
     c = 299792.458                           # Speed of light in km/s
     if velscale is None:                     # Velocity scale is set by user
-        velscale = np.diff(logLim)/m*c       # Only for output
+        velscale = np.diff(logLim) / m * c       # Only for output
     else:
-        logScale = velscale/c
-        m = int(np.diff(logLim)/logScale)    # Number of output pixels
-        logLim[1] = logLim[0] + m*logScale
+        logScale = velscale / c
+        m = int(np.diff(logLim) / logScale)    # Number of output pixels
+        logLim[1] = logLim[0] + m * logScale
 
-    newBorders = np.exp(np.linspace(*logLim, num=m+1)) # Logarithmically
-    k = (newBorders - lim[0]).clip(0, n-1).astype(int)
+    newBorders = np.exp(np.linspace(*logLim, num=m + 1))  # Logarithmically
+    k = (newBorders - lim[0]).clip(0, n - 1).astype(int)
 
     specNew = np.add.reduceat(spec, k)[:-1]  # Do analytic integral
     specNew *= np.diff(k) > 0    # fix for design flaw of reduceat()
-    specNew += np.diff((newBorders - borders[k])*spec[k])
+    specNew += np.diff((newBorders - borders[k]) * spec[k])
 
     if not flux:
         specNew /= np.diff(newBorders)
 
     # Output log(wavelength): log of geometric mean
-    logLam = np.log(np.sqrt(newBorders[1:]*newBorders[:-1])*dLam)
+    logLam = np.log(np.sqrt(newBorders[1:] * newBorders[:-1]) * dLam)
 
     return specNew, logLam, velscale
-#==============================================================================
+# ==============================================================================
 ###############################################################################
 #
 # NAME:
@@ -808,6 +823,7 @@ def log_rebin(lamRange, spec, oversample=False, velscale=None, flux=False):
 #   V3.0.0: New weyword added
 #      JFB, MIAPP, 16 August 2019
 
+
 def determine_goodpixels(logLam, lamRangeTemp, z, width=800, vmax=900):
     """
     Generates a list of goodpixels to mask a given set of gas emission
@@ -822,21 +838,21 @@ def determine_goodpixels(logLam, lamRangeTemp, z, width=800, vmax=900):
 
     """
 #                     -----[OII]-----    Hdelta   Hgamma   Hbeta   -----[OIII]-----  -[NI]-   [OI]    -----[NII]-----   Halpha   -----[SII]-----
-    lines = np.array([3726.03, 3728.82, 4101.76, 4340.47, 4861.33, 4958.92, 5006.84, 5200.0,  6300.30, 6548.03, 6583.41, 6562.80, 6716.47, 6730.85])
+    lines = np.array([3726.03, 3728.82, 4101.76, 4340.47, 4861.33, 4958.92, 5006.84, 5200.0, 6300.30, 6548.03, 6583.41, 6562.80, 6716.47, 6730.85])
     dv = np.full_like(lines, width)  # width/2 of masked gas emission region in km/s
-    c = 299792.458 # speed of light in km/s
+    c = 299792.458  # speed of light in km/s
 
     flag = False
     for line, dvj in zip(lines, dv):
-        flag |= (np.exp(logLam) > line*(1 + z)*(1 - dvj/c)) \
-              & (np.exp(logLam) < line*(1 + z)*(1 + dvj/c))
+        flag |= (np.exp(logLam) > line * (1 + z) * (1 - dvj / c)) \
+            & (np.exp(logLam) < line * (1 + z) * (1 + dvj / c))
 
-    flag |= np.exp(logLam) > lamRangeTemp[1]*(1 + z)*(1 - vmax/c)   # Mask edges of
-    flag |= np.exp(logLam) < lamRangeTemp[0]*(1 + z)*(1 + vmax/c)   # stellar library
+    flag |= np.exp(logLam) > lamRangeTemp[1] * (1 + z) * (1 - vmax / c)   # Mask edges of
+    flag |= np.exp(logLam) < lamRangeTemp[0] * (1 + z) * (1 + vmax / c)   # stellar library
 
     return np.flatnonzero(~flag)
 
-#==============================================================================
+# ==============================================================================
 ###############################################################################
 # NAME:
 #   GAUSSIAN_FILTER1D
@@ -844,6 +860,7 @@ def determine_goodpixels(logLam, lamRangeTemp, z, width=800, vmax=900):
 # MODIFICATION HISTORY:
 #   V1.0.0: Written as a replacement for the Scipy routine with the same name,
 #       to be used with variable sigma per pixel. MC, Oxford, 10 October 2015
+
 
 def gaussian_filter1d(spec, sig):
     """
@@ -860,22 +877,24 @@ def gaussian_filter1d(spec, sig):
 
     """
     sig = sig.clip(0.01)  # forces zero sigmas to have 0.01 pixels
-    p = int(np.ceil(np.max(3*sig)))
-    m = 2*p + 1  # kernel size
+    p = int(np.ceil(np.max(3 * sig)))
+    m = 2 * p + 1  # kernel size
     x2 = np.linspace(-p, p, m)**2
 
     n = spec.size
     a = np.zeros((m, n))
     for j in range(m):   # Loop over the small size of the kernel
-        a[j, p:-p] = spec[j:n-m+j+1]
+        a[j, p:-p] = spec[j:n - m + j + 1]
 
-    gau = np.exp(-x2[:, None]/(2*sig**2))
+    gau = np.exp(-x2[:, None] / (2 * sig**2))
     gau /= np.sum(gau, 0)[None, :]  # Normalize kernel
 
-    conv_spectrum = np.sum(a*gau, 0)
+    conv_spectrum = np.sum(a * gau, 0)
 
     return conv_spectrum
-#==============================================================================
+
+
+# ==============================================================================
 """
     Copyright (C) 2016, Michele Cappellari
     E-mail: michele.cappellari_at_physics.ox.ac.uk
@@ -903,14 +922,10 @@ def gaussian_filter1d(spec, sig):
 
 """
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.ticker import MaxNLocator
-from scipy.spatial import distance
-import numpy as np
 
-#from sauron_colormap import sauron
+# from sauron_colormap import sauron
 ##############################################################################
+
 
 def display_pixels(x, y, val, pixelsize=None, vmin=None, vmax=None,
                    angle=None, colorbar=False, label=None, nticks=7, cmap=None, **kwargs):
@@ -942,10 +957,10 @@ def display_pixels(x, y, val, pixelsize=None, vmin=None, vmax=None,
 
     xmin, xmax = np.min(x), np.max(x)
     ymin, ymax = np.min(y), np.max(y)
-    x1 = (x - xmin)/pixelsize
-    y1 = (y - ymin)/pixelsize
-    nx = int(round((xmax - xmin)/pixelsize) + 1)
-    ny = int(round((ymax - ymin)/pixelsize) + 1)
+    x1 = (x - xmin) / pixelsize
+    y1 = (y - ymin) / pixelsize
+    nx = int(round((xmax - xmin) / pixelsize) + 1)
+    ny = int(round((ymax - ymin) / pixelsize) + 1)
     mask = np.ones((nx, ny), dtype=bool)
     img = np.empty((nx, ny))
     j = np.round(x1).astype(int)
@@ -960,21 +975,21 @@ def display_pixels(x, y, val, pixelsize=None, vmin=None, vmax=None,
     ax = plt.gca()
 
     if (angle is None) or (angle == 0):
-        
+
         if cmap == None:
-           cmap=kwargs.get("cmap", sauron)
+            cmap = kwargs.get("cmap", sauron)
 
         img = ax.imshow(np.rot90(img), interpolation='none',
                         cmap=cmap, vmin=vmin, vmax=vmax,
-                        extent=[xmin-pixelsize/2, xmax+pixelsize/2,
-                                ymin-pixelsize/2, ymax+pixelsize/2])
+                        extent=[xmin - pixelsize / 2, xmax + pixelsize / 2,
+                                ymin - pixelsize / 2, ymax + pixelsize / 2])
 
     else:
 
-        x, y = np.ogrid[xmin-pixelsize/2 : xmax+pixelsize/2 : (nx+1)*1j,
-                        ymin-pixelsize/2 : ymax+pixelsize/2 : (ny+1)*1j]
+        x, y = np.ogrid[xmin - pixelsize / 2: xmax + pixelsize / 2: (nx + 1) * 1j,
+                        ymin - pixelsize / 2: ymax + pixelsize / 2: (ny + 1) * 1j]
         ang = np.radians(angle)
-        x, y = x*np.cos(ang) - y*np.sin(ang), x*np.sin(ang) + y*np.cos(ang)
+        x, y = x * np.cos(ang) - y * np.sin(ang), x * np.sin(ang) + y * np.cos(ang)
 
         mask1 = np.ones_like(x, dtype=bool)
         mask1[:-1, :-1] *= mask  # Flag the four corners of the mesh
@@ -998,13 +1013,14 @@ def display_pixels(x, y, val, pixelsize=None, vmin=None, vmax=None,
             cbar.set_label(label)
         plt.sca(ax)  # Activate main plot before returning
 
-
     ax.minorticks_on()
     ax.tick_params(length=10, width=1, which='major')
     ax.tick_params(length=5, width=1, which='minor')
 
     return img
-#==============================================================================
+
+
+# ==============================================================================
 """
 NAME:
     display_bins(x, y, binNum, velBin)
@@ -1029,9 +1045,9 @@ MODIFICATION HISTORY:
 
 """
 
-import numpy as np
 
-#from cap_display_pixels import display_pixels
+# from cap_display_pixels import display_pixels
+
 
 def display_bins(x, y, binNum, velBin, cmap=None):
 
@@ -1044,7 +1060,9 @@ def display_bins(x, y, binNum, velBin, cmap=None):
     img = display_pixels(x, y, velBin[binNum], cmap=cmap)
 
     return img
-#==============================================================================
+
+
+# ==============================================================================
 """
   Copyright (C) 2014-2015, Michele Cappellari
   E-mail: michele.cappellari_at_physics.ox.ac.uk
@@ -1055,7 +1073,6 @@ def display_bins(x, y, binNum, velBin, cmap=None):
   V1.1: Included reversed colormap. MC, Oxford, 9 August 2015
 
 """
-from matplotlib import colors
 
 ##############################################################################
 
@@ -1070,80 +1087,82 @@ from matplotlib import colors
 # green = [0.0, 0.0, 0.85, 1.0, 1.0, 0.9, 1.0, 1.0, 0.85, 0.0, 0.9]
 # blue =  [0.0, 1.0, 1.0,  1.0, 0.7, 0.0, 0.0, 0.0, 0.0,  0.0, 0.9]
 
-_cdict = {'red':[(0.000,   0.01,   0.01),
-                 (0.170,   0.0,    0.0),
-                 (0.336,   0.4,    0.4),
-                 (0.414,   0.5,    0.5),
-                 (0.463,   0.3,    0.3),
-                 (0.502,   0.0,    0.0),
-                 (0.541,   0.7,    0.7),
-                 (0.590,   1.0,    1.0),
-                 (0.668,   1.0,    1.0),
-                 (0.834,   1.0,    1.0),
-                 (1.000,   0.9,    0.9)],
-        'green':[(0.000,   0.01,   0.01),
-                 (0.170,   0.0,    0.0),
-                 (0.336,   0.85,   0.85),
-                 (0.414,   1.0,    1.0),
-                 (0.463,   1.0,    1.0),
-                 (0.502,   0.9,    0.9),
-                 (0.541,   1.0,    1.0),
-                 (0.590,   1.0,    1.0),
-                 (0.668,   0.85,   0.85),
-                 (0.834,   0.0,    0.0),
-                 (1.000,   0.9,    0.9)],
-         'blue':[(0.000,   0.01,   0.01),
-                 (0.170,   1.0,    1.0),
-                 (0.336,   1.0,    1.0),
-                 (0.414,   1.0,    1.0),
-                 (0.463,   0.7,    0.7),
-                 (0.502,   0.0,    0.0),
-                 (0.541,   0.0,    0.0),
-                 (0.590,   0.0,    0.0),
-                 (0.668,   0.0,    0.0),
-                 (0.834,   0.0,    0.0),
-                 (1.000,   0.9,    0.9)]
-         }
+_cdict = {'red': [(0.000, 0.01, 0.01),
+                  (0.170, 0.0, 0.0),
+                  (0.336, 0.4, 0.4),
+                  (0.414, 0.5, 0.5),
+                  (0.463, 0.3, 0.3),
+                  (0.502, 0.0, 0.0),
+                  (0.541, 0.7, 0.7),
+                  (0.590, 1.0, 1.0),
+                  (0.668, 1.0, 1.0),
+                  (0.834, 1.0, 1.0),
+                  (1.000, 0.9, 0.9)],
+          'green': [(0.000, 0.01, 0.01),
+                    (0.170, 0.0, 0.0),
+                    (0.336, 0.85, 0.85),
+                    (0.414, 1.0, 1.0),
+                    (0.463, 1.0, 1.0),
+                    (0.502, 0.9, 0.9),
+                    (0.541, 1.0, 1.0),
+                    (0.590, 1.0, 1.0),
+                    (0.668, 0.85, 0.85),
+                    (0.834, 0.0, 0.0),
+                    (1.000, 0.9, 0.9)],
+          'blue': [(0.000, 0.01, 0.01),
+                   (0.170, 1.0, 1.0),
+                   (0.336, 1.0, 1.0),
+                   (0.414, 1.0, 1.0),
+                   (0.463, 0.7, 0.7),
+                   (0.502, 0.0, 0.0),
+                   (0.541, 0.0, 0.0),
+                   (0.590, 0.0, 0.0),
+                   (0.668, 0.0, 0.0),
+                   (0.834, 0.0, 0.0),
+                   (1.000, 0.9, 0.9)]
+          }
 
-_rdict = {'red':[(0.000,   0.9,    0.9),
-                 (0.170,   1.0,    1.0),
-                 (0.336,   1.0,    1.0),
-                 (0.414,   1.0,    1.0),
-                 (0.463,   0.7,    0.7),
-                 (0.502,   0.0,    0.0),
-                 (0.541,   0.3,    0.3),
-                 (0.590,   0.5,    0.5),
-                 (0.668,   0.4,    0.4),
-                 (0.834,   0.0,    0.0),
-                 (1.000,   0.01,   0.01)],
-        'green':[(0.000,   0.9,    0.9),
-                 (0.170,   0.0,    0.0),
-                 (0.336,   0.85,   0.85),
-                 (0.414,   1.0,    1.0),
-                 (0.463,   1.0,    1.0),
-                 (0.502,   0.9,    0.9),
-                 (0.541,   1.0,    1.0),
-                 (0.590,   1.0,    1.0),
-                 (0.668,   0.85,   0.85),
-                 (0.834,   0.0,    0.0),
-                 (1.000,   0.01,   0.01)],
-         'blue':[(0.000,   0.9,    0.9),
-                 (0.170,   0.0,    0.0),
-                 (0.336,   0.0,    0.0),
-                 (0.414,   0.0,    0.0),
-                 (0.463,   0.0,    0.0),
-                 (0.502,   0.0,    0.0),
-                 (0.541,   0.7,    0.7),
-                 (0.590,   1.0,    1.0),
-                 (0.668,   1.0,    1.0),
-                 (0.834,   1.0,    1.0),
-                 (1.000,   0.01,   0.01)]
-         }
+_rdict = {'red': [(0.000, 0.9, 0.9),
+                  (0.170, 1.0, 1.0),
+                  (0.336, 1.0, 1.0),
+                  (0.414, 1.0, 1.0),
+                  (0.463, 0.7, 0.7),
+                  (0.502, 0.0, 0.0),
+                  (0.541, 0.3, 0.3),
+                  (0.590, 0.5, 0.5),
+                  (0.668, 0.4, 0.4),
+                  (0.834, 0.0, 0.0),
+                  (1.000, 0.01, 0.01)],
+          'green': [(0.000, 0.9, 0.9),
+                    (0.170, 0.0, 0.0),
+                    (0.336, 0.85, 0.85),
+                    (0.414, 1.0, 1.0),
+                    (0.463, 1.0, 1.0),
+                    (0.502, 0.9, 0.9),
+                    (0.541, 1.0, 1.0),
+                    (0.590, 1.0, 1.0),
+                    (0.668, 0.85, 0.85),
+                    (0.834, 0.0, 0.0),
+                    (1.000, 0.01, 0.01)],
+          'blue': [(0.000, 0.9, 0.9),
+                   (0.170, 0.0, 0.0),
+                   (0.336, 0.0, 0.0),
+                   (0.414, 0.0, 0.0),
+                   (0.463, 0.0, 0.0),
+                   (0.502, 0.0, 0.0),
+                   (0.541, 0.7, 0.7),
+                   (0.590, 1.0, 1.0),
+                   (0.668, 1.0, 1.0),
+                   (0.834, 1.0, 1.0),
+                   (1.000, 0.01, 0.01)]
+          }
 
 sauron = colors.LinearSegmentedColormap('sauron', _cdict)
 sauron_r = colors.LinearSegmentedColormap('sauron_r', _rdict)
 
-#==============================================================================
+# ==============================================================================
+
+
 def log_unbinning(lamRange, spec, oversample=1, flux=True):
     """
     This function transforms logarithmically binned spectra back to linear
@@ -1156,34 +1175,34 @@ def log_unbinning(lamRange, spec, oversample=1, flux=True):
     m = n * oversample
 
     # Log space
-    dLam = (lamRange[1]-lamRange[0]) / (n - 1)             # Step in log-space
-    lim = lamRange + np.array([-0.5, 0.5])*dLam            # Min and max wavelength in log-space
-    borders = np.linspace( lim[0], lim[1], n+1 )           # OLD logLam in log-space
+    dLam = (lamRange[1] - lamRange[0]) / (n - 1)             # Step in log-space
+    lim = lamRange + np.array([-0.5, 0.5]) * dLam            # Min and max wavelength in log-space
+    borders = np.linspace(lim[0], lim[1], n + 1)           # OLD logLam in log-space
 
     # Wavelength domain
-    logLim     = np.exp(lim)                               # Min and max wavelength in Angst.
-    lamNew     = np.linspace( logLim[0], logLim[1], m+1 )  # new logLam in Angstroem
+    logLim = np.exp(lim)                               # Min and max wavelength in Angst.
+    lamNew = np.linspace(logLim[0], logLim[1], m + 1)  # new logLam in Angstroem
     newBorders = np.log(lamNew)                            # new logLam in log-space
 
     # Translate indices of arrays so that newBorders[j] corresponds to borders[k[j]]
-    k = np.floor( (newBorders-lim[0]) / dLam ).astype('int')
+    k = np.floor((newBorders - lim[0]) / dLam).astype('int')
 
     # Construct new spectrum
     specNew = np.zeros(m)
-    for j in range(0, m-1):
-        a = (newBorders[j]   - borders[k[j]])   / dLam
-        b = (borders[k[j+1]] - newBorders[j+1]) / dLam
+    for j in range(0, m - 1):
+        a = (newBorders[j] - borders[k[j]]) / dLam
+        b = (borders[k[j + 1]] - newBorders[j + 1]) / dLam
 
-        specNew[j] = np.sum( spec[k[j]:k[j+1]] ) - a*spec[k[j]] - b*spec[k[j+1]]
+        specNew[j] = np.sum(spec[k[j]:k[j + 1]]) - a * spec[k[j]] - b * spec[k[j + 1]]
 
     # Rescale flux
     if flux == True:
-        specNew = specNew / ( newBorders[1:] - newBorders[:-1] ) * np.mean( newBorders[1:] - newBorders[:-1] ) * oversample
+        specNew = specNew / (newBorders[1:] - newBorders[:-1]) * np.mean(newBorders[1:] - newBorders[:-1]) * oversample
 
     # Shift back the wavelength arrays
-    lamNew = lamNew[:-1] + 0.5 * (lamNew[1]-lamNew[0])
+    lamNew = lamNew[:-1] + 0.5 * (lamNew[1] - lamNew[0])
 
-    return( specNew, lamNew )
-#==============================================================================
-#==============================================================================
-#==============================================================================
+    return (specNew, lamNew)
+# ==============================================================================
+# ==============================================================================
+# ==============================================================================
