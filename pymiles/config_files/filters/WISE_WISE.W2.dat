@@ -1,7 +1,7 @@
 #WISE_W2
 #http://wise2.ipac.caltech.edu/docs/release/prelim/expsup/sec4_3g.html#WISEZMA
 # Relative Spectral Response per erg (Equal-Energy); Jarrett et al. 2011
-#  W1     RSR     
+#  W1     RSR
 # Angstrom %1
 38900.0 0.0001082500
 39000.0 0.0001545400
