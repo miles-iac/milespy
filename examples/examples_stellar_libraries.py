@@ -1,18 +1,19 @@
-import numpy as np
+# -*- coding: utf-8 -*-
 import matplotlib.pyplot as plt
+import numpy as np
+
 from pymiles.stellar_library import stellar_library as stl
 
 # ==============================================================================
-if (__name__ == '__main__'):
-
+if __name__ == "__main__":
     # -------------------------------------------------------------------------------
     # STELLAR LIBRARIES EXAMPLES
     # -------------------------------------------------------------------------------
 
     # Initializing instance
     print("# Initializing instance")
-    lib = stl(source='MILES_STARS', version='9.1')
-#    lib = stl(source='CaT_STARS',version='9.1')
+    lib = stl(source="MILES_STARS", version="9.1")
+    #    lib = stl(source='CaT_STARS',version='9.1')
 
     # Get starname by ID
     print("# Getting starname by ID")
@@ -29,7 +30,9 @@ if (__name__ == '__main__'):
 
     # Get stars within parameter range
     print("# Getting stars within range")
-    tmp = lib.get_stars_in_range(teff_lims=[4500.0, 5000.0], logg_lims=[2.0, 2.5], FeH_lims=[0.0, 0.2])
+    tmp = lib.get_stars_in_range(
+        teff_lims=[4500.0, 5000.0], logg_lims=[2.0, 2.5], FeH_lims=[0.0, 0.2]
+    )
     print("Teff", np.nanmin(tmp.teff), np.nanmax(tmp.teff))
     print("Log(g)", np.nanmin(tmp.logg), np.nanmax(tmp.logg))
     print("[Fe/H]", np.nanmin(tmp.FeH), np.nanmax(tmp.FeH))
