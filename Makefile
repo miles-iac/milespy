@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := init
-.PHONY: add_major_version add_minor_version add_patch_version add_premajor_version add_preminor_version add_prepatch_version add_prerelease_version prepare-dev install-dev data help lint tests coverage upload-prod-pypi upload-test-pypi update_req update_req_dev pyclean doc doc-pdf visu-doc-pdf visu-doc tox licences
+.PHONY: add_major_version add_minor_version add_patch_version add_premajor_version add_preminor_version add_prepatch_version add_prerelease_version prepare-dev install-dev data help lint tests upload-prod-pypi upload-test-pypi update_req update_req_dev pyclean doc doc-pdf visu-doc-pdf visu-doc licences
 VENV = ".pymiles"
 
 define PROJECT_HELP_MSG
@@ -48,9 +48,7 @@ Usage:\n
 	\t\tOthers\n
 	-------------------------------------------------------------------------\n
 	make licences\t\t\t		Display the list of licences\n
-	make coverage\t\t\t 	Coverage\n
 	make lint\t\t\t			Lint\n
-	make tox\t\t\t 			Run all tests\n
 
 endef
 export PROJECT_HELP_MSG
@@ -85,11 +83,6 @@ prepare-dev:
 install-dev:
 	poetry install && poetry run pre-commit install
 
-coverage:  ## Run tests with coverage
-	poetry run coverage erase
-	poetry run coverage run --include=pymiles/* -m pytest -ra
-	poetry run coverage report -m
-
 lint:  ## Lint and static-check
 	poetry run flake8 --ignore=E203,E266,E501,W503,F403,F401 --max-line-length=79 --max-complexity=18 --select=B,C,E,F,W,T4,B9 pymiles
 	poetry run pylint pymiles
@@ -98,15 +91,9 @@ lint:  ## Lint and static-check
 tests:  ## Run tests
 	poetry run pytest
 
-tox:
-	poetry run tox -e py310
-
 doc:
 	make licences
-	rm -rf docs/source/_static/coverage
 	poetry run pytest -ra --html=docs/source/_static/report.html
-	poetry run make coverage
-	poetry run coverage html -d docs/source/_static/coverage
 	make html -C docs
 
 doc-pdf:
