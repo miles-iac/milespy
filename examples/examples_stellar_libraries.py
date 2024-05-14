@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from pymiles.scripts.stellar_library import stellar_library as stl
+from pymiles.stellar_library import stellar_library as stl
+
 # ==============================================================================
 if (__name__ == '__main__'):
 

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import ascii
-from pymiles.scripts.sfh import sfh as sfh
+from pymiles.sfh import sfh as sfh
 
 from scipy.integrate import simps
 

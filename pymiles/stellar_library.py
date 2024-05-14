@@ -5,12 +5,12 @@ import logging
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-import pymiles.scripts.misc_functions as misc
-import pymiles.scripts.pymiles_utils as utils
+import pymiles.misc_functions as misc
+import pymiles.pymiles_utils as utils
 from astropy.io import ascii, fits
 from scipy.spatial import Delaunay
 from copy import copy
-from pymiles.scripts.tuning_tools import tuning_tools
+from pymiles.tuning_tools import tuning_tools
 # ==============================================================================
 
 logger = logging.getLogger('pymiles.lib')

@@ -10,9 +10,9 @@ from astropy.io import ascii, fits
 from scipy.spatial import Delaunay
 from scipy.integrate import simps
 from copy import copy
-import pymiles.scripts.misc_functions as misc
-import pymiles.scripts.pymiles_utils as utils
-from pymiles.scripts.ssp_models import ssp_models
+import pymiles.misc_functions as misc
+import pymiles.pymiles_utils as utils
+from pymiles.ssp_models import ssp_models
 # from ipdb import set_trace as stop
 # ==============================================================================
 

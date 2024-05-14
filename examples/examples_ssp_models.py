@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 from astropy.io import ascii, fits
-from pymiles.scripts.ssp_models import ssp_models as ssp
+from pymiles.ssp_models import ssp_models as ssp
+
 # ==============================================================================
 if (__name__ == '__main__'):
 
@@ -74,7 +75,7 @@ if (__name__ == '__main__'):
 
     print(tuned_miles.alpha)
     # Saving object to HDF5 file ---------------------------------------------------
-    tuned_miles.save_object("./pymiles/saved_files/kk.hdf5", verbose=True)
+    tuned_miles.save_object("spectra.hdf5", verbose=True)
 
     # Compute mags ---------------------------------------------------
     fnames = miles_1.find_filter("sdss")

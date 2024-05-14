@@ -7,13 +7,13 @@ import time
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-import pymiles.scripts.pymiles_utils as utils
-import pymiles.scripts.misc_functions as misc
+import pymiles.pymiles_utils as utils
+import pymiles.misc_functions as misc
 from astropy.io import ascii, fits
 from astropy import constants
 from scipy.spatial import Delaunay
 from copy import copy
-from pymiles.scripts.tuning_tools import tuning_tools
+from pymiles.tuning_tools import tuning_tools
 from itertools import compress
 
 logger = logging.getLogger('pymiles.ssp')

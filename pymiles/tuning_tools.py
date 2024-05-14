@@ -7,9 +7,9 @@ import h5py
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-import pymiles.scripts.pymiles_utils as utils
-import pymiles.scripts.cap_utils as cap
-import pymiles.scripts.misc_functions as misc
+import pymiles.pymiles_utils as utils
+import pymiles.cap_utils as cap
+import pymiles.misc_functions as misc
 from astropy.io import ascii, fits
 from copy import copy
 from scipy import interpolate
