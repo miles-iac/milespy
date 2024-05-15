@@ -21,10 +21,10 @@ import pymiles.pymiles_utils as utils
 
 # ==============================================================================
 
-logger = logging.getLogger("pymiles.tuning_tools")
+logger = logging.getLogger("pymiles.spectra")
 
 
-class tuning_tools:
+class spectra:
     warnings.filterwarnings("ignore")
 
     # solar_ref_spec = "./pymiles/config_files/sun_reference_stis_002.fits"

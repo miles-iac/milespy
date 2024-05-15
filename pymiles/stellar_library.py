@@ -7,14 +7,14 @@ import numpy as np
 from scipy.spatial import Delaunay
 
 import pymiles.pymiles_utils as utils
-from pymiles.tuning_tools import tuning_tools
+from pymiles.spectra import spectra
 
 # ==============================================================================
 
 logger = logging.getLogger("pymiles.lib")
 
 
-class stellar_library(tuning_tools):
+class stellar_library(spectra):
     # -----------------------------------------------------------------------------
     def __init__(self, source="MILES_STARS", version="9.1"):
         """
@@ -86,7 +86,7 @@ class stellar_library(tuning_tools):
         self.new_index = self.index[idx]
         self.main_keys = list(self.__dict__.keys())
 
-        # Inheriting the tuning_tools class
+        # Inheriting the spectra class
         super().__init__(source=self.source, wave=self.wave, spec=self.spec)
 
     # -----------------------------------------------------------------------------
@@ -361,7 +361,7 @@ class stellar_library(tuning_tools):
                 print("VER ESTA PARTE")
         #             setattr(out, keys[i], np.dot(val[indices],weights))
 
-        # Instaitiating the tuning_tools class
+        # Instaitiating the spectra class
         #       super().__init__(source=out.source,wave=out.wave,spec=out.spec) ???
 
         return out
