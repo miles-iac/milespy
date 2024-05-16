@@ -11,7 +11,7 @@ import numpy as np
 from scipy.spatial import Delaunay
 
 import pymiles.pymiles_utils as utils
-from pymiles.tuning_tools import tuning_tools
+from pymiles.spectra import spectra
 
 logger = logging.getLogger("pymiles.ssp")
 
@@ -19,7 +19,7 @@ logger = logging.getLogger("pymiles.ssp")
 # ==============================================================================
 
 
-class ssp_models(tuning_tools):
+class ssp_models(spectra):
     warnings.filterwarnings("ignore")
 
     # -----------------------------------------------------------------------------
@@ -155,8 +155,8 @@ class ssp_models(tuning_tools):
 
         self.main_keys = list(self.__dict__.keys())
 
-        # Inheriting the tuning_tools class
-        tuning_tools.__init__(self, source=self.source, wave=self.wave, spec=self.spec)
+        # Inheriting the spectra class
+        spectra.__init__(self, source=self.source, wave=self.wave, spec=self.spec)
         #        sfh.__init__(self)
 
         #        super().__init__(source=self.source,wave=self.wave,spec=self.spec)
@@ -632,6 +632,6 @@ class ssp_models(tuning_tools):
             if val.shape[0] == nspec_in:
                 setattr(out, keys[i], np.dot(val[indices], weights))
 
-        # Instaitiating the tuning_tools class
+        # Instaitiating the spectra class
         #     super().__init__(source=out.source,wave=out.wave,spec=out.spec)
         return out
