@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := init
-.PHONY: add_major_version add_minor_version add_patch_version add_premajor_version add_preminor_version add_prepatch_version add_prerelease_version prepare-dev install-dev data help lint tests upload-prod-pypi upload-test-pypi update_req update_req_dev pyclean doc doc-pdf visu-doc-pdf visu-doc licences
+.PHONY: add_major_version add_minor_version add_patch_version add_premajor_version add_preminor_version add_prepatch_version add_prerelease_version prepare-dev install-dev data help lint reference-plot tests upload-prod-pypi upload-test-pypi update_req update_req_dev pyclean doc doc-pdf visu-doc-pdf visu-doc licences
 VENV = ".pymiles"
 
 define PROJECT_HELP_MSG
@@ -19,6 +19,7 @@ Usage:\n
 	-------------------------------------------------------------------------\n
 	make prepare-dev\t\t 		Prepare Development environment\n
 	make install-dev\t\t 		Install COTS and pymiles for development purpose\n
+	make reference-img\t\t     Generate reference images for tests\n
 	make tests\t\t\t             Run units and integration tests\n
 	\n
 	make doc\t\t\t 				Generate the documentation\n
@@ -88,8 +89,12 @@ lint:  ## Lint and static-check
 	poetry run pylint pymiles
 	poetry run mypy --install-types --non-interactive pymiles
 
+
+reference-img:  ## Generate reference images for the tests
+	poetry run pytest --mpl-generate-path=test/baseline
+
 tests:  ## Run tests
-	poetry run pytest
+	poetry run pytest --mpl
 
 doc:
 	make licences
