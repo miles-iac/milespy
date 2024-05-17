@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from rcfile import rcfile
+
+
 logger = logging.getLogger("pymiles")
 logger.setLevel(logging.DEBUG)
 
@@ -10,3 +13,5 @@ for existing_handler in list(logger.handlers):
 ch = logging.StreamHandler()
 ch.setFormatter(logging.Formatter("%(name)s: %(message)s"))
 logger.addHandler(ch)
+
+config = rcfile(__name__, {})

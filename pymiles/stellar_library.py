@@ -7,6 +7,7 @@ import numpy as np
 from scipy.spatial import Delaunay
 
 import pymiles.pymiles_utils as utils
+from pymiles.repository import repository
 from pymiles.spectra import spectra
 
 # ==============================================================================
@@ -14,7 +15,7 @@ from pymiles.spectra import spectra
 logger = logging.getLogger("pymiles.lib")
 
 
-class stellar_library(spectra):
+class stellar_library(spectra, repository):
     # -----------------------------------------------------------------------------
     def __init__(self, source="MILES_STARS", version="9.1"):
         """
@@ -31,7 +32,8 @@ class stellar_library(spectra):
         Object instance
 
         """
-        repo_filename = "./pymiles/repository/" + source + "_v" + version + ".hdf5"
+        repo_filename = self._get_repository(source, version)
+        self._assert_repository_file(repo_filename)
 
         # Opening the relevant file in the repository
         f = h5py.File(repo_filename, "r")
