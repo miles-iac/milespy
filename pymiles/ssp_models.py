@@ -130,9 +130,11 @@ class ssp_models(spectra, repository):
         f.close()
         # Flagging if all elements of alpha are NaNs
         if alp_type == "fix":
-            self.alpha_flag = 1
+            self.fixed_alpha = True
+        elif alp_type == "variable":
+            self.fixed_alpha = False
         else:
-            self.alpha_flag = 0
+            raise ValueError("alp_type should be 'fix' or 'variable'")
 
         self.main_keys = list(self.__dict__.keys())
 
@@ -220,7 +222,7 @@ class ssp_models(spectra, repository):
 
         logger.info("# Searching for models within parameters range")
 
-        if self.alpha_flag == 1:
+        if self.fixed_alpha:
             idx = (
                 (self.age >= age_lims[0])
                 & (self.age <= age_lims[1])
@@ -287,6 +289,8 @@ class ssp_models(spectra, repository):
         #    "NO VEO QUE NI LIST NI RANGE SSP DEVUELVAN CORRECTAMENTE LAS
         #    EDADES Y METALICIDADES: VER"
         # )
+        if alpha_list is not None:
+            raise ValueError("Can not take an input alpha_list if `alp_type=fix`")
 
         # Treating the input list
         age = np.array(age_list).ravel()
@@ -295,7 +299,7 @@ class ssp_models(spectra, repository):
         imf_slope = np.array(imf_slope_list).ravel()
 
         # Checking they have the same number of elements
-        if self.alpha_flag == 1:
+        if self.fixed_alpha:
             if len(set(map(len, (age, met, imf_slope)))) != 1:
                 raise ValueError("Input list values do not have the same length.")
         else:
@@ -307,7 +311,7 @@ class ssp_models(spectra, repository):
         ncases = len(age)
         id = []
         for i in range(ncases):
-            if self.alpha_flag == 1:
+            if self.fixed_alpha:
                 idx = (
                     (np.array(self.age) == age[i])
                     & (np.array(self.met) == met[i])
@@ -377,7 +381,7 @@ class ssp_models(spectra, repository):
 
         """
         # Checking input point is within the grid
-        if self.alpha_flag == 1:
+        if self.fixed_alpha:
             good = (
                 (age >= np.amin(self.age))
                 & (age <= np.amax(self.age))
@@ -408,7 +412,7 @@ class ssp_models(spectra, repository):
 
         # Creating Delaunay triangulation of parameters
         logger.info("# Creating Delaunay triangulation")
-        if self.alpha_flag == 1:
+        if self.fixed_alpha:
             if ok:
                 self.params = np.empty((len(self.age), 2))
                 self.params[:, 0] = self.age
@@ -435,7 +439,7 @@ class ssp_models(spectra, repository):
 
         logger.info("# Searching for the simplex that surrounds the desired point")
 
-        if self.alpha_flag == 1:
+        if self.fixed_alpha:
             if ok:
                 input_pt = np.array([age, met], ndmin=2)
             else:

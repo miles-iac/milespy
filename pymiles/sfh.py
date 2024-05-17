@@ -74,9 +74,11 @@ class sfh(ssp_models):
 
         # Flagging if all elements of alpha are NaNs
         if alp_type == "fix":
-            self.alpha_flag = 1
+            self.fixed_alpha = True
+        elif alp_type == "variable":
+            self.fixed_alpha = False
         else:
-            self.alpha_flag = 0
+            raise ValueError("alp_type should be 'fix' or 'variable'")
 
         self.main_keys = list(self.__dict__.keys())
 
@@ -873,7 +875,7 @@ class sfh(ssp_models):
         # We iterate now over all the age bins in the SFH
         for t, date in enumerate(self.time):
             ok = nimf_slope == 1
-            if self.alpha_flag == 1:
+            if self.fixed_alpha:
                 if ok:
                     input_pt = np.array([self.time[t], self.met_evol[t]], ndmin=2)
                 else:
