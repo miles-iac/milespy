@@ -287,6 +287,8 @@ class ssp_models(spectra, repository):
         #    "NO VEO QUE NI LIST NI RANGE SSP DEVUELVAN CORRECTAMENTE LAS
         #    EDADES Y METALICIDADES: VER"
         # )
+        if alpha_list is not None:
+            raise ValueError("Can not take an input alpha_list if `alp_type=fix`")
 
         # Treating the input list
         age = np.array(age_list).ravel()

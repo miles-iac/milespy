@@ -70,19 +70,26 @@ def test_ssp_in_range(miles_ssp):
     )
 
 
+def test_assert_alpha_in_fix(miles_ssp):
+    with pytest.raises(ValueError):
+        miles_ssp.get_ssp_in_list(
+            age_list=[0.2512, 0.0708, 1.4125],
+            met_list=[0.22, 0.0, -1.71],
+            imf_slope_list=[1.3, 1.3, 1.3],
+            alpha_list=[0.0, 0.4, 0.0],
+        )
+
+
 def test_ssp_in_list(miles_ssp):
     miles_1 = miles_ssp.get_ssp_in_list(
         age_list=[0.2512, 0.0708, 1.4125],
         met_list=[0.22, 0.0, -1.71],
         imf_slope_list=[1.3, 1.3, 1.3],
-        alpha_list=[0.0, 0.4, 0.0],
     )
     assert miles_1.age.shape == (3,)
     assert np.array_equal(miles_1.age, np.array([0.2512, 0.0708, 1.4125]))
     assert np.array_equal(miles_1.met, np.array([0.22, 0.0, -1.71]))
     assert np.array_equal(miles_1.imf_slope, np.array([1.3, 1.3, 1.3]))
-    # This one does not work
-    assert np.array_equal(miles_1.alpha, np.array([0.0, 0.4, 0.0]))
 
 
 def test_ssp_by_params(miles_single):
