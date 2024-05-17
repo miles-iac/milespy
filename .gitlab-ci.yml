@@ -1,0 +1,14 @@
+image: python:3.10
+
+stages:
+  - test
+
+test:
+  stage: test
+  script:
+    - apt -y update
+    - pip install poetry && poetry config virtualenvs.create false
+    - make prepare-dev
+    - source .pymiles
+    - make install-dev
+    - PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests

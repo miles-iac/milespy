@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import os
 import sys
 import warnings
 from copy import copy
@@ -11,15 +10,13 @@ import numpy as np
 from scipy.spatial import Delaunay
 
 import pymiles.pymiles_utils as utils
+from pymiles.repository import repository
 from pymiles.spectra import spectra
 
 logger = logging.getLogger("pymiles.ssp")
 
-# from ipdb import set_trace as stop
-# ==============================================================================
 
-
-class ssp_models(spectra):
+class ssp_models(spectra, repository):
     warnings.filterwarnings("ignore")
 
     # -----------------------------------------------------------------------------
@@ -61,24 +58,8 @@ class ssp_models(spectra):
         Object instance
 
         """
-        repo_filename = "./pymiles/repository/" + source + "_v" + version + ".hdf5"
-
-        if verbose:
-            logger.info(
-                "# Loading models in "
-                + repo_filename
-                + " for isochrone: "
-                + isochrone
-                + " and IMF_type: "
-                + imf_type
-            )
-            filesizeGB = os.path.getsize(repo_filename) / (1024 * 1024 * 1024)
-            if filesizeGB >= 0.05:
-                logger.info(
-                    " [Be patient. The file is "
-                    + "{:4.2f}".format(filesizeGB)
-                    + "Gb in size]"
-                )
+        repo_filename = self._get_repository(source, version)
+        self._assert_repository_file(repo_filename)
 
         # Opening the relevant file in the repository and selecting the desired
         # models at init
@@ -164,6 +145,7 @@ class ssp_models(spectra):
         logger.info(source + " models loaded")
 
     # -----------------------------------------------------------------------------
+
     def set_item(self, idx):
         """
         Creates a copy of input instance and slices the arrays for input indices

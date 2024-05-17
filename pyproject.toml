@@ -23,6 +23,9 @@ astropy = "^5.2"
 matplotlib = "^3.7"
 numpy = "^1.24"
 
+requests = "^2.31.0"
+tqdm = "^4.66.4"
+rcfile = "^0.1.4"
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
 pre-commit = "^3.5"

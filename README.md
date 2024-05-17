@@ -1,11 +1,22 @@
-# Prueba de webtool MILES en Python/Flask
+# pymiles
 
+## Configuration
 
+The following configuration options are available in `pymiles`:
 
-## Dependencias
+ * `auto_download`: do not ask for user confirmation for downloading missing repositories.
+ * `repository_folder`: folder where the repositories will be searched and downloaded.
 
-* Flask
-* plotly
-* astropy
+You can change them by creating a configuration file in any of the following locations
+(in order increasing priority):
+ * /etc/pymiles/config
+ * /etc/pymilesrc
+ * ~/.config/pymiles/config
+ * ~/.config/pymiles
+ * ~/.pymiles/config
+ * ~/.pymilesrc
+ * .pymilesrc
 
-## License
+Or by setting the environment variable `PYMILES_VAR`, where `VAR` is the configuration
+option in upper case.
+For example `PYMILES_AUTO_DOWNLOAD=1`.
