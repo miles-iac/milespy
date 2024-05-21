@@ -78,7 +78,7 @@ prepare-dev:
 	git config --global init.defaultBranch main && git init && echo "python3 -m venv pymiles-env && export PYTHONPATH=. && export PATH=`pwd`/pymiles-env/bin:${PATH}" > ${VENV} && echo "source \"`pwd`/pymiles-env/bin/activate\"" >> ${VENV} && echo "\nnow source this file: \033[31msource ${VENV}\033[0m"
 
 install-dev:
-	poetry install && poetry run pre-commit install
+	poetry install -E docs && poetry run pre-commit install
 
 lint:  ## Lint and static-check
 	poetry run flake8 --ignore=E203,E266,E501,W503,F403,F401 --max-line-length=79 --max-complexity=18 --select=B,C,E,F,W,T4,B9 pymiles

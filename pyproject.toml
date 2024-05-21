@@ -25,12 +25,13 @@ numpy = "^1.24"
 requests = "^2.31.0"
 tqdm = "^4.66.4"
 rcfile = "^0.1.4"
-Sphinx = { version = "4.2.0", optional = true }
-sphinx-rtd-theme = { version = "1.0.0", optional = true }
-sphinxcontrib-napoleon = { version = "0.7", optional = true }
+Sphinx = { version = "^7.1.2", optional = true }
+sphinx-rtd-theme = { version = "^2.0.0", optional = true }
+sphinxcontrib-napoleon = { version = "^0.7", optional = true }
+numpydoc = "^1.7.0"
 
 [tool.poetry.extras]
-docs = ["Sphinx", "sphinx-rtd-theme", "sphinxcontrib-napoleon"]
+docs = ["Sphinx", "sphinx-rtd-theme", "sphinxcontrib-napoleon", "numpydoc"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
