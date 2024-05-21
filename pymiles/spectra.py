@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 import csv
-import glob
 import logging
 import os
-import re
-import sys
 import warnings
 from copy import copy
 
 import h5py
-import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import ascii
 from astropy.io import fits
@@ -18,6 +14,7 @@ from scipy import interpolate
 import pymiles.cap_utils as cap
 import pymiles.misc_functions as misc
 import pymiles.pymiles_utils as utils
+from pymiles.filter import Filter
 
 # ==============================================================================
 
@@ -103,12 +100,6 @@ class spectra:
         #       if source != None:
         #          self.compute_lsf()
 
-        # Loading filters names
-        fnames = glob.glob("./pymiles/config_files/filters/*.dat")
-        self.filter_names = [os.path.basename(x).split(".dat")[0] for x in fnames]
-        self.filter_names = np.sort(self.filter_names)
-        self.nfilters = len(self.filter_names)
-
         # Checking inputs and redifining values if needed
         if np.amin(wave) < self.wave_init:
             wave_init = np.amin(wave)
@@ -129,114 +120,6 @@ class spectra:
         return
 
     # -----------------------------------------------------------------------------
-    def find_filter(self, name):
-        """
-        Searches for a filter in database.
-
-        Note
-        _____
-        Search is case insensitive
-        The filter seach does not have to be precise. Substrings within filter
-        names are ok.  It uses the python package 're' for regular expressions
-        matching
-
-        Arguments
-        --------
-        name: The search string to match filter names
-
-        Return
-        ------
-        List of filter names available matching the search string
-
-        """
-
-        idx = np.zeros(self.nfilters, dtype="bool")
-        for i in range(self.nfilters):
-            check = re.search(name, self.filter_names[i], re.IGNORECASE)
-            if check:
-                idx[i] = True
-
-        if np.sum(idx) == 0:
-            logger.error(
-                "Cannot find filter in our database\n Available filters are:\n\n"
-                + list(self.filter_names)
-            )
-            sys.exit
-
-        return list(self.filter_names[idx])
-
-    # -----------------------------------------------------------------------------
-    def get_filters(self, filter_names):
-        """
-        Retrieves filter from database
-
-        Arguments
-        --------
-        filter_names: The filter names
-
-        Return
-        ------
-        Object with filter's wavelength and normalised transmission
-
-        """
-
-        nfilters = len(filter_names)
-
-        filters = {}
-        for i in range(nfilters):
-            filename = "./pymiles/config_files/filters/" + filter_names[i] + ".dat"
-            if not os.path.exists(filename):
-                logger.warning(
-                    "Filter " + filter_names[i] + " does not exist in database"
-                )
-                # sys.exit
-            else:
-                tab = ascii.read(filename, names=["wave", "trans"])
-                tab["trans"] /= np.amax(tab["trans"])
-                filters[filter_names[i]] = tab
-
-        return filters
-
-    # -----------------------------------------------------------------------------
-    def plot_filters(self, filter_names, legend=True):
-        """
-        Plot filters
-
-        Arguments
-        --------
-        filter_names: The filter names
-        legend:       Flag to turn on/off the legend
-
-        Return
-        ------
-        Nothing
-
-        """
-
-        nfilters = len(filter_names)
-
-        for i in range(nfilters):
-            filename = "./pymiles/config_files/filters/" + filter_names[i] + ".dat"
-            if not os.path.exists(filename):
-                logger.warning(
-                    "Filter " + filter_names[i] + " does not exist in database"
-                )
-            else:
-                tab = ascii.read(filename, names=["wave", "trans"])
-                tab["trans"] /= np.amax(tab["trans"])
-                plt.fill_between(
-                    tab["wave"],
-                    tab["trans"],
-                    alpha=0.5,
-                    label=filter_names[i],
-                    edgecolor="k",
-                )
-
-        if legend:
-            plt.legend()
-        plt.show()
-
-        return
 
     # -----------------------------------------------------------------------------
     def update_basic_pars(self, wave, spec):
@@ -600,7 +483,7 @@ class spectra:
 
     # -----------------------------------------------------------------------------
     def compute_save_mags(
-        self, filters=None, zeropoint="AB", saveCSV=False, verbose=False
+        self, filters: [Filter] = [], zeropoint="AB", saveCSV=False, verbose=False
     ):
         """
         Returns the magnitudes of the input spectra given a list of filters in a file
@@ -619,19 +502,14 @@ class spectra:
         """
         logger.info("# Computing absolute magnitudes...")
 
-        nfilters = len(filters.keys())
         zerosed = utils.load_zerofile(zeropoint)
-        mags = np.zeros((nfilters, self.nspec)) * np.nan
+        outmags = {f.name: np.full(self.nspec, np.nan) for f in filters}
         for i in range(self.nspec):
-            mags[:, i] = utils.compute_mags(
+            mags = utils.compute_mags(
                 self.wave, self.spec[:, i], filters, zerosed, zeropoint
             )
-            if verbose:
-                misc.printProgress(i + 1, self.nspec, barLength=50)
-
-        outmags = {}
-        for i in range(nfilters):
-            outmags[list(filters.keys())[i]] = mags[i, :]
+            for f in filters:
+                outmags[f.name][i] = mags[f.name]
 
         if saveCSV:
             logger.warning("Previous 'saved_mags.csv' will be overwritten.")
@@ -807,14 +685,10 @@ class spectra:
         logger.info("# Computing solar absolute magnitudes...")
 
         wave, flux = self.load_solar_spectrum()
-        nfilters = len(filters.keys())
+        nfilters = len(filters)
         zerosed = utils.load_zerofile(zeropoint)
-        mags = np.zeros((nfilters, self.nspec)) * np.nan
-        mags = utils.compute_mags(wave, flux, filters, zerosed, zeropoint, sun=True)
-
-        outmags = {}
-        for i in range(nfilters):
-            outmags[list(filters.keys())[i]] = mags[i]
+        outmags = {f.name: np.full(nfilters, np.nan) for f in filters}
+        outmags = utils.compute_mags(wave, flux, filters, zerosed, zeropoint, sun=True)
 
         return outmags
 

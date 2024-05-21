@@ -10,6 +10,7 @@ import numpy as np
 from scipy.spatial import Delaunay
 
 import pymiles.pymiles_utils as utils
+from pymiles.filter import Filter
 from pymiles.repository import repository
 from pymiles.spectra import spectra
 
@@ -470,7 +471,7 @@ class ssp_models(spectra, repository):
     #
     # Computes the mass to light ratio for a set of SSP models and filters
     # -----------------------------------------------------------------------------
-    def compute_ml(self, filters, type="star+remn", verbose=False):
+    def compute_ml(self, filters: [Filter], type="star+remn", verbose=False):
         """
         Computes the mass-to-light ratios of models in the desired filters
 
@@ -488,7 +489,6 @@ class ssp_models(spectra, repository):
 
         #  We need to choose a system. For M/Ls this is irrelevant
         zeropoint = "AB"
-        nfilters = len(filters.keys())
         mags = self.compute_save_mags(
             filters=filters, zeropoint=zeropoint, saveCSV=False, verbose=verbose
         )
@@ -512,10 +512,9 @@ class ssp_models(spectra, repository):
             )
 
         outmls = {}
-        fnames = list(filters.keys())
-        for i in range(nfilters):
-            outmls[fnames[i]] = (mass / 1.0) * 10 ** (
-                -0.40 * (msun[fnames[i]] - mags[fnames[i]])
+        for f in filters:
+            outmls[f.name] = (mass / 1.0) * 10 ** (
+                -0.40 * (msun[f.name] - mags[f.name])
             )
 
         return outmls

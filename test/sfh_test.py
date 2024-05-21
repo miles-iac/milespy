@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
+import pymiles.filter as flib
 from pymiles.sfh import sfh as SFH
 
 
@@ -51,8 +52,8 @@ def pred(sfh):
 
 
 def test_predictions(pred):
-    fnames = pred.find_filter("sloan")
-    filts = pred.get_filters(fnames)
+    fnames = flib.search("sloan")
+    filts = flib.get(fnames)
     outmls = pred.compute_ml(filters=filts, type="star+remn", verbose=False)
 
     np.testing.assert_equal(pred.age, 9.747229444806024)

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from astropy.io import ascii
 
+import pymiles.filter as flib
 from pymiles.ssp_models import ssp_models as ssp
 
 
@@ -126,8 +127,8 @@ def test_tuned_spectra(miles_single, miles_tuned):
 
 def test_mags(miles_single):
     # Compute mags
-    fnames = miles_single.find_filter("sdss")
-    filts = miles_single.get_filters(fnames)
+    fnames = flib.search("sdss")
+    filts = flib.get(fnames)
     outmags = miles_single.compute_save_mags(
         filters=filts, zeropoint="AB", saveCSV=False, verbose=True
     )
@@ -227,8 +228,8 @@ def test_ls_indices(miles_single):
 
 
 def test_solar_mags(miles_single):
-    fnames = miles_single.find_filter("sloan")
-    filts = miles_single.get_filters(fnames)
+    fnames = flib.search("sloan")
+    filts = flib.get(fnames)
     outmags = miles_single.compute_mag_sun(filters=filts, verbose=True, zeropoint="AB")
     ref = {
         "SLOAN_SDSS.g": 5.140807167815929,
@@ -244,8 +245,8 @@ def test_solar_mags(miles_single):
 
 
 def test_ml(miles_single):
-    fnames = miles_single.find_filter("sloan")
-    filts = miles_single.get_filters(fnames)
+    fnames = flib.search("sloan")
+    filts = flib.get(fnames)
     outmls = miles_single.compute_ml(filters=filts, type="star+remn", verbose=False)
     ref = {
         "SLOAN_SDSS.g": np.array([1.98569615]),

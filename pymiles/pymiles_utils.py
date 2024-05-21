@@ -6,6 +6,8 @@ import numpy as np
 from astropy.io import ascii
 from scipy.interpolate import interp1d
 
+from pymiles.filter import Filter
+
 # import scipy.interpolate
 
 logger = logging.getLogger("pymiles.utils")
@@ -256,7 +258,7 @@ def load_zerofile(zeropoint):
 # ===============================================================================
 
 
-def compute_mags(wave, flux, filters, zerosed, zeropoint, sun=False):
+def compute_mags(wave, flux, filters: [Filter], zerosed, zeropoint, sun=False):
     # Defining some variables
     cvel = 2.99792458e18  # Speed of light in Angstron/sec
     dl = 1e-5  # 10 pc in Mpc, z=0; for absolute magnitudes
@@ -265,18 +267,16 @@ def compute_mags(wave, flux, filters, zerosed, zeropoint, sun=False):
     else:
         cfact = 5.0 * np.log10(1.7684e8 * dl)  # from lum[erg/s/A] to flux [erg/s/A/cm2]
 
-    # Getting info about filters
-    nfilters = len(filters.keys())
-    filter_names = list(filters.keys())
-    outmag = np.zeros(nfilters) * np.nan
+    # Default is nan to mark an invalid range/filter
+    outmag = {f.name: np.nan for f in filters}
     interp_zp = interp1d(zerosed.wave, zerosed.flux)
 
     # Computing the magnitude for each filter
-    for i in range(nfilters):
+    for filt in filters:
         # Finding the wavelength limits of the filters
-        good = filters[filter_names[i]]["wave"] > 0.0
-        wlow = np.amin(filters[filter_names[i]]["wave"][good])
-        whi = np.amax(filters[filter_names[i]]["wave"][good])
+        good = filt.wave > 0.0
+        wlow = np.amin(filt.wave[good])
+        whi = np.amax(filt.wave[good])
 
         # Selecting the relevant pixels in the input spectrum
         w = (wave >= wlow) & (wave <= whi)
@@ -285,7 +285,7 @@ def compute_mags(wave, flux, filters, zerosed, zeropoint, sun=False):
         if (np.amin(wave) > wlow) or (np.amax(wave) < whi):
             logger.warning(
                 "Filter "
-                + filter_names[i]
+                + filt.name
                 + " ["
                 + str(wlow)
                 + ","
@@ -303,7 +303,7 @@ def compute_mags(wave, flux, filters, zerosed, zeropoint, sun=False):
         if np.sum(bad) > 0:
             logger.warning(
                 "Filter "
-                + filter_names[i]
+                + filt.name
                 + " ["
                 + str(wlow)
                 + ","
@@ -314,8 +314,8 @@ def compute_mags(wave, flux, filters, zerosed, zeropoint, sun=False):
 
         # Interpolate the filter response to data wavelength
         interp = interp1d(
-            filters[filter_names[i]]["wave"][good],
-            filters[filter_names[i]]["trans"][good],
+            filt.wave[good],
+            filt.trans[good],
         )
         response = interp(tmp_wave)
 
@@ -328,7 +328,7 @@ def compute_mags(wave, flux, filters, zerosed, zeropoint, sun=False):
         if zeropoint == "AB":
             fmag = fmag + 2.5 * np.log10(cvel) - 48.6  # oke & gunn 83
 
-        outmag[i] = fmag
+        outmag[filt.name] = fmag
 
     return outmag
 
