@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := init
-.PHONY: add_major_version add_minor_version add_patch_version add_premajor_version add_preminor_version add_prepatch_version add_prerelease_version prepare-dev install-dev data help lint reference-plot tests upload-prod-pypi upload-test-pypi update_req update_req_dev pyclean doc doc-pdf visu-doc-pdf visu-doc licences
+.PHONY: add_major_version add_minor_version add_patch_version add_premajor_version add_preminor_version add_prepatch_version add_prerelease_version prepare-dev install-dev data help lint reference-plot tests upload-prod-pypi upload-test-pypi update_req update_req_dev pyclean doc
 VENV = ".pymiles"
 
 define PROJECT_HELP_MSG
@@ -23,9 +23,6 @@ Usage:\n
 	make tests\t\t\t             Run units and integration tests\n
 	\n
 	make doc\t\t\t 				Generate the documentation\n
-	make doc-pdf\t\t\t 			Generate the documentation as PDF\n
-	make visu-doc-pdf\t\t 		View the generated PDF\n
-	make visu-doc\t\t\t			View the generated documentation\n
 	\n
 	make release\t\t\t 			Release the package as tar.gz\n
 	\n
@@ -48,7 +45,6 @@ Usage:\n
 	-------------------------------------------------------------------------\n
 	\t\tOthers\n
 	-------------------------------------------------------------------------\n
-	make licences\t\t\t		Display the list of licences\n
 	make lint\t\t\t			Lint\n
 
 endef
@@ -97,18 +93,7 @@ tests:  ## Run tests
 	poetry run pytest --mpl
 
 doc:
-	make licences
-	poetry run pytest -ra --html=docs/source/_static/report.html
-	make html -C docs
-
-doc-pdf:
-	make doc && make latexpdf -C docs
-
-visu-doc-pdf:
-	acroread docs/build/latex/pymiles.pdf
-
-visu-doc:
-	firefox docs/build/html/index.html
+	poetry run sphinx-build -W --keep-going -b html docs/ _build/
 
 release:
 	poetry build

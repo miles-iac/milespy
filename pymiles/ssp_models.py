@@ -34,29 +34,37 @@ class ssp_models(spectra, repository):
         """
         Creates an instance of the class
 
-        Keywords
-        --------
-        source:    Name of input models to use. Valid inputs are
+        Parameters
+        ----------
+        source:
+            Name of input models to use. Valid inputs are
                    MILES_SSP/CaT_SSP/EMILES_SSP
-        version:   version number of the models
-        isochrone: Type of isochrone to use. Valid inputs are P/T for Padova+00
+        version:
+            version number of the models
+        isochrone:
+            Type of isochrone to use. Valid inputs are P/T for Padova+00
                    and BaSTI isochrones respectively (Default: T)
-        imf_type:  Type of IMF shape. Valid inputs are ch/ku/kb/un/bi (Default: ch)
-        alp_type:  Type of [alpha/Fe]. Valid inputs are fix/variable (Default: fix).
+        imf_type:
+            Type of IMF shape. Valid inputs are ch/ku/kb/un/bi (Default: ch)
+        alp_type:
+            Type of [alpha/Fe]. Valid inputs are fix/variable (Default: fix).
                    Variable [alpha/Fe] predictions are only available for BaSTI
-        isochrones
-        show_tree: Bool that shows the variables available with the instance
-        verbose:   Flag to verbose mode
+                   isochrones
+        show_tree:
+            Bool that shows the variables available with the instance
+        verbose:
+            Flag to verbose mode
 
-        Note
-        ----
+        Notes
+        -----
         We limit the choice of models to a given isochrone and imt_type for
         effective loading. Otherwise it can take along time to upload the entire
         dataset
 
-        Return
-        ------
-        Object instance
+        Returns
+        -------
+        ssp_models
+            Object instance
 
         """
         repo_filename = self._get_repository(source, version)
@@ -153,15 +161,15 @@ class ssp_models(spectra, repository):
         """
         Creates a copy of input instance and slices the arrays for input indices
 
-        Arguments
-        ---------
-        idx: integer or boolean array indicating the elements to be extracted
+        Parameters
+        ----------
+        idx:
+            integer or boolean array indicating the elements to be extracted
 
         Returns
         -------
-
-        Object instance for selected items
-
+        ssp_models
+            Object instance for selected items
         """
 
         nspec_in = self.nspec
@@ -207,17 +215,23 @@ class ssp_models(spectra, repository):
         """
         Extracts SSP models within selected limits
 
-        Keywords
-        --------
-        age_lims:       tuple with age limits
-        met_lims:       tuple with metallicity limits
-        alpha_lims:     tuple with alpha limits
-        imf_slope_lims: tuple with IMF slope limits
-        verbose:        Flag for verbose
+        Parameters
+        ----------
+        age_lims:
+            tuple with age limits
+        met_lims:
+            tuple with metallicity limits
+        alpha_lims:
+            tuple with alpha limits
+        imf_slope_lims:
+            tuple with IMF slope limits
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Object instance for items in selected ranges
+        Returns
+        -------
+        ssp_models
+            Object instance for items in selected ranges
 
         """
 
@@ -268,22 +282,27 @@ class ssp_models(spectra, repository):
         """
         Extracts a selected set of models from init instance.
 
-        Keywords
-        --------
-        age_list (length N): list of ages to extract
-        met_list (length N): list of metallicities to extract
-        alpha_list (length N): list of alphas to extract
-        imf_slope_list (length N): list of IMF slopes to extract
+        Parameters
+        ----------
+        age_list (length N):
+            list of ages to extract
+        met_list (length N):
+            list of metallicities to extract
+        alpha_list (length N):
+            list of alphas to extract
+        imf_slope_list (length N):
+            list of IMF slopes to extract
 
-        Note
-        ----
+        Notes
+        -----
         All lists must have the same length.
         Numbers in the list have to be valid ages, mets, alpha, and imf_slopes
         for the input isochrone and imf_type
 
-        Return
-        ------
-        Object instance with selected list items
+        Returns
+        -------
+        ssp_models
+            Object instance with selected list items
 
         """
         # print(
@@ -365,17 +384,23 @@ class ssp_models(spectra, repository):
         """
         Interpolates SSP models for certain params using Delaunay triangulation
 
-        Keywords
-        --------
-        age:  Desired age
-        met:  Desired metallicity
-        alpha: Desired alpha
-        img_slope: Desired IMF slope
-        return_pars: If True, returns more information about interpolation
-        verbose: Flag for verbose
+        Parameters
+        ----------
+        age:
+            Desired age
+        met:
+            Desired metallicity
+        alpha:
+            Desired alpha
+        img_slope:
+            Desired IMF slope
+        return_pars:
+            If True, returns more information about interpolation
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
+        Returns
+        -------
         If return_pars == False, returns wavelength and interpolated spectrum
         If return_pars == True, besides above it returns all spectra used for
         interpolation, indices, and weights
@@ -471,18 +496,21 @@ class ssp_models(spectra, repository):
     #
     # Computes the mass to light ratio for a set of SSP models and filters
     # -----------------------------------------------------------------------------
-    def compute_ml(self, filters: [Filter], type="star+remn", verbose=False):
+    def compute_ml(self, filters: list[Filter], type="star+remn", verbose=False):
         """
         Computes the mass-to-light ratios of models in the desired filters
 
-        Arguments
-        --------
-        filters:   Filters as provided by the method 'get_filters"
-        verbose:   Flag for verbose
+        Parameters
+        ----------
+        filters:
+            Filters as provided by the method 'get_filters"
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Dictionary with mass-to-light ratios for each SSP model and filter
+        Returns
+        -------
+        dict
+            Dictionary with mass-to-light ratios for each SSP model and filter
 
         """
         logger.info("# Computing mass-to-light ratios -----------------")
@@ -530,20 +558,29 @@ class ssp_models(spectra, repository):
         """
         Creates a new object using the info from the get_ssp_by_params method
 
-        Arguments
-        --------
-        age:       Interpolated age
-        met:       Interpolated metallicity
-        alpha:     Interpolates alpha
-        imf_slope: Interpolated imf slope
-        wave:      Input wavelength
-        spec:      Interpolated spectrum
-        indices:   Elements of the original object to do the interpolation
-        weights:   Weights for each of the elements
+        Parameters
+        ----------
+        age:
+            Interpolated age
+        met:
+            Interpolated metallicity
+        alpha:
+            Interpolates alpha
+        imf_slope:
+            Interpolated imf slope
+        wave:
+            Input wavelength
+        spec:
+            Interpolated spectrum
+        indices:
+            Elements of the original object to do the interpolation
+        weights:
+            Weights for each of the elements
 
-        Return
-        ------
-        Dictionary with mass-to-light ratios for each SSP model and filter
+        Returns
+        -------
+        dict
+            Dictionary with mass-to-light ratios for each SSP model and filter
 
         """
 

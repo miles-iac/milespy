@@ -2,6 +2,7 @@ image: python:3.10
 
 stages:
   - test
+  - build
 
 test:
   stage: test
@@ -12,3 +13,12 @@ test:
     - source .pymiles
     - make install-dev
     - PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests
+
+build-doc:
+  stage: build
+  script:
+    - pip install poetry && poetry config virtualenvs.create false
+    - make prepare-dev
+    - source .pymiles
+    - make install-dev
+    - make doc

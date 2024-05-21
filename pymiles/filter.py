@@ -45,19 +45,19 @@ def search(name):
     """
     Searches for a filter in database.
 
-    Note
-    _____
+    Notes
+    -----
     Search is case insensitive
     The filter seach does not have to be precise. Substrings within filter
     names are ok.  It uses the python package 're' for regular expressions
     matching
 
-    Arguments
-    --------
+    Parameters
+    ----------
     name: The search string to match filter names
 
-    Return
-    ------
+    Returns
+    -------
     List of filter names available matching the search string
 
     """
@@ -74,16 +74,16 @@ def search(name):
     return filtered_filters
 
 
-def get(filter_names: [str]) -> [Filter]:
+def get(filter_names: list[str]) -> list[Filter]:
     """
     Retrieves filter from database
 
-    Arguments
-    --------
+    Parameters
+    ----------
     filter_names: The filter names
 
-    Return
-    ------
+    Returns
+    -------
     Object with filter's wavelength and normalised transmission
 
     """
@@ -96,13 +96,13 @@ def plot(filter_names, legend=True):
     """
     Plot filters
 
-    Arguments
-    --------
+    Parameters
+    ----------
     filter_names: The filter names
     legend:       Flag to turn on/off the legend
 
-    Return
-    ------
+    Returns
+    -------
     Nothing
 
     """

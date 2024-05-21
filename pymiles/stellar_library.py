@@ -21,14 +21,14 @@ class stellar_library(spectra, repository):
         """
         Creates an instance of the class
 
-        Keywords
-        --------
+        Parameters
+        ----------
         source:  Name of input models to use. Valid inputs are
                  MILES_STARS/CaT_STARS/EMILES_STARS
         version: Version number of the models
 
-        Return
-        ------
+        Returns
+        -------
         Object instance
 
         """
@@ -96,8 +96,8 @@ class stellar_library(spectra, repository):
         """
         Creates a copy of input instance and slices the arrays for input indices
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         idx: integer or boolean array indicating the elements to be extracted
 
         Returns
@@ -126,8 +126,8 @@ class stellar_library(spectra, repository):
         """
         Searches a star in database for a given ID
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         id: integer with the star ID in database
 
         Returns
@@ -149,8 +149,8 @@ class stellar_library(spectra, repository):
         """
         Gets a starname in database for a given ID
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         id: integer with the star ID in database
 
         Returns
@@ -175,8 +175,8 @@ class stellar_library(spectra, repository):
         """
         Gets set of stars with parameters range
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         teff_lims: Limits in Teff
         logg_lims: Limits in Log(g)
         FeH_lims:  Limits in [Fe/H]
@@ -218,8 +218,8 @@ class stellar_library(spectra, repository):
         """
         Gets closest star in database for given set of parameters
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         teff: Desired Teff
         logg: Desired Log(g)
         FeH:  Desired [Fe/H]
@@ -255,8 +255,8 @@ class stellar_library(spectra, repository):
         Interpolates a star spectrum for given set of parameters using Delaunay
         triangulation
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         teff: Desired Teff
         logg: Desired Log(g)
         FeH:  Desired [Fe/H]
@@ -300,8 +300,8 @@ class stellar_library(spectra, repository):
         Creates a new object using the info from the
         get_spectrum_by_params_delaunay method
 
-        Arguments
-        --------
+        Parameters
+        ----------
         teff:      Desired Teff
         logg:      Desired Log(g)
         FeH:       Desired [Fe/H]
@@ -311,8 +311,8 @@ class stellar_library(spectra, repository):
         indices:   Elements of the original object to do the interpolation
         weights:   Weights for each of the elements
 
-        Return
-        ------
+        Returns
+        -------
         Dictionary with mass-to-light ratios for each SSP model and filter
 
         """

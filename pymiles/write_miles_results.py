@@ -16,13 +16,13 @@ class write_miles_results:
         """
         Creates an instance of the class
 
-        Keywords
-        --------
+        Parameters
+        ----------
         wave:       Vector with input wavelengths in Angstroms
         spec:       [N,M] array with input spectra
 
-        Return
-        ------
+        Returns
+        -------
         Object instance
 
         """
@@ -88,8 +88,8 @@ class write_miles_results:
         """
         Writes a given set of spectrum to .fits files
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         wave:       Vector with input wavelengths in Angstroms
         spec:       [N,M] array with input spectra
 

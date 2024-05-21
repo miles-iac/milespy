@@ -29,8 +29,8 @@ class sfh(ssp_models):
         """
         Creates an instance of the class
 
-        Keywords
-        --------
+        Parameters
+        ----------
         source:    Name of input models to use.
                    Valid inputs are MILES_SSP/CaT_SSP/EMILES_SSP
         version:   version number of the models
@@ -43,15 +43,16 @@ class sfh(ssp_models):
         show_tree: Bool that shows the variables available with the instance
         verbose:   Flag to verbose mode
 
-        Note
-        ----
+        Notes
+        -----
         We limit the choice of models to a given isochrone and imt_type for
         effective loading.
         Otherwise it can take along time to upload the entire dataset
 
-        Return
-        ------
-        Object instance
+        Returns
+        -------
+        None
+            Object instance
 
         """
         # Inheriting classes
@@ -134,9 +135,9 @@ class sfh(ssp_models):
 
         Returns
         -------
-
-        Sets the age array over which the SFH will be constructed and
-        update the rest of the variables accordingly
+        None
+            Sets the age array over which the SFH will be constructed and
+            update the rest of the variables accordingly
         """
 
         self._validate_scalar(start, "Start")
@@ -163,9 +164,9 @@ class sfh(ssp_models):
 
         Returns
         -------
-
-        Sets the age array over which the SFH will be constructed and
-        update the rest of the variables accordingly
+        None
+            Sets the age array over which the SFH will be constructed and
+            update the rest of the variables accordingly
         """
         assert len(user_time) >= 2, (
             "You should not be here... only one age was provided."
@@ -212,8 +213,8 @@ class sfh(ssp_models):
 
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (start, end, met, alpha, imf_slope):
@@ -246,30 +247,30 @@ class sfh(ssp_models):
     def tau_sfr(self, start=10, tau=1, met=0, alpha=0, imf_slope=1.3):
         """Exponentially declinging SFR
 
-         This is a standard tau model where the SFR is given by
-             SFR(t) = 0 for t < start
-             SFR(t) = exp (- (t-start)/tau)) for t >= start
+        This is a standard tau model where the SFR is given by
+            SFR(t) = 0 for t < start
+            SFR(t) = exp (- (t-start)/tau)) for t >= start
 
-         The normalization is such one solar mass is formed
+        The normalization is such one solar mass is formed
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         start : scalar (Gyr)
-             Start of the burst (default=14)
-         tau   : scalar (Gyr)
-             e-folding time (default=1)
-         met   : scalar (dex)
-             (log) Metallicity of newly formed stars (default=0)
-         alpha : scalar (dex)
-             (log) [alpha/Fe] of newly formed stars (default=0)
-         imf_slope : scalar
-             logarithmic IMF slope of newly formed stars (default=1.3)
+        start : scalar (Gyr)
+            Start of the burst (default=14)
+        tau   : scalar (Gyr)
+            e-folding time (default=1)
+        met   : scalar (dex)
+            (log) Metallicity of newly formed stars (default=0)
+        alpha : scalar (dex)
+            (log) [alpha/Fe] of newly formed stars (default=0)
+        imf_slope : scalar
+            logarithmic IMF slope of newly formed stars (default=1.3)
 
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
         for inp in (start, tau, met, alpha, imf_slope):
             self._validate_scalar(inp)
@@ -300,30 +301,30 @@ class sfh(ssp_models):
     def delayed_tau_sfr(self, start=10, tau=1, met=0, alpha=0, imf_slope=1.3):
         """Delayed exponentially declinging SFR
 
-         This is a standard tau model where the SFR is given by
-             SFR(t) = 0 for t < start
-             SFR(t) = (start-t) * exp (- (start-t)/tau)) for t >= start
+        This is a standard tau model where the SFR is given by
+            SFR(t) = 0 for t < start
+            SFR(t) = (start-t) * exp (- (start-t)/tau)) for t >= start
 
-         The normalization is such one solar mass is formed
+        The normalization is such one solar mass is formed
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         start : scalar (Gyr)
-             Start of the burst (default=14)
-         tau   : scalar (Gyr)
-             e-folding time (default=1)
-         met   : scalar (dex)
-             (log) Metallicity of newly formed stars (default=0)
-         alpha : scalar (dex)
-             (log) [alpha/Fe] of newly formed stars (default=0)
-         imf_slope : scalar
-             logarithmic IMF slope of newly formed stars (default=1.3)
+        start : scalar (Gyr)
+            Start of the burst (default=14)
+        tau   : scalar (Gyr)
+            e-folding time (default=1)
+        met   : scalar (dex)
+            (log) Metallicity of newly formed stars (default=0)
+        alpha : scalar (dex)
+            (log) [alpha/Fe] of newly formed stars (default=0)
+        imf_slope : scalar
+            logarithmic IMF slope of newly formed stars (default=1.3)
 
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (start, tau, met, alpha, imf_slope):
@@ -355,33 +356,33 @@ class sfh(ssp_models):
     def lognormal_sfr(self, Tpeak=10, tau=1, met=0, alpha=0, imf_slope=1.3):
         """Lognormal SFR
 
-         The time evolution of the SFR is given by
-             SFR(tn) = 1/tn * exp( -(T0-ln(tn))**2 / 2*tau**2)
+        The time evolution of the SFR is given by
+            SFR(tn) = 1/tn * exp( -(T0-ln(tn))**2 / 2*tau**2)
 
-         Note that tn is in this case the time since the Big Bang and not
-         lookback time as in the SSP. See details in Diemer et al. 2017,
-         ApJ, 839, 26, Appendix A.1
+        Note that tn is in this case the time since the Big Bang and not
+        lookback time as in the SSP. See details in Diemer et al. 2017,
+        ApJ, 839, 26, Appendix A.1
 
-         The normalization is such one solar mass is formed
+        The normalization is such one solar mass is formed
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         Tpeal : scalar (Gyr)
-             Time of the SFR peak (default=14)
-         tau   : scalar (Gyr)
-             Characteristic time-scale (default=1)
-         met   : scalar (dex)
-             (log) Metallicity of newly formed stars (default=0)
-         alpha : scalar (dex)
-             (log) [alpha/Fe] of newly formed stars (default=0)
-         imf_slope : scalar
-             logarithmic IMF slope of newly formed stars (default=1.3)
+        Tpeal : scalar (Gyr)
+            Time of the SFR peak (default=14)
+        tau   : scalar (Gyr)
+            Characteristic time-scale (default=1)
+        met   : scalar (dex)
+            (log) Metallicity of newly formed stars (default=0)
+        alpha : scalar (dex)
+            (log) [alpha/Fe] of newly formed stars (default=0)
+        imf_slope : scalar
+            logarithmic IMF slope of newly formed stars (default=1.3)
 
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (Tpeak, tau, met, alpha, imf_slope):
@@ -415,32 +416,31 @@ class sfh(ssp_models):
     def double_power_law_sfr(self, a=5, b=5, tp=10, met=0, alpha=0, imf_slope=1.3):
         """Double power law SFR evolution
 
-         The SFR as a function of time is given by (Behroozi et al. 2013)
-             SFR(tn) = ((tn/tp)**a + (tn/tp)**b)**-1
-         As for the lognormal SFR, tn refers to time since the Big Bang
+        The SFR as a function of time is given by (Behroozi et al. 2013)
+        .. math:: SFR(tn) = ((tn/tp)**a + (tn/tp)**b)**-1
 
-         The normalization is such one solar mass is formed
+        As for the lognormal SFR, tn refers to time since the Big Bang
 
-         Parameters
-         ----------
+        The normalization is such one solar mass is formed
 
-         a     : scalar
-             falling slope (default=5)
-         b     : scalar
-             rising slope (default=5)
-         tp   : scalar
-             similar to the SFR peak in look-back time (default=10)
-         met   : scalar (dex)
-             (log) Metallicity of newly formed stars (default=0)
-         alpha : scalar (dex)
-             (log) [alpha/Fe] of newly formed stars (default=0)
-         imf_slope : scalar
-             logarithmic IMF slope of newly formed stars (default=1.3)
-
+        Parameters
+        ----------
+        a     : scalar
+            falling slope (default=5)
+        b     : scalar
+            rising slope (default=5)
+        tp   : scalar
+            similar to the SFR peak in look-back time (default=10)
+        met   : scalar (dex)
+            (log) Metallicity of newly formed stars (default=0)
+        alpha : scalar (dex)
+            (log) [alpha/Fe] of newly formed stars (default=0)
+        imf_slope : scalar
+            logarithmic IMF slope of newly formed stars (default=1.3)
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (a, b, tp, met, alpha, imf_slope):
@@ -474,29 +474,29 @@ class sfh(ssp_models):
     def bursty_sfr(self, ages=None, wts=None, mets=0.0, alphas=0.0, imfs=1.3):
         """Bursty star formation history
 
-         The SFH is given by bursts with weights and stellar population
-         parameters defined by the user.
+        The SFH is given by bursts with weights and stellar population
+        parameters defined by the user.
 
-         The normalization is such one solar mass is formed
+        The normalization is such one solar mass is formed
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         ages   : array (Gyr)
-             Ages of the bursts
-         wts    : array
-             Weights in mass of the bursts
-         mets   : array (dex)
-             Metallicities of the bursts (default=0)
-         alphas : array (dex)
-             [alpha/Fe] of the bursts (default=0)
-         imfs : array
-             IMF of the bursts (default=1.3)
+        ages   : array (Gyr)
+            Ages of the bursts
+        wts    : array
+            Weights in mass of the bursts
+        mets   : array (dex)
+            Metallicities of the bursts (default=0)
+        alphas : array (dex)
+            [alpha/Fe] of the bursts (default=0)
+        imfs : array
+            IMF of the bursts (default=1.3)
 
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         if not ages:
@@ -532,28 +532,28 @@ class sfh(ssp_models):
     def user_sfr(self, ages=None, wts=None, mets=None, alphas=None, imfs=None):
         """User-defined star formation history
 
-         The SFH is freely defined by the user.
+        The SFH is freely defined by the user.
 
-         The normalization is such one solar mass is formed
+        The normalization is such one solar mass is formed
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         ages   : array (Gyr)
-             Ages of the bursts
-         wts    : array
-             Weights in mass of the bursts
-         mets   : array (dex)
-             Metallicities of the bursts (default=0)
-         alphas : array (dex)
-             [alpha/Fe] of the bursts (default=0)
-         imfs : array
-             IMF of the bursts (default=1.3)
+        ages   : array (Gyr)
+            Ages of the bursts
+        wts    : array
+            Weights in mass of the bursts
+        mets   : array (dex)
+            Metallicities of the bursts (default=0)
+        alphas : array (dex)
+            [alpha/Fe] of the bursts (default=0)
+        imfs : array
+            IMF of the bursts (default=1.3)
 
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
         if not ages:
             raise ValueError("You forgot to include your bursts")
@@ -593,26 +593,26 @@ class sfh(ssp_models):
     def met_evol_sigmoid(self, start=-1.5, end=0.2, tc=5.0, gamma=1.0):
         """Sigmoidal metallicity evolution
 
-         The metallicity evolves as a sigmoidal function. This is not
-         meant to be physically meaningful but to reproduce the exponential
-         character of the chemical evolution
+        The metallicity evolves as a sigmoidal function. This is not
+        meant to be physically meaningful but to reproduce the exponential
+        character of the chemical evolution
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         start   : scalar (dex)
-             Metallicity of the oldest stellar population (default=-1.5)
-         end     : scalar (dex)
-             Metallicity of the youngest stellar population (default=0.2)
-         tc      : scalar (Gyr)
-             Characteristic transition time (default=5)
-         gamma   : scalar
-             Transition slope (default=1)
+        start   : scalar (dex)
+            Metallicity of the oldest stellar population (default=-1.5)
+        end     : scalar (dex)
+            Metallicity of the youngest stellar population (default=0.2)
+        tc      : scalar (Gyr)
+            Characteristic transition time (default=5)
+        gamma   : scalar
+            Transition slope (default=1)
 
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (start, end, tc, gamma):
@@ -630,24 +630,24 @@ class sfh(ssp_models):
     def met_evol_linear(self, start=-1.5, end=0.2, t_start=5, t_end=1):
         """Linear metallicity evolution
 
-         The metallicity evolves as a ReLU function, i.e., constant at the beginning
-         and linearly varing afterwards.
+        The metallicity evolves as a ReLU function, i.e., constant at the beginning
+        and linearly varing afterwards.
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         start   : scalar (dex)
-             Metallicity of the oldest stellar population (default=-1.5)
-         end     : scalar (dex)
-             Metallicity of the youngest stellar population (default=0.2)
-         t_start : scalar (Gyr)
-             Start of the metallicity variation (default=5)
-         t_end : scalar (Gyr)
-             End of the metallicity variation (default=5)
+        start   : scalar (dex)
+            Metallicity of the oldest stellar population (default=-1.5)
+        end     : scalar (dex)
+            Metallicity of the youngest stellar population (default=0.2)
+        t_start : scalar (Gyr)
+            Start of the metallicity variation (default=5)
+        t_end : scalar (Gyr)
+            End of the metallicity variation (default=5)
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (start, end, t_start, t_end):
@@ -673,26 +673,26 @@ class sfh(ssp_models):
     def alp_evol_sigmoid(self, start=0.4, end=0.0, tc=5.0, gamma=1.0):
         """Sigmoidal [alpha/Fe] evolution
 
-         The [alpha/Fe] evolves as a sigmoidal function. This is not
-         meant to be physically meaningful but to reproduce the exponential
-         character of the chemical evolution
+        The [alpha/Fe] evolves as a sigmoidal function. This is not
+        meant to be physically meaningful but to reproduce the exponential
+        character of the chemical evolution
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         start   : scalar (dex)
-             [alpha/Fe] of the oldest stellar population (default=0.4)
-         end     : scalar (dex)
-             [alpha/Fe] of the youngest stellar population (default=0.0)
-         tc      : scalar (Gyr)
-             Characteristic transition time (default=5)
-         gamma   : scalar
-             Transition slope (default=1)
+        start   : scalar (dex)
+            [alpha/Fe] of the oldest stellar population (default=0.4)
+        end     : scalar (dex)
+            [alpha/Fe] of the youngest stellar population (default=0.0)
+        tc      : scalar (Gyr)
+            Characteristic transition time (default=5)
+        gamma   : scalar
+            Transition slope (default=1)
 
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (start, end, tc, gamma):
@@ -710,24 +710,24 @@ class sfh(ssp_models):
     def alp_evol_linear(self, start=-1.5, end=0.2, t_start=5, t_end=1):
         """Linear [alpha/Fe]  evolution
 
-         The [alpha/Fe]  evolves as a ReLU function, i.e., constant at the beginning
-         and linearly varing afterwards.
+        The [alpha/Fe]  evolves as a ReLU function, i.e., constant at the beginning
+        and linearly varing afterwards.
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         start   : scalar (dex)
-             [alpha/Fe] of the oldest stellar population (default=-1.5)
-         end     : scalar (dex)
-             [alpha/Fe]  of the youngest stellar population (default=0.2)
-         t_start : scalar (Gyr)
-             Start of the [alpha/Fe]  variation (default=5)
-         t_end : scalar (Gyr)
-             End of the [alpha/Fe]  variation (default=1)
+        start   : scalar (dex)
+            [alpha/Fe] of the oldest stellar population (default=-1.5)
+        end     : scalar (dex)
+            [alpha/Fe]  of the youngest stellar population (default=0.2)
+        t_start : scalar (Gyr)
+            Start of the [alpha/Fe]  variation (default=5)
+        t_end : scalar (Gyr)
+            End of the [alpha/Fe]  variation (default=1)
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (start, end, t_start, t_end):
@@ -753,26 +753,26 @@ class sfh(ssp_models):
     def imf_evol_sigmoid(self, start=0.5, end=3.0, tc=5.0, gamma=1.0):
         """Sigmoidal IMF slope evolution
 
-         The IMF slope  evolves as a sigmoidal function. This is not
-         meant to be physically meaningful but to track the chemical
-         variations (see e.g. Martin-Navarro et al. 2015)
+        The IMF slope  evolves as a sigmoidal function. This is not
+        meant to be physically meaningful but to track the chemical
+        variations (see e.g. Martin-Navarro et al. 2015)
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         start   : scalar (dex)
-             IMF slope  of the oldest stellar population (default=0.5)
-         end     : scalar (dex)
-             IMF slope  of the youngest stellar population (default=3.0)
-         tc      : scalar (Gyr)
-             Characteristic transition time (default=5)
-         gamma   : scalar
-             Transition slope (default=1)
+        start   : scalar (dex)
+            IMF slope  of the oldest stellar population (default=0.5)
+        end     : scalar (dex)
+            IMF slope  of the youngest stellar population (default=3.0)
+        tc      : scalar (Gyr)
+            Characteristic transition time (default=5)
+        gamma   : scalar
+            Transition slope (default=1)
 
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (start, end, tc, gamma):
@@ -790,24 +790,24 @@ class sfh(ssp_models):
     def imf_evol_linear(self, start=-1.5, end=0.2, t_start=5, t_end=1):
         """Linear IMF slope evolution
 
-         The IMF slope evolves as a ReLU function, i.e., constant at the beginning
-         and linearly varing afterwards.
+        The IMF slope evolves as a ReLU function, i.e., constant at the beginning
+        and linearly varing afterwards.
 
-         Parameters
-         ----------
+        Parameters
+        ----------
 
-         start   : scalar
-             IMF of the oldest stellar population (default=-1.5)
-         end     : scalar
-             IMF  of the youngest stellar population (default=0.2)
-         t_start : scalar (Gyr)
-             Start of the IMF variation (default=5)
-         t_end : scalar (Gyr)
-             End of the IMF variation (default=1)
+        start   : scalar
+            IMF of the oldest stellar population (default=-1.5)
+        end     : scalar
+            IMF  of the youngest stellar population (default=0.2)
+        t_start : scalar (Gyr)
+            Start of the IMF variation (default=5)
+        t_end : scalar (Gyr)
+            End of the IMF variation (default=1)
         Returns
         -------
-
-        Updates the SFH parameters of the instance
+        None
+            Updates the SFH parameters of the instance
         """
 
         for inp in (start, end, t_start, t_end):
@@ -849,8 +849,8 @@ class sfh(ssp_models):
 
         Returns
         -------
-
-        MILES predictions
+        ssp_models
+            MILES predictions
         """
 
         # We make a copy of the instance to speed up the interpolation
@@ -972,7 +972,7 @@ class sfh(ssp_models):
         self : SFH instance call
 
         Returns
-        ----------
+        -------
         safe : boolean
             True if all parameters are within the allowed range,
             False otherwise
@@ -1005,9 +1005,9 @@ class sfh(ssp_models):
         self : SFH instance call
 
         Returns
-        ----------
-
-        Updates the SFH parameters of the instance
+        -------
+        None
+            Updates the SFH parameters of the instance
         """
 
         # Normalization to form 1 Msun

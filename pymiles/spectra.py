@@ -48,23 +48,31 @@ class spectra:
         """
         Creates an instance of the class
 
-        Keywords
-        --------
-        wave_init:  Starting wavelength in Angstroms. If not defined, taken from WAVE
-        wave_last:  End wavelength in Angstroms. If not defined, taken from WAVE
-        dwave:      Wavelength step in Angstroms. If not defined, taken from WAVE
-        source:     Name of input source to use. Valid inputs are
+        Parameters
+        ----------
+        wave_init:
+            Starting wavelength in Angstroms. If not defined, taken from WAVE
+        wave_last:
+            End wavelength in Angstroms. If not defined, taken from WAVE
+        dwave:
+            Wavelength step in Angstroms. If not defined, taken from WAVE
+        source:
+            Name of input source to use. Valid inputs are
                     MILES_STARS/CaT_STARS/MILES_SSP/CaT_SSP/EMILES_SSP.
                     Default: MILES_SSP
-        redshift:   Redshift of the input spectra. Default=0.0
-        sampling:   Type of sampling of the spectra. Valid inputs are lin/ln.
+        redshift:
+            Redshift of the input spectra. Default=0.0
+        sampling:
+            Type of sampling of the spectra. Valid inputs are lin/ln.
                     Default: lin
-        wave:       Vector with input wavelengths in Angstroms
-        spec:       [N,M] array with input spectra
+        wave:
+            Vector with input wavelengths in Angstroms
+        spec:
+            [N,M] array with input spectra
 
-        Return
-        ------
-        Object instance
+        Returns
+        -------
+        spectra
 
         """
         logger.debug(wave)
@@ -126,14 +134,16 @@ class spectra:
         """
         Updates basic values of the spectra in instance
 
-        Keywords
-        --------
-        wave:       Vector with input wavelengths in Angstroms
-        spec:       [N,M] array with input spectra
+        Parameters
+        ----------
+        wave:
+            Vector with input wavelengths in Angstroms
+        spec:
+            [N,M] array with input spectra
 
-        Return
-        ------
-        Object instance
+        Returns
+        -------
+        spectra
 
         """
 
@@ -152,9 +162,10 @@ class spectra:
         """
         Returns the LSF given a source and wavelength from self
 
-        Return
-        ------
-        Object instance with LSF info included
+        Returns
+        -------
+        spectra
+            Object instance with LSF info included
 
         """
 
@@ -200,14 +211,17 @@ class spectra:
         """
         Trims spectra to desired wavelength limits
 
-        Keywords
-        --------
-        wave_lims: Wavelength limits in Angtroms
-        verbose:   Flag for verbose
+        Parameters
+        ----------
+        wave_lims:
+            Wavelength limits in Angtroms
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Object instance with spectra trimmed and updated info
+        Returns
+        -------
+        spectra
+            Object instance with spectra trimmed and updated info
 
         """
         logger.info("# Trimming spectra in wavelength ...")
@@ -227,15 +241,19 @@ class spectra:
         Returns a copy of the instance with the wavelength vector
         and spectra array rebinned to the desired wavelength step
 
-        Keywords
-        --------
-        wave_lims: Desired wavelength limits in Angtroms
-        dwave:     Desired wavelength step in Angstroms
-        verbose:   Flag for verbose
+        Parameters
+        ----------
+        wave_lims:
+            Desired wavelength limits in Angtroms
+        dwave:
+            Desired wavelength step in Angstroms
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Object instance with spectra resampled and updated info
+        Returns
+        -------
+        spectra
+            Object instance with spectra resampled and updated info
 
         """
         logger.info("# Resampling spectra ...")
@@ -259,14 +277,17 @@ class spectra:
         Returns a copy of the instance with a redshifted wavelength vector,
         spectra and LSF
 
-        Keywords
-        --------
-        redshift: Desired redshift
-        verbose:  Flag for verbose
+        Parameters
+        ----------
+        redshift:
+            Desired redshift
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Object instance with spectra redshifted and updated info
+        Returns
+        -------
+        spectra
+            Object instance with spectra redshifted and updated info
 
         """
         logger.info("# Redshifting spectra ...")
@@ -287,14 +308,17 @@ class spectra:
         """
         Returns a logrebinned version of the spectra
 
-        Keywords
-        --------
-        velscale: Desired velocity scale in km/s. Computed automatically if None.
-        verbose:  Flag for verbose
+        Parameters
+        ----------
+        velscale:
+            Desired velocity scale in km/s. Computed automatically if None.
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Object instance with ln-rebinned spectra and updated info
+        Returns
+        -------
+        spectra
+            Object instance with ln-rebinned spectra and updated info
 
         """
         logger.info("# Ln-rebining the spectra ...")
@@ -326,14 +350,17 @@ class spectra:
         """
         Returns a un-logbinned version of the spectra
 
-        Keywords
-        --------
-        flux:     Flag to conserve flux or not. Default: True
-        verbose:  Flag for verbose
+        Parameters
+        ----------
+        flux:
+            Flag to conserve flux or not. Default: True
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Object instance with linearly binned spectra and updated info
+        Returns
+        -------
+        spectra
+            Object instance with linearly binned spectra and updated info
 
         """
 
@@ -364,21 +391,26 @@ class spectra:
         """
         Returns a convolved version of the spectra
 
-        Note
-        ----
+        Notes
+        -----
         this assumes SAMPLING='lin'
         If output LSF < input LSF setting bad values to input LSF
 
-        Keywords
-        --------
-        lsf_wave:  Wavelength vector of output LSF
-        lsf:       LSF vector
-        mode:      FWHM/VDISP. First one in Angstroms. Second one in km/s
-        verbose:   Flag for verbose
+        Parameters
+        ----------
+        lsf_wave:
+            Wavelength vector of output LSF
+        lsf:
+            LSF vector
+        mode:
+            FWHM/VDISP. First one in Angstroms. Second one in km/s
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Object instance with convolved spectra and updated info
+        Returns
+        -------
+        spectra
+            Object instance with convolved spectra and updated info
 
         """
 
@@ -430,22 +462,32 @@ class spectra:
         """
         Returns the a tuned to desired input parameters
 
-        Keywords
-        --------
-        wave_lims:     Wavelength limits in Angstroms
-        dwave:         Step in wavelength (in Angstroms)
-        sampling:      Type of sampling of the spectra. Valid inputs are lin/ln.
-                       Default: lin
-        redshift:      Desired redshift
-        lsf_flag:      Boolean flag to do LSF correction
-        lsf_wave:      Wavelength vector of output LSF
-        lsf:           LSF vector
-        lsf_mode:      FWHM/VDISP. First one in Angstroms. Second one in km/s
-        verbose:       Flag for verbose
+        Parameters
+        ----------
+        wave_lims:
+            Wavelength limits in Angstroms
+        dwave:
+            Step in wavelength (in Angstroms)
+        sampling:
+            Type of sampling of the spectra. Valid inputs are lin/ln.
+            Default: lin
+        redshift:
+            Desired redshift
+        lsf_flag:
+            Boolean flag to do LSF correction
+        lsf_wave:
+            Wavelength vector of output LSF
+        lsf:
+            LSF vector
+        lsf_mode:
+            FWHM/VDISP. First one in Angstroms. Second one in km/s
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Object instance with tuned spectra and updated info
+        Returns
+        -------
+        spectra
+            Object instance with tuned spectra and updated info
 
         """
 
@@ -483,21 +525,25 @@ class spectra:
 
     # -----------------------------------------------------------------------------
     def compute_save_mags(
-        self, filters: [Filter] = [], zeropoint="AB", saveCSV=False, verbose=False
+        self, filters: list[Filter] = [], zeropoint="AB", saveCSV=False, verbose=False
     ):
         """
         Returns the magnitudes of the input spectra given a list of filters in a file
 
-        Keywords
-        --------
-        filters:   Filters as provided by the method 'get_filters"
-        zeropoint: Type of zero point. Valid inputs are AB/VEGA
-        verbose:   Flag for verbose
+        Parameters
+        ----------
+        filters:
+            Filters as provided by the method 'get_filters"
+        zeropoint:
+            Type of zero point. Valid inputs are AB/VEGA
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Dictionary with output magnitudes for each spectra for each filter
-        If option saveCSV=True, returns .csv file with the magnitudes
+        Returns
+        -------
+        dict
+            Dictionary with output magnitudes for each spectra for each filter
+            If option saveCSV=True, writes a .csv file with the magnitudes
 
         """
         logger.info("# Computing absolute magnitudes...")
@@ -525,14 +571,16 @@ class spectra:
         """
         Returns the LS indices of the input spectra given a list of index definitions
 
-        Keywords
-        --------
-        verbose: Flag for verbose
+        Parameters
+        ----------
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Dictionary with output LS indices for each spectra for each index
-        If option saveCSV=True, returns .csv file with the LS indices
+        Returns
+        -------
+        dict
+            Dictionary with output LS indices for each spectra for each index
+            If option saveCSV=True, writes a .csv file with the LS indices
 
         """
         logger.info("# Computing Line-Strength indices ...")
@@ -581,14 +629,16 @@ class spectra:
         """
         Saves the contents of class instance into a HDF5 file
 
-        Arguments
-        --------
-        filename: Output filename (with full path)
-        verbose:  Flag for verbose
+        Parameters
+        ----------
+        filename:
+            Output filename (with full path)
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Nothing. File gets saved on disk
+        Returns
+        -------
+        None
 
         """
 
@@ -627,13 +677,14 @@ class spectra:
         """
         Converts wavelength from vacuum to air
 
-        Arguments
-        --------
+        Parameters
+        ----------
         None
 
-        Return
-        ------
-        Vector with wavelength in air system
+        Returns
+        -------
+        array
+            Vector with wavelength in air system
 
         """
 
@@ -648,13 +699,14 @@ class spectra:
         """
         Loads the references solar spectrum
 
-        Arguments
-        --------
+        Parameters
+        ----------
         None
 
-        Return
-        ------
-        Vector with wavelength in air system and flux
+        Returns
+        -------
+        array
+            Vector with wavelength in air system and flux
 
         """
 
@@ -667,19 +719,25 @@ class spectra:
         return wave_air, flux
 
     # -----------------------------------------------------------------------------
-    def compute_mag_sun(self, filters=None, zeropoint="AB", verbose=False):
+    def compute_mag_sun(
+        self, filters: list[Filter] = [], zeropoint="AB", verbose=False
+    ):
         """
         Computes the magnitude of Sun in the desired filters
 
-        Arguments
-        --------
-        filters:   Filters as provided by the method 'get_filters"
-        zeropoint: Type of zero point. Valid inputs are AB/VEGA
-        verbose:   Flag for verbose
+        Parameters
+        ----------
+        filters:
+            Filters as provided by the method 'get_filters"
+        zeropoint:
+            Type of zero point. Valid inputs are AB/VEGA
+        verbose:
+            Flag for verbose
 
-        Return
-        ------
-        Dictionary with solar mags for each filter
+        Returns
+        -------
+        dict
+            Dictionary with solar mags for each filter
 
         """
         logger.info("# Computing solar absolute magnitudes...")
