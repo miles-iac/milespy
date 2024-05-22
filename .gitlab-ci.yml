@@ -17,9 +17,11 @@ test:
 build-doc:
   stage: build
   script:
-    - apt install pandoc
+    - apt -y update
+    - apt-get -y install pandoc
     - pip install poetry && poetry config virtualenvs.create false
     - make prepare-dev
     - source .pymiles
     - make install-dev
+    - poetry run pip install jupyter
     - make doc
