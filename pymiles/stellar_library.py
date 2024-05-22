@@ -23,13 +23,11 @@ class stellar_library(spectra, repository):
 
         Parameters
         ----------
-        source:  Name of input models to use. Valid inputs are
+        source:
+            Name of input models to use. Valid inputs are
                  MILES_STARS/CaT_STARS/EMILES_STARS
-        version: Version number of the models
-
-        Returns
-        -------
-        Object instance
+        version:
+            Version number of the models
 
         """
         repo_filename = self._get_repository(source, version)
@@ -98,7 +96,8 @@ class stellar_library(spectra, repository):
 
         Parameters
         ----------
-        idx: integer or boolean array indicating the elements to be extracted
+        idx:
+            integer or boolean array indicating the elements to be extracted
 
         Returns
         -------
@@ -128,7 +127,8 @@ class stellar_library(spectra, repository):
 
         Parameters
         ----------
-        id: integer with the star ID in database
+        id:
+            integer with the star ID in database
 
         Returns
         -------
@@ -151,7 +151,8 @@ class stellar_library(spectra, repository):
 
         Parameters
         ----------
-        id: integer with the star ID in database
+        id:
+            integer with the star ID in database
 
         Returns
         -------
@@ -177,14 +178,19 @@ class stellar_library(spectra, repository):
 
         Parameters
         ----------
-        teff_lims: Limits in Teff
-        logg_lims: Limits in Log(g)
-        FeH_lims:  Limits in [Fe/H]
-        MgFe_lims: Limits in [Mg/Fe]
+        teff_lims:
+            Limits in Teff
+        logg_lims:
+            Limits in Log(g)
+        FeH_lims:
+            Limits in [Fe/H]
+        MgFe_lims:
+            Limits in [Mg/Fe]
 
         Returns
         -------
-        Object instance for stars within parameters range
+        stellar_library
+            Object instance for stars within parameters range
 
         """
 
@@ -220,14 +226,19 @@ class stellar_library(spectra, repository):
 
         Parameters
         ----------
-        teff: Desired Teff
-        logg: Desired Log(g)
-        FeH:  Desired [Fe/H]
-        MgFe: Desired [Mg/Fe]
+        teff:
+            Desired Teff
+        logg:
+            Desired Log(g)
+        FeH:
+            Desired [Fe/H]
+        MgFe:
+            Desired [Mg/Fe]
 
         Returns
         -------
-        Object instance for closest star
+        stellar_library
+            Object instance for closest star
 
         """
 
@@ -257,15 +268,21 @@ class stellar_library(spectra, repository):
 
         Parameters
         ----------
-        teff: Desired Teff
-        logg: Desired Log(g)
-        FeH:  Desired [Fe/H]
-        MgFe: Desired [Mg/Fe]
+        teff:
+            Desired Teff
+        logg:
+            Desired Log(g)
+        FeH:
+            Desired [Fe/H]
+        MgFe:
+            Desired [Mg/Fe]
 
         Returns
         -------
-        wave: wavelength of output spectrum
-        spec: interpolated spectrum
+        wave:
+            wavelength of output spectrum
+        spec:
+            interpolated spectrum
 
         """
 
@@ -289,31 +306,34 @@ class stellar_library(spectra, repository):
 
         return out
 
-    # -----------------------------------------------------------------------------
-    # CREATE_NEW_OBJECT
-    #
-    # Creates a new object from an interpolated spectra in
-    # get_spectrum_by_params_delaunay
-    # -----------------------------------------------------------------------------
     def create_new_object(self, teff, logg, FeH, MgFe, wave, spec, indices, weights):
         """
         Creates a new object using the info from the
-        get_spectrum_by_params_delaunay method
+        :meth:`pymiles.stellar_library.get_spectrum_by_params_delaunay` method
 
         Parameters
         ----------
-        teff:      Desired Teff
-        logg:      Desired Log(g)
-        FeH:       Desired [Fe/H]
-        MgFe:      Desired [Mg/Fe]
-        wave:      Input wavelength
-        spec:      Interpolated spectrum
-        indices:   Elements of the original object to do the interpolation
-        weights:   Weights for each of the elements
+        teff:
+            Desired Teff
+        logg:
+            Desired Log(g)
+        FeH:
+            Desired [Fe/H]
+        MgFe:
+            Desired [Mg/Fe]
+        wave:
+            Input wavelength
+        spec:
+            Interpolated spectrum
+        indices:
+            Elements of the original object to do the interpolation
+        weights:
+            Weights for each of the elements
 
         Returns
         -------
-        Dictionary with mass-to-light ratios for each SSP model and filter
+        dict
+            Dictionary with mass-to-light ratios for each SSP model and filter
 
         """
 
