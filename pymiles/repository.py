@@ -7,6 +7,7 @@ import requests
 from tqdm import tqdm
 
 from pymiles import config
+from pymiles import def_repo_folder
 
 logger = logging.getLogger("pymiles.repository")
 
@@ -50,7 +51,7 @@ class repository:
         if "repository_folder" in config:
             repo_filename = config["repository_folder"] + base_name + ".hdf5"
         else:
-            repo_filename = "./pymiles/repository/" + base_name + ".hdf5"
+            repo_filename = def_repo_folder.as_posix() + "/" + base_name + ".hdf5"
 
         logger.debug(f"# Loading models in {repo_filename}")
 

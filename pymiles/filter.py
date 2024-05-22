@@ -2,15 +2,16 @@
 import glob
 import logging
 import os
-import pathlib
 import re
 
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import ascii
 
+from pymiles import config_folder
+from pymiles import get_config_file
+
 logger = logging.getLogger("pymiles.filter")
-base_folder = pathlib.Path(__file__).parent.resolve() / "config_files" / "filters"
 
 
 class Filter:
@@ -40,7 +41,7 @@ class Filter:
         fname : str
             Name of the filter to be loaded
         """
-        filename = base_folder.as_posix() + "/" + fname + ".dat"
+        filename = get_config_file("filters/" + fname + ".dat")
         if not os.path.exists(filename):
             assert ValueError("Filter " + fname + " does not exist in database")
         else:
@@ -68,7 +69,7 @@ class Filter:
         )
 
 
-fnames = glob.glob(f"{base_folder.as_posix()}/*.dat")
+fnames = glob.glob(f"{config_folder.as_posix()}/filters/*.dat")
 filter_names = np.sort([os.path.basename(x).split(".dat")[0] for x in fnames])
 nfilters = len(filter_names)
 logging.debug(f"Initialized library with {nfilters} filters")

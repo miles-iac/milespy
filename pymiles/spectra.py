@@ -2,7 +2,6 @@
 import csv
 import logging
 import os
-import pathlib
 import warnings
 from copy import copy
 
@@ -15,21 +14,20 @@ from scipy import interpolate
 import pymiles.cap_utils as cap
 import pymiles.misc_functions as misc
 import pymiles.pymiles_utils as utils
+from pymiles import get_config_file
 from pymiles.filter import Filter
 
 # ==============================================================================
 
 logger = logging.getLogger("pymiles.spectra")
 
-base_folder = pathlib.Path(__file__).parent.resolve() / "config_files"
-
 
 class spectra:
     warnings.filterwarnings("ignore")
 
-    solar_ref_spec = base_folder.as_posix() + "/sun_mod_001.fits"
-    emiles_lsf = base_folder.as_posix() + "/EMILES.lsf"
-    lsfile = base_folder.as_posix() + "/ls_indices_full.def"
+    solar_ref_spec = get_config_file("sun_mod_001.fits")
+    emiles_lsf = get_config_file("EMILES.lsf")
+    lsfile = get_config_file("ls_indices_full.def")
 
     # -----------------------------------------------------------------------------
     # __INIT__
@@ -657,7 +655,7 @@ class spectra:
         # ------------------------------
         for key, value in obj.items():
             value = np.array(value)
-            logger.debug(" - " + key, value.dtype.str)
+            logger.debug(" - " + key)
             if value.dtype.str[1] == "O":
                 continue
             if np.ndim(obj[key]) == 1:
@@ -668,7 +666,6 @@ class spectra:
                 if value.dtype.str[1] == "U":
                     value = [n.encode("ascii", "ignore") for n in value]
                 f.create_dataset(key, data=value, compression="gzip")
-        # ------------------------------
         f.close()
 
         return
