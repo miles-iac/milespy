@@ -17,6 +17,7 @@ test:
 build-doc:
   stage: build
   script:
+    - apt install pandoc
     - pip install poetry && poetry config virtualenvs.create false
     - make prepare-dev
     - source .pymiles
