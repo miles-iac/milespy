@@ -3,3 +3,5 @@
 *.egg-info
 *.pymiles
 poetry.lock
+docs/reference/_autosummary/
+_build
