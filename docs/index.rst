@@ -7,7 +7,7 @@ Welcome to pymiles's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    Installation <installation>
    Tutorials & examples <tutorials/index>
