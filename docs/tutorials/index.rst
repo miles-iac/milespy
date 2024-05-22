@@ -7,3 +7,4 @@ Tutorials
 
    example_ssp.ipynb
    example_sfh.ipynb
+   example_stellar_library.ipynb
