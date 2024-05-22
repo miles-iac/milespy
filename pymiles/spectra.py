@@ -2,6 +2,7 @@
 import csv
 import logging
 import os
+import pathlib
 import warnings
 from copy import copy
 
@@ -20,14 +21,15 @@ from pymiles.filter import Filter
 
 logger = logging.getLogger("pymiles.spectra")
 
+base_folder = pathlib.Path(__file__).parent.resolve() / "config_files"
+
 
 class spectra:
     warnings.filterwarnings("ignore")
 
-    # solar_ref_spec = "./pymiles/config_files/sun_reference_stis_002.fits"
-    solar_ref_spec = "./pymiles/config_files/sun_mod_001.fits"
-    emiles_lsf = "./pymiles/config_files/EMILES.lsf"
-    lsfile = "./pymiles/config_files/ls_indices_full.def"
+    solar_ref_spec = base_folder.as_posix() + "/sun_mod_001.fits"
+    emiles_lsf = base_folder.as_posix() + "/EMILES.lsf"
+    lsfile = base_folder.as_posix() + "/ls_indices_full.def"
 
     # -----------------------------------------------------------------------------
     # __INIT__

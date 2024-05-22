@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import pathlib
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -232,8 +233,9 @@ def load_filters(filtersfile):
 
 
 def load_zerofile(zeropoint):
-    file = "./pymiles/config_files/vega_from_koo.sed"
-    file = "./pymiles/config_files/vega.sed"
+    base_folder = pathlib.Path(__file__).parent.resolve() / "config_files"
+    file = base_folder.as_posix() + "/vega_from_koo.sed"
+    file = base_folder.as_posix() + "/vega.sed"
     data = ascii.read(file, comment=r"\s*#")
     npt = len(data["col1"])
 
