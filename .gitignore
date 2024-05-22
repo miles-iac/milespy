@@ -5,3 +5,4 @@
 poetry.lock
 docs/reference/_autosummary/
 _build
+**/.ipynb_checkpoints*
