@@ -11,6 +11,7 @@ from scipy.spatial import Delaunay
 
 import pymiles.pymiles_utils as utils
 from pymiles.filter import Filter
+from pymiles.magnitudes import sun_magnitude
 from pymiles.repository import repository
 from pymiles.spectra import spectra
 
@@ -517,12 +518,8 @@ class ssp_models(spectra, repository):
 
         #  We need to choose a system. For M/Ls this is irrelevant
         zeropoint = "AB"
-        mags = self.compute_save_mags(
-            filters=filters, zeropoint=zeropoint, saveCSV=False, verbose=verbose
-        )
-        msun = self.compute_mag_sun(
-            filters=filters, zeropoint=zeropoint, verbose=verbose
-        )
+        mags = self.magnitudes(filters=filters, zeropoint=zeropoint)
+        msun = sun_magnitude(filters=filters, zeropoint=zeropoint)
 
         if type == "total":
             mass = self.Mass_total

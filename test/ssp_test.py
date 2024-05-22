@@ -129,9 +129,7 @@ def test_mags(miles_single):
     # Compute mags
     fnames = flib.search("sdss")
     filts = flib.get(fnames)
-    outmags = miles_single.compute_save_mags(
-        filters=filts, zeropoint="AB", saveCSV=False, verbose=True
-    )
+    outmags = miles_single.magnitudes(filters=filts, zeropoint="AB")
     assert np.allclose(outmags["OAJ_JPAS.gSDSS"], np.array([6.36259285]))
     assert np.allclose(outmags["OAJ_JPAS.iSDSS"], np.array([np.nan]), equal_nan=True)
     assert np.allclose(outmags["OAJ_JPAS.rSDSS"], np.array([5.70746113]))
@@ -225,23 +223,6 @@ def test_ls_indices(miles_single):
     }
     for k in ref.keys():
         np.testing.assert_allclose(ref[k], outls[k], rtol=1e-5, err_msg=k, verbose=True)
-
-
-def test_solar_mags(miles_single):
-    fnames = flib.search("sloan")
-    filts = flib.get(fnames)
-    outmags = miles_single.compute_mag_sun(filters=filts, verbose=True, zeropoint="AB")
-    ref = {
-        "SLOAN_SDSS.g": 5.140807167815929,
-        "SLOAN_SDSS.i": 4.536431419781877,
-        "SLOAN_SDSS.r": 4.648245475828894,
-        "SLOAN_SDSS.u": 6.390409355059589,
-        "SLOAN_SDSS.z": 4.521180796814598,
-    }
-    for k in ref.keys():
-        np.testing.assert_allclose(
-            ref[k], outmags[k], rtol=1e-5, err_msg=k, verbose=True
-        )
 
 
 def test_ml(miles_single):

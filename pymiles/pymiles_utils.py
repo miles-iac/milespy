@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
-import pathlib
 
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import ascii
-from scipy.interpolate import interp1d
 
-from pymiles.filter import Filter
-
-# import scipy.interpolate
 
 logger = logging.getLogger("pymiles.utils")
 # ==============================================================================
@@ -227,112 +222,6 @@ def load_filters(filtersfile):
             )
 
     return filter_names, filters
-
-
-# ===============================================================================
-
-
-def load_zerofile(zeropoint):
-    base_folder = pathlib.Path(__file__).parent.resolve() / "config_files"
-    file = base_folder.as_posix() + "/vega_from_koo.sed"
-    file = base_folder.as_posix() + "/vega.sed"
-    data = ascii.read(file, comment=r"\s*#")
-    npt = len(data["col1"])
-
-    zerosed = np.recarray((npt,), dtype=[("wave", float), ("flux", float)])
-    zerosed.wave = data["col1"]
-    zerosed.flux = data["col2"]
-
-    # If AB mags only need wavelength vector
-    if zeropoint == "AB":
-        zerosed.flux = 1.0 / np.power(zerosed.wave, 2)
-        return zerosed
-
-    elif zeropoint == "VEGA":
-        # Normalizing the SED@ 5556.0\AA
-        zp5556 = 3.44e-9  # erg cm^-2 s^-1 A^-1, Hayes 1985
-        interp = interp1d(zerosed.wave, zerosed.flux)
-        zerosed.flux *= zp5556 / interp(5556.0)
-
-    return zerosed
-
-
-# ===============================================================================
-
-
-def compute_mags(wave, flux, filters: [Filter], zerosed, zeropoint, sun=False):
-    # Defining some variables
-    cvel = 2.99792458e18  # Speed of light in Angstron/sec
-    dl = 1e-5  # 10 pc in Mpc, z=0; for absolute magnitudes
-    if sun:
-        cfact = -5.0 * np.log10(4.84e-6 / 10.0)  # for absolute magnitudes
-    else:
-        cfact = 5.0 * np.log10(1.7684e8 * dl)  # from lum[erg/s/A] to flux [erg/s/A/cm2]
-
-    # Default is nan to mark an invalid range/filter
-    outmag = {f.name: np.nan for f in filters}
-    interp_zp = interp1d(zerosed.wave, zerosed.flux)
-
-    # Computing the magnitude for each filter
-    for filt in filters:
-        # Finding the wavelength limits of the filters
-        good = filt.wave > 0.0
-        wlow = np.amin(filt.wave[good])
-        whi = np.amax(filt.wave[good])
-
-        # Selecting the relevant pixels in the input spectrum
-        w = (wave >= wlow) & (wave <= whi)
-        tmp_wave = wave[w]
-        tmp_flux = flux[w]
-        if (np.amin(wave) > wlow) or (np.amax(wave) < whi):
-            logger.warning(
-                "Filter "
-                + filt.name
-                + " ["
-                + str(wlow)
-                + ","
-                + str(whi)
-                + "] is outside of spectral range ["
-                + str(np.amin(wave))
-                + ","
-                + str(np.amax(wave))
-                + "]\t Returning nan"
-            )
-            continue
-
-        # Identifying pixels with no flux
-        bad = tmp_flux == 0.0
-        if np.sum(bad) > 0:
-            logger.warning(
-                "Filter "
-                + filt.name
-                + " ["
-                + str(wlow)
-                + ","
-                + str(whi)
-                + "] has zero flux\t Returning nan"
-            )
-            continue
-
-        # Interpolate the filter response to data wavelength
-        interp = interp1d(
-            filt.wave[good],
-            filt.trans[good],
-        )
-        response = interp(tmp_wave)
-
-        # Calculating the magnitude in the desired system
-        vega = interp_zp(tmp_wave)
-        f = np.trapz(tmp_flux * response, x=tmp_wave)
-        vega_f = np.trapz(vega * response, x=tmp_wave)
-        mag = -2.5 * np.log10(f / vega_f)
-        fmag = mag + cfact
-        if zeropoint == "AB":
-            fmag = fmag + 2.5 * np.log10(cvel) - 48.6  # oke & gunn 83
-
-        outmag[filt.name] = fmag
-
-    return outmag
 
 
 # ==============================================================================

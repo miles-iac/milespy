@@ -16,6 +16,8 @@ import pymiles.misc_functions as misc
 import pymiles.pymiles_utils as utils
 from pymiles import get_config_file
 from pymiles.filter import Filter
+from pymiles.magnitudes import compute_mags
+from pymiles.magnitudes import Magnitude
 
 # ==============================================================================
 
@@ -523,10 +525,11 @@ class spectra:
 
         return out
 
-    # -----------------------------------------------------------------------------
-    def compute_save_mags(
-        self, filters: list[Filter] = [], zeropoint="AB", saveCSV=False, verbose=False
-    ):
+    def magnitudes(
+        self,
+        filters: list[Filter] = [],
+        zeropoint="AB",
+    ) -> Magnitude:
         """
         Returns the magnitudes of the input spectra given a list of filters in a file
 
@@ -536,33 +539,20 @@ class spectra:
             Filters as provided by :meth:`pymiles.filter.get`
         zeropoint:
             Type of zero point. Valid inputs are AB/VEGA
-        verbose:
-            Flag for verbose
 
         Returns
         -------
-        dict
+        Magnitude
             Dictionary with output magnitudes for each spectra for each filter
-            If option saveCSV=True, writes a .csv file with the magnitudes
 
         """
-        logger.info("# Computing absolute magnitudes...")
+        logger.info("Computing absolute magnitudes...")
 
-        zerosed = utils.load_zerofile(zeropoint)
-        outmags = {f.name: np.full(self.nspec, np.nan) for f in filters}
+        outmags = Magnitude((f.name, np.full(self.nspec, np.nan)) for f in filters)
         for i in range(self.nspec):
-            mags = utils.compute_mags(
-                self.wave, self.spec[:, i], filters, zerosed, zeropoint
-            )
+            mags = compute_mags(self.wave, self.spec[:, i], filters, zeropoint)
             for f in filters:
                 outmags[f.name][i] = mags[f.name]
-
-        if saveCSV:
-            logger.warning("Previous 'saved_mags.csv' will be overwritten.")
-            f = open("./pymiles/saved_files/saved_mags.csv", "w")
-            writer = csv.writer(f)
-            writer.writerows(outmags)
-            f.close()
 
         return outmags
 
@@ -716,38 +706,3 @@ class spectra:
         flux = tab["FLUX"]
 
         return wave_air, flux
-
-    # -----------------------------------------------------------------------------
-    def compute_mag_sun(
-        self, filters: list[Filter] = [], zeropoint="AB", verbose=False
-    ):
-        """
-        Computes the magnitude of Sun in the desired filters
-
-        Parameters
-        ----------
-        filters: list[Filter]
-            Filters as provided by :meth:`pymiles.filter.get`
-        zeropoint:
-            Type of zero point. Valid inputs are AB/VEGA
-        verbose:
-            Flag for verbose
-
-        Returns
-        -------
-        dict
-            Dictionary with solar mags for each filter
-
-        """
-        logger.info("# Computing solar absolute magnitudes...")
-
-        wave, flux = self.load_solar_spectrum()
-        nfilters = len(filters)
-        zerosed = utils.load_zerofile(zeropoint)
-        outmags = {f.name: np.full(nfilters, np.nan) for f in filters}
-        outmags = utils.compute_mags(wave, flux, filters, zerosed, zeropoint, sun=True)
-
-        return outmags
-
-
-# -----------------------------------------------------------------------------

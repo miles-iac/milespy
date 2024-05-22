@@ -49,7 +49,4 @@ Other tools
    :recursive:
 
    pymiles.filter
-   pymiles.cap_utils
-   pymiles.load_hdf5
-   pymiles.repository
-   pymiles.write_miles_results
+   pymiles.magnitudes
