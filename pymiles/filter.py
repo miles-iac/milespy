@@ -14,7 +14,32 @@ base_folder = pathlib.Path(__file__).parent.resolve() / "config_files" / "filter
 
 
 class Filter:
+    """
+    Filter information
+
+    Attributes
+    ----------
+    wave: array
+        Wavelength range of the filter
+    trans: array
+        Transmissivity for each wavelength
+    name: str
+        Name of the filter
+    """
+
     def __init__(self, fname):
+        """
+        Create a filter from the name in the database.
+
+        This reads the information from the configuration files, so the
+        name should match with a given existing file. This can be easily
+        accomplished with :meth:`pymiles.filter.search`.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the filter to be loaded
+        """
         filename = base_folder.as_posix() + "/" + fname + ".dat"
         if not os.path.exists(filename):
             assert ValueError("Filter " + fname + " does not exist in database")
@@ -26,6 +51,14 @@ class Filter:
             self.trans = tab["trans"]
 
     def plot(self, ax) -> None:
+        """
+        Plot the filter transmissivity
+
+        Parameters
+        ----------
+        ax : matplotlib.Axes
+            Axes where the plot is drawn
+        """
         ax.fill_between(
             self.wave,
             self.trans,
@@ -41,7 +74,7 @@ nfilters = len(filter_names)
 logging.debug(f"Initialized library with {nfilters} filters")
 
 
-def search(name):
+def search(name) -> list[str]:
     """
     Searches for a filter in database.
 
@@ -54,11 +87,13 @@ def search(name):
 
     Parameters
     ----------
-    name: The search string to match filter names
+    name:
+        The search string to match filter names
 
     Returns
     -------
-    List of filter names available matching the search string
+    list[str]
+        List of filter names available matching the search string
 
     """
 
@@ -80,12 +115,12 @@ def get(filter_names: list[str]) -> list[Filter]:
 
     Parameters
     ----------
-    filter_names: The filter names
+    filter_names: list[str]
+        The filter names as given by :meth:`pymiles.filter.search`
 
     Returns
     -------
-    Object with filter's wavelength and normalised transmission
-
+    list[Filter]
     """
     filters = [Filter(fname) for fname in filter_names]
 
@@ -98,12 +133,10 @@ def plot(filter_names, legend=True):
 
     Parameters
     ----------
-    filter_names: The filter names
-    legend:       Flag to turn on/off the legend
-
-    Returns
-    -------
-    Nothing
+    filter_names: list[str]
+        The filter names
+    legend: bool
+        Flag to turn on/off the legend
 
     """
 

@@ -532,8 +532,8 @@ class spectra:
 
         Parameters
         ----------
-        filters:
-            Filters as provided by the method 'get_filters"
+        filters: list[Filter]
+            Filters as provided by :meth:`pymiles.filter.get`
         zeropoint:
             Type of zero point. Valid inputs are AB/VEGA
         verbose:
@@ -727,8 +727,8 @@ class spectra:
 
         Parameters
         ----------
-        filters:
-            Filters as provided by the method 'get_filters"
+        filters: list[Filter]
+            Filters as provided by :meth:`pymiles.filter.get`
         zeropoint:
             Type of zero point. Valid inputs are AB/VEGA
         verbose:
