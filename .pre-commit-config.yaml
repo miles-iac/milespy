@@ -16,7 +16,6 @@ repos:
       - id: name-tests-test
         exclude: tests/utils.py
       - id: requirements-txt-fixer
-      - id: pretty-format-json
       - id: fix-encoding-pragma
   - repo: https://github.com/asottile/reorder_python_imports
     rev: v3.12.0

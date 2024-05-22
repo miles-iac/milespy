@@ -37,6 +37,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "numpydoc",
+    "nbsphinx",
 ]
 
 autosummary_generate = True
