@@ -360,7 +360,8 @@ class stellar_library(spectra, repository):
             if np.ndim(val) == 0:
                 continue
             if val.shape[0] == nspec_in:
-                print("VER ESTA PARTE")
+                pass
+                # print("VER ESTA PARTE")
         #             setattr(out, keys[i], np.dot(val[indices],weights))
 
         # Instaitiating the spectra class
