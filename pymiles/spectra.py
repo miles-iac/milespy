@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import csv
 import logging
 import os
 import warnings
@@ -16,6 +15,8 @@ import pymiles.misc_functions as misc
 import pymiles.pymiles_utils as utils
 from pymiles import get_config_file
 from pymiles.filter import Filter
+from pymiles.ls_indices import LineStrengthIndeces
+from pymiles.ls_indices import lsindex
 from pymiles.magnitudes import compute_mags
 from pymiles.magnitudes import Magnitude
 
@@ -538,7 +539,7 @@ class spectra:
         return outmags
 
     # -----------------------------------------------------------------------------
-    def compute_ls_indices(self, saveCSV=False):
+    def compute_ls_indices(self) -> LineStrengthIndeces:
         """
         Returns the LS indices of the input spectra given a list of index definitions
 
@@ -552,10 +553,10 @@ class spectra:
             If option saveCSV=True, writes a .csv file with the LS indices
 
         """
-        logger.info("# Computing Line-Strength indices ...")
+        logger.info("Computing Line-Strength indices ...")
 
         # Getting the dimensions
-        names, indices, dummy = utils.lsindex(
+        names, indices, dummy = lsindex(
             self.wave,
             self.spec[:, 0],
             0.0,
@@ -570,7 +571,7 @@ class spectra:
         indices = np.zeros((nls, self.nspec))
 
         for i in range(self.nspec):
-            names, indices[:, i], dummy = utils.lsindex(
+            names, indices[:, i], dummy = lsindex(
                 self.wave,
                 self.spec[:, i],
                 self.spec[:, i] * 0.1,
@@ -580,16 +581,7 @@ class spectra:
             )
             misc.printProgress(i + 1, self.nspec)
 
-        outls = {}
-        for i in range(nls):
-            outls[names[i]] = indices[i, :]
-
-        if saveCSV:
-            logger.warning("Previous 'saved_ls_indices.csv' will be overwritten.")
-            f = open("./pymiles/saved_files/saved_ls_indices.csv", "w")
-            writer = csv.writer(f)
-            writer.writerows(outls)
-            f.close()
+        outls = LineStrengthIndeces((names[i], indices[i, :]) for i in range(nls))
 
         return outls
 

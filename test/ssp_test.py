@@ -142,7 +142,7 @@ def test_mags(miles_single):
 
 
 def test_ls_indices(miles_single):
-    outls = miles_single.compute_ls_indices(saveCSV=False)
+    outls = miles_single.compute_ls_indices()
     ref = {
         "Fe3619": np.array([4.24374222]),
         "Fe3631": np.array([2.10202353]),
