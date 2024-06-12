@@ -30,7 +30,6 @@ class ssp_models(spectra, repository):
         imf_type="ch",
         alp_type="fix",
         show_tree=False,
-        verbose=False,
     ):
         """
         Creates an instance of the class
@@ -53,8 +52,6 @@ class ssp_models(spectra, repository):
                    isochrones
         show_tree:
             Bool that shows the variables available with the instance
-        verbose:
-            Flag to verbose mode
 
         Notes
         -----
@@ -204,11 +201,10 @@ class ssp_models(spectra, repository):
         met_lims=[-5.0, 1.0],
         alpha_lims=[-1.0, 1.0],
         imf_slope_lims=[0.0, 5.0],
-        verbose=False,
     ):
         #    def get_ssp_in_range(self, age_lims=[0.0,20.0], met_lims=[-5.0,1.0],
         #                         alpha_lims=[-1.0,1.0],
-        #                         imf_slope_lims=[0.0,5.0],verbose=False):
+        #                         imf_slope_lims=[0.0,5.0]):
         # print(
         #    "NO VEO QUE NI LIST NI RANGE SSP DEVUELVAN CORRECTAMENTE LAS EDADES
         #    Y METALICIDADES: VER"
@@ -226,8 +222,6 @@ class ssp_models(spectra, repository):
             tuple with alpha limits
         imf_slope_lims:
             tuple with IMF slope limits
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -278,7 +272,6 @@ class ssp_models(spectra, repository):
         met_list=None,
         alpha_list=None,
         imf_slope_list=None,
-        verbose=False,
     ):
         """
         Extracts a selected set of models from init instance.
@@ -380,7 +373,6 @@ class ssp_models(spectra, repository):
         alpha=None,
         imf_slope=None,
         return_pars=False,
-        verbose=False,
     ):
         """
         Interpolates SSP models for certain params using Delaunay triangulation
@@ -397,8 +389,6 @@ class ssp_models(spectra, repository):
             Desired IMF slope
         return_pars:
             If True, returns more information about interpolation
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -497,7 +487,7 @@ class ssp_models(spectra, repository):
     #
     # Computes the mass to light ratio for a set of SSP models and filters
     # -----------------------------------------------------------------------------
-    def compute_ml(self, filters: list[Filter], type="star+remn", verbose=False):
+    def compute_ml(self, filters: list[Filter], type="star+remn"):
         """
         Computes the mass-to-light ratios of models in the desired filters
 
@@ -505,8 +495,6 @@ class ssp_models(spectra, repository):
         ----------
         filters:
             Filters as provided by the method 'get_filters"
-        verbose:
-            Flag for verbose
 
         Returns
         -------

@@ -17,6 +17,4 @@ def test_solar_mags():
         "SLOAN_SDSS.z": 4.521180796814598,
     }
     for k in ref.keys():
-        np.testing.assert_allclose(
-            ref[k], sun_mags[k], rtol=1e-5, err_msg=k, verbose=True
-        )
+        np.testing.assert_allclose(ref[k], sun_mags[k], rtol=1e-5, err_msg=k)

@@ -39,9 +39,7 @@ def test_ssp_by_params_img(miles_ssp):
 
 
 def test_ssp_in_range(miles_ssp):
-    miles_1 = miles_ssp.get_ssp_in_range(
-        age_lims=[17.0, 20.0], met_lims=[0.1, 0.5], verbose=False
-    )
+    miles_1 = miles_ssp.get_ssp_in_range(age_lims=[17.0, 20.0], met_lims=[0.1, 0.5])
     assert miles_1.age.shape == (14,)
     # Is it ok that they all have the same age and metallicity?
     assert miles_1.age.min() == 17.7828
@@ -113,7 +111,6 @@ def miles_tuned(miles_single):
         lsf_flag=True,
         lsf_wave=lsf_wave,
         lsf=lsf,
-        verbose=False,
     )
 
 
@@ -145,7 +142,7 @@ def test_mags(miles_single):
 
 
 def test_ls_indices(miles_single):
-    outls = miles_single.compute_ls_indices(verbose=True, saveCSV=False)
+    outls = miles_single.compute_ls_indices(saveCSV=False)
     ref = {
         "Fe3619": np.array([4.24374222]),
         "Fe3631": np.array([2.10202353]),
@@ -222,13 +219,13 @@ def test_ls_indices(miles_single):
         "CaH2": np.array([0.03285235]),
     }
     for k in ref.keys():
-        np.testing.assert_allclose(ref[k], outls[k], rtol=1e-5, err_msg=k, verbose=True)
+        np.testing.assert_allclose(ref[k], outls[k], rtol=1e-5, err_msg=k)
 
 
 def test_ml(miles_single):
     fnames = flib.search("sloan")
     filts = flib.get(fnames)
-    outmls = miles_single.compute_ml(filters=filts, type="star+remn", verbose=False)
+    outmls = miles_single.compute_ml(filters=filts, type="star+remn")
     ref = {
         "SLOAN_SDSS.g": np.array([1.98569615]),
         "SLOAN_SDSS.i": np.array([np.nan]),
@@ -238,6 +235,4 @@ def test_ml(miles_single):
     }
     assert miles_single.Mass_star_remn == [0.622357175092374]
     for k in ref.keys():
-        np.testing.assert_allclose(
-            ref[k], outmls[k], rtol=1e-5, err_msg=k, verbose=True
-        )
+        np.testing.assert_allclose(ref[k], outmls[k], rtol=1e-5, err_msg=k)

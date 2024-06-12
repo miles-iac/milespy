@@ -24,7 +24,6 @@ class sfh(ssp_models):
         imf_type="ch",
         alp_type="fix",
         show_tree=False,
-        verbose=False,
     ):
         """
         Creates an instance of the class
@@ -41,7 +40,6 @@ class sfh(ssp_models):
                    Variable [alpha/Fe] predictions are only available for
                    BaSTI isochrones.
         show_tree: Bool that shows the variables available with the instance
-        verbose:   Flag to verbose mode
 
         Notes
         -----

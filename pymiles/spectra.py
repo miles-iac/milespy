@@ -209,7 +209,7 @@ class spectra:
         return
 
     # -----------------------------------------------------------------------------
-    def trim_spectra(self, wave_lims=None, verbose=False):
+    def trim_spectra(self, wave_lims=None):
         """
         Trims spectra to desired wavelength limits
 
@@ -217,8 +217,6 @@ class spectra:
         ----------
         wave_lims:
             Wavelength limits in Angtroms
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -238,7 +236,7 @@ class spectra:
         return out
 
     # -----------------------------------------------------------------------------
-    def resample_spectra(self, wave_lims=None, dwave=None, verbose=False):
+    def resample_spectra(self, wave_lims=None, dwave=None):
         """
         Returns a copy of the instance with the wavelength vector
         and spectra array rebinned to the desired wavelength step
@@ -249,8 +247,6 @@ class spectra:
             Desired wavelength limits in Angtroms
         dwave:
             Desired wavelength step in Angstroms
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -266,7 +262,7 @@ class spectra:
         spec = np.zeros((npix, out.nspec))
         for i in range(out.nspec):
             spec[:, i] = utils.spectres(new_wave, out.wave, out.spec[:, i], fill=0.0)
-            if verbose:
+            if logger.getEffectiveLevel() <= logging.INFO:
                 misc.printProgress(i + 1, out.nspec)
         out.update_basic_pars(new_wave, spec)
         out.compute_lsf()
@@ -274,7 +270,7 @@ class spectra:
         return out
 
     # -----------------------------------------------------------------------------
-    def redshift_spectra(self, redshift=None, verbose=False):
+    def redshift_spectra(self, redshift=None):
         """
         Returns a copy of the instance with a redshifted wavelength vector,
         spectra and LSF
@@ -283,8 +279,6 @@ class spectra:
         ----------
         redshift:
             Desired redshift
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -306,7 +300,7 @@ class spectra:
         return out
 
     # -----------------------------------------------------------------------------
-    def logrebin_spectra(self, velscale=None, verbose=False):
+    def logrebin_spectra(self, velscale=None):
         """
         Returns a logrebinned version of the spectra
 
@@ -314,8 +308,6 @@ class spectra:
         ----------
         velscale:
             Desired velocity scale in km/s. Computed automatically if None.
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -339,7 +331,7 @@ class spectra:
             out_spec[:, i], lwave, velscale = cap.log_rebin(
                 lamRange, self.spec[:, i], velscale=velscale
             )
-            if verbose:
+            if logger.getEffectiveLevel() <= logging.INFO:
                 misc.printProgress(i + 1, out.nspec)
 
         out.sampling = "ln"
@@ -348,7 +340,7 @@ class spectra:
         return out
 
     # -----------------------------------------------------------------------------
-    def log_unbin_spectra(self, flux=True, verbose=False):
+    def log_unbin_spectra(self, flux=True):
         """
         Returns a un-logbinned version of the spectra
 
@@ -356,8 +348,6 @@ class spectra:
         ----------
         flux:
             Flag to conserve flux or not. Default: True
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -378,7 +368,7 @@ class spectra:
         out_spec = np.zeros((len(spec), out.nspec))
         for i in range(out.nspec):
             out_spec[:, i], wave = cap.log_unbinning(lamRange, self.spec[:, i])
-            if verbose:
+            if logger.getEffectiveLevel() <= logging.INFO:
                 misc.printProgress(i + 1, out.nspec)
 
         out.spec = out_spec
@@ -389,7 +379,7 @@ class spectra:
         return out
 
     # -----------------------------------------------------------------------------
-    def convolve_spectra(self, lsf_wave=None, lsf=None, mode="FWHM", verbose=False):
+    def convolve_spectra(self, lsf_wave=None, lsf=None, mode="FWHM"):
         """
         Returns a convolved version of the spectra
 
@@ -406,8 +396,6 @@ class spectra:
             LSF vector
         mode:
             FWHM/VDISP. First one in Angstroms. Second one in km/s
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -441,7 +429,7 @@ class spectra:
         out_spec = np.zeros_like(out.spec)
         for i in range(out.nspec):
             out_spec[:, i] = cap.gaussian_filter1d(out.spec[:, i], sigma)
-            if verbose:
+            if logger.getEffectiveLevel() <= logging.INFO:
                 misc.printProgress(i + 1, out.nspec, barLength=50)
 
         out.spec = out_spec
@@ -459,7 +447,6 @@ class spectra:
         lsf_mode="FWHM",
         lsf_wave=None,
         lsf=None,
-        verbose=False,
     ):
         """
         Returns the a tuned to desired input parameters
@@ -483,8 +470,6 @@ class spectra:
             LSF vector
         lsf_mode:
             FWHM/VDISP. First one in Angstroms. Second one in km/s
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -505,23 +490,19 @@ class spectra:
             or (wave_lims[1] != out.wave_last)
             or (dwave != self.dwave)
         ):
-            out = self.resample_spectra(
-                wave_lims=wave_lims, dwave=dwave, verbose=verbose
-            )
+            out = self.resample_spectra(wave_lims=wave_lims, dwave=dwave)
 
         # Redshift spectra if necessary
         if redshift != out.redshift:
-            out = out.redshift_spectra(redshift=redshift, verbose=verbose)
+            out = out.redshift_spectra(redshift=redshift)
 
         # Convolving spectra is necessary
         if lsf is not None:
-            out = out.convolve_spectra(
-                lsf_wave=lsf_wave, lsf=lsf, mode="FWHM", verbose=verbose
-            )
+            out = out.convolve_spectra(lsf_wave=lsf_wave, lsf=lsf, mode="FWHM")
 
         # Log-rebinning spectra if necessary
         if sampling == "ln":
-            out = out.logrebin_spectra(verbose=verbose)
+            out = out.logrebin_spectra()
 
         return out
 
@@ -557,14 +538,12 @@ class spectra:
         return outmags
 
     # -----------------------------------------------------------------------------
-    def compute_ls_indices(self, saveCSV=False, verbose=False):
+    def compute_ls_indices(self, saveCSV=False):
         """
         Returns the LS indices of the input spectra given a list of index definitions
 
         Parameters
         ----------
-        verbose:
-            Flag for verbose
 
         Returns
         -------
@@ -615,7 +594,7 @@ class spectra:
         return outls
 
     # -----------------------------------------------------------------------------
-    def save_object(self, filename, verbose=False):
+    def save_object(self, filename):
         """
         Saves the contents of class instance into a HDF5 file
 
@@ -623,8 +602,6 @@ class spectra:
         ----------
         filename:
             Output filename (with full path)
-        verbose:
-            Flag for verbose
 
         Returns
         -------
