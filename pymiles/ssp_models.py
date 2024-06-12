@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import sys
+import typing
 import warnings
 from copy import copy
 from itertools import compress
@@ -482,54 +483,71 @@ class ssp_models(spectra, repository):
     #        else:
     #            return wave, spec
 
-    # -----------------------------------------------------------------------------
-    # COMPUTE_ML
-    #
-    # Computes the mass to light ratio for a set of SSP models and filters
-    # -----------------------------------------------------------------------------
-    def compute_ml(self, filters: list[Filter], type="star+remn"):
+    def mass_to_light(
+        self, filters: list[Filter], mass_in: typing.Union[str, list[str]] = "star+remn"
+    ) -> dict:
         """
         Computes the mass-to-light ratios of models in the desired filters
 
         Parameters
         ----------
-        filters:
+        filters: list[Filter]
             Filters as provided by the method 'get_filters"
+        mass_in: str | list[str]
+            What mass to take into account for the ML. It can be given as a list,
+            so that it returns a dictionary for each type.
+            Valid values are: total, star, remn, star+remn, gas
 
         Returns
         -------
         dict
-            Dictionary with mass-to-light ratios for each SSP model and filter
+            Dictionary with mass-to-light ratios for each SSP model and filter.
+            If mass_in is a list, the first key is the type of ML.
 
         """
-        logger.info("# Computing mass-to-light ratios -----------------")
+        logger.info("Computing mass-to-light ratios")
+
+        if type(mass_in) is str:
+            mass_in = [mass_in]
 
         #  We need to choose a system. For M/Ls this is irrelevant
         zeropoint = "AB"
         mags = self.magnitudes(filters=filters, zeropoint=zeropoint)
         msun = sun_magnitude(filters=filters, zeropoint=zeropoint)
 
-        if type == "total":
-            mass = self.Mass_total
-        elif type == "remn":
-            mass = self.Mass_remn
-        elif type == "star":
-            mass = self.Mass_star
-        elif type == "star+remn":
-            mass = self.Mass_star_remn
-        elif type == "gas":
-            mass = self.Mass_gas
-        else:
-            raise ValueError(
-                "Mass type not allowed. Valid options are total/star/remn/star+remn/gas"
-            )
+        outmls = {}
+        for m in mass_in:
+            if m == "total":
+                mass = self.Mass_total
+            elif m == "remn":
+                mass = self.Mass_remn
+            elif m == "star":
+                mass = self.Mass_star
+            elif m == "star+remn":
+                mass = self.Mass_star_remn
+            elif m == "gas":
+                mass = self.Mass_gas
+            else:
+                raise ValueError(
+                    "Mass type not allowed. "
+                    "Valid options are total, star, remn, star+remn, gas"
+                )
 
+            outmls[m] = self._single_type_mass_to_light(filters, mass, mags, msun)
+
+        # If only a single mass is requested we omit the information in the
+        # returned dictionary
+        if len(mass_in) == 1:
+            return outmls[mass_in[0]]
+        else:
+            return outmls
+
+    def _single_type_mass_to_light(self, filters: list[Filter], mass, mags, msun):
         outmls = {}
         for f in filters:
             outmls[f.name] = (mass / 1.0) * 10 ** (
                 -0.40 * (msun[f.name] - mags[f.name])
             )
-
         return outmls
 
     # -----------------------------------------------------------------------------

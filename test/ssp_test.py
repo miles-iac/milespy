@@ -225,7 +225,7 @@ def test_ls_indices(miles_single):
 def test_ml(miles_single):
     fnames = flib.search("sloan")
     filts = flib.get(fnames)
-    outmls = miles_single.compute_ml(filters=filts, type="star+remn")
+    outmls = miles_single.mass_to_light(filters=filts, mass_in=["star+remn", "total"])
     ref = {
         "SLOAN_SDSS.g": np.array([1.98569615]),
         "SLOAN_SDSS.i": np.array([np.nan]),
@@ -235,4 +235,4 @@ def test_ml(miles_single):
     }
     assert miles_single.Mass_star_remn == [0.622357175092374]
     for k in ref.keys():
-        np.testing.assert_allclose(ref[k], outmls[k], rtol=1e-5, err_msg=k)
+        np.testing.assert_allclose(ref[k], outmls["star+remn"][k], rtol=1e-5, err_msg=k)

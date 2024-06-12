@@ -54,7 +54,7 @@ def pred(sfh):
 def test_predictions(pred):
     fnames = flib.search("sloan")
     filts = flib.get(fnames)
-    outmls = pred.compute_ml(filters=filts, type="star+remn")
+    outmls = pred.mass_to_light(filters=filts, mass_in="star+remn")
 
     np.testing.assert_equal(pred.age, 9.747229444806024)
     np.testing.assert_almost_equal(pred.met, -0.9777525480919624)
