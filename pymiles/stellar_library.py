@@ -6,7 +6,7 @@ import h5py
 import numpy as np
 from scipy.spatial import Delaunay
 
-import pymiles.pymiles_utils as utils
+import pymiles.misc as misc
 from pymiles.repository import repository
 from pymiles.spectra import spectra
 
@@ -248,7 +248,7 @@ class stellar_library(spectra, repository):
         else:
             input_pt = np.array([np.log10(teff), logg, FeH, MgFe], ndmin=2)
 
-        vtx, wts = utils.interp_weights(self.params, input_pt, self.tri)
+        vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
         vtx, wts = vtx.ravel(), wts.ravel()
 
         # Deciding on the closest vertex and extracting info
@@ -292,7 +292,7 @@ class stellar_library(spectra, repository):
         else:
             input_pt = np.array([np.log10(teff), logg, FeH, MgFe], ndmin=2)
 
-        vtx, wts = utils.interp_weights(self.params, input_pt, self.tri)
+        vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
         vtx, wts = vtx.ravel(), wts.ravel()
 
         new_idx = self.new_index[vtx]

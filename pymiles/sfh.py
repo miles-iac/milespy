@@ -5,7 +5,7 @@ from copy import copy
 import numpy as np
 from scipy.integrate import simps
 
-import pymiles.pymiles_utils as utils
+import pymiles.misc as misc
 from pymiles.ssp_models import ssp_models
 
 # from ipdb import set_trace as stop
@@ -896,7 +896,7 @@ class sfh(ssp_models):
                         ndmin=2,
                     )
 
-            vtx, wts = utils.interp_weights(tmp.params, input_pt, tmp.tri)
+            vtx, wts = misc.interp_weights(tmp.params, input_pt, tmp.tri)
             vtx, wts = vtx.ravel(), wts.ravel()
 
             # Update quantities
