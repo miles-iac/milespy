@@ -13,6 +13,9 @@ test:
     - source .pymiles
     - make install-dev
     - PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests
+  artifacts:
+    paths:
+      - test_results
 
 build-doc:
   stage: build
