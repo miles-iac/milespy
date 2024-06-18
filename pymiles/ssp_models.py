@@ -163,7 +163,12 @@ class ssp_models(spectra, repository):
         """
 
         nspec_in = self.nspec
-        nspec_out = np.sum(idx)
+        if len(idx) == nspec_in:
+            # Mask array
+            nspec_out = np.sum(idx)
+        else:
+            # Array of indices
+            nspec_out = len(idx)
         out = copy(self)
         keys = list(out.main_keys)
         out.wave = np.array(self.wave)
@@ -367,6 +372,7 @@ class ssp_models(spectra, repository):
         alpha=None,
         imf_slope=None,
         return_pars=False,
+        closest=False,
     ):
         """
         Interpolates SSP models for certain params using Delaunay triangulation
@@ -381,6 +387,8 @@ class ssp_models(spectra, repository):
             Desired alpha
         img_slope:
             Desired IMF slope
+        closest: bool
+            Return the closest spectra, rather than performing the interpolation.
         return_pars:
             If True, returns more information about interpolation
 
@@ -482,13 +490,23 @@ class ssp_models(spectra, repository):
             self.params, np.array(input_pt, ndmin=2), self.tri
         )
         vtx, wts = vtx.ravel(), wts.ravel()
+        logger.debug(f"Simplex formed by the ids: {self.index[idx][vtx]}")
+        logger.debug(f"Age of simplex vertices: {self.age[idx][vtx]}")
+        logger.debug(f"Metallicity of simplex vertices: {self.met[idx][vtx]}")
 
-        logger.info("Interpolating spectra")
-        wave = self.wave
-        spec = np.dot(self.spec[:, vtx], wts)
-        # Saving all the new info into an object
-        out = self.create_new_object(age, met, alpha, imf_slope, wave, spec, vtx, wts)
-        return out
+        if closest:
+            logger.info("Getting closest spectra")
+            out = self.set_item(self.index[idx][vtx])
+            return out
+        else:
+            logger.info("Interpolating spectra")
+            wave = self.wave
+            spec = np.dot(self.spec[:, vtx], wts)
+            # Saving all the new info into an object
+            out = self.create_new_object(
+                age, met, alpha, imf_slope, wave, spec, vtx, wts
+            )
+            return out
 
     #        if return_pars == True:
     #            return wave, spec, all_spec, self.params[vtx,:], wts

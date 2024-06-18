@@ -43,12 +43,29 @@ def test_ssp_by_params_alpha(miles_ssp):
 
 @pytest.mark.mpl_image_compare
 def test_ssp_by_params_img(miles_ssp):
-    #  Get SSP in range
     miles_1 = miles_ssp.get_ssp_by_params(
         age=5.7, met=-0.45, imf_slope=1.3, return_pars=False
     )
+    # Also get the closest ones, which should be the base for the interpolation
+    miles_vertices = miles_ssp.get_ssp_by_params(
+        age=5.7, met=-0.45, imf_slope=1.3, return_pars=False, closest=True
+    )
     fig, ax = plt.subplots()
-    ax.plot(miles_1.wave, miles_1.spec)
+    for i in range(miles_vertices.nspec):
+        ax.plot(
+            miles_vertices.wave,
+            miles_vertices.spec[:, i],
+            alpha=0.3,
+            label=f"Vertex (age={miles_vertices.age[i]}, met={miles_vertices.met[i]})",
+        )
+    ax.plot(
+        miles_1.wave,
+        miles_1.spec,
+        alpha=0.5,
+        c="k",
+        label=f"Interpolated (age={miles_1.age[0]}, met={miles_1.met[0]})",
+    )
+    ax.legend()
     return fig
 
 
