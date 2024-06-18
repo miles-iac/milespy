@@ -14,8 +14,9 @@ test:
     - make install-dev
     - PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests
   artifacts:
+    when: always
     paths:
-      - test_results
+      - test_results/
 
 build-doc:
   stage: build
