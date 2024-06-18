@@ -16,6 +16,8 @@ ch.setFormatter(logging.Formatter("%(name)s: %(message)s"))
 logger.addHandler(ch)
 
 config = rcfile(__name__, {})
+if "log" in config.keys():
+    logger.setLevel(config["log"])
 
 config_folder = pathlib.Path(__file__).parent.resolve() / "config_files"
 def_repo_folder = pathlib.Path(__file__).parent.resolve() / "repository"
