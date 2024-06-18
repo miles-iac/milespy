@@ -22,7 +22,6 @@ class sfh(ssp_models):
         version="9.1",
         isochrone="T",
         imf_type="ch",
-        alp_type="fix",
         show_tree=False,
     ):
         """
@@ -36,9 +35,6 @@ class sfh(ssp_models):
         isochrone: Type of isochrone to use. Valid inputs are P/T for Padova+00
                    and BaSTI isochrones respectively (Default: T)
         imf_type:  Type of IMF shape. Valid inputs are ch/ku/kb/un/bi (Default: ch)
-        alp_type:  Type of [alpha/Fe]. Valid inputs are fix/variable (Default: fix).
-                   Variable [alpha/Fe] predictions are only available for
-                   BaSTI isochrones.
         show_tree: Bool that shows the variables available with the instance
 
         Notes
@@ -54,13 +50,11 @@ class sfh(ssp_models):
 
         """
         # Inheriting classes
-        ssp_models.__init__(
-            self,
+        super().__init__(
             source=source,
             version=version,
             isochrone=isochrone,
             imf_type=imf_type,
-            alp_type=alp_type,
         )
 
         # The SFH is defined based on a time array
@@ -70,14 +64,6 @@ class sfh(ssp_models):
         self.alpha_evol = np.zeros_like(self.time)
         self.imf_evol = np.zeros_like(self.time) + 1.3
         self.met_evol = np.zeros_like(self.time)
-
-        # Flagging if all elements of alpha are NaNs
-        if alp_type == "fix":
-            self.fixed_alpha = True
-        elif alp_type == "variable":
-            self.fixed_alpha = False
-        else:
-            raise ValueError("alp_type should be 'fix' or 'variable'")
 
         self.main_keys = list(self.__dict__.keys())
 

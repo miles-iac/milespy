@@ -29,7 +29,6 @@ class ssp_models(spectra, repository):
         version="9.1",
         isochrone="P",
         imf_type="ch",
-        alp_type="fix",
         show_tree=False,
     ):
         """
@@ -47,16 +46,12 @@ class ssp_models(spectra, repository):
                    and BaSTI isochrones respectively (Default: T)
         imf_type:
             Type of IMF shape. Valid inputs are ch/ku/kb/un/bi (Default: ch)
-        alp_type:
-            Type of [alpha/Fe]. Valid inputs are fix/variable (Default: fix).
-                   Variable [alpha/Fe] predictions are only available for BaSTI
-                   isochrones
         show_tree:
             Bool that shows the variables available with the instance
 
         Notes
         -----
-        We limit the choice of models to a given isochrone and imt_type for
+        We limit the choice of models to a given isochrone and imf_type for
         effective loading. Otherwise it can take along time to upload the entire
         dataset
 
@@ -73,24 +68,31 @@ class ssp_models(spectra, repository):
         # models at init
         f = h5py.File(repo_filename, "r")
         nspec = len(f["age"])
-        tmp_iso = np.array(np.array(f["isochrone"]), dtype="str")
-        tmp_imf_type = np.array(np.array(f["imf_type"]), dtype="str")
 
-        if (alp_type == "variable") and (isochrone == "P"):
-            raise ValueError(
-                "Variable [alpha/Fe] predictions only available for BaSTI isochrones"
-            )
-
-        idx = (tmp_iso == isochrone) & (tmp_imf_type == imf_type)
+        idx = np.logical_and(
+            np.equal(f["imf_type"][...], imf_type.encode()),
+            np.equal(f["isochrone"][...], isochrone.encode()),
+        )
         if np.sum(idx) == 0:
             logger.error("No cases found with those specs. Returning NoneType object")
             return
 
-        logger.debug(" - " + str(np.sum(idx)) + "/" + str(nspec) + " cases found")
+        avail_alphas = np.unique(f["alpha"][idx])
+        self.fixed_alpha = len(avail_alphas) == 1
+        self.avail_alphas = avail_alphas[~np.isnan(avail_alphas)]
+
+        avail_imfs = np.unique(f["imf_slope"][idx])
+        self.avail_imfs = avail_imfs[~np.isnan(avail_imfs)]
+
+        logger.debug(str(np.sum(idx)) + "/" + str(nspec) + " cases found")
+        logger.debug(f"Fixed_alpha: {self.fixed_alpha}")
+
+        if self.fixed_alpha:
+            logger.debug(f"Available alphas: {self.avail_alphas}")
 
         # If requested, list instance attributes
         if show_tree:
-            logger.info("# Showing instance attributes...")
+            logger.info("Showing instance attributes...")
             for item in list(f.keys()):
                 logger.info(" - ", item)
             sys.exit
@@ -103,6 +105,7 @@ class ssp_models(spectra, repository):
                 and (key != "wave")
                 and (key != "isochrone")
                 and (key != "imf_type")
+                and (key != "alpha")
                 and (key != "filename")
             ):
                 setattr(self, key, np.array(val)[idx])
@@ -110,17 +113,11 @@ class ssp_models(spectra, repository):
         self.wave = np.array(f["wave"])
         self.spec = np.array(f["spec/" + isochrone + "/" + imf_type + "/data"])
 
-        # Selecting only either base or alpha variable models
-        if alp_type == "variable":
-            agood = np.isfinite(self.alpha)
-        else:
-            agood = np.isnan(self.alpha)
-
         for key, val in vars(self).items():
             if (key != "spec") and (key != "wave"):
-                setattr(self, key, np.array(val)[agood])
+                setattr(self, key, np.array(val))
 
-        self.spec = self.spec[:, agood]
+        self.spec = self.spec[:]
         self.nspec = self.spec.shape[1]
         self.index = np.arange(self.nspec)
         self.source = source
@@ -134,15 +131,9 @@ class ssp_models(spectra, repository):
 
         self.isochrone = np.array(np.array(f["isochrone"][idx]), dtype="str")
         self.imf_type = np.array(np.array(f["imf_type"][idx]), dtype="str")
+        self.alpha = np.array(f["alpha"][idx])
         # ------------------------------
         f.close()
-        # Flagging if all elements of alpha are NaNs
-        if alp_type == "fix":
-            self.fixed_alpha = True
-        elif alp_type == "variable":
-            self.fixed_alpha = False
-        else:
-            raise ValueError("alp_type should be 'fix' or 'variable'")
 
         self.main_keys = list(self.__dict__.keys())
 
@@ -200,7 +191,7 @@ class ssp_models(spectra, repository):
         self,
         age_lims=[0.0, 20.0],
         met_lims=[-5.0, 1.0],
-        alpha_lims=[-1.0, 1.0],
+        alpha_lims=None,
         imf_slope_lims=[0.0, 5.0],
     ):
         #    def get_ssp_in_range(self, age_lims=[0.0,20.0], met_lims=[-5.0,1.0],
@@ -233,7 +224,7 @@ class ssp_models(spectra, repository):
 
         logger.info("# Searching for models within parameters range")
 
-        if self.fixed_alpha:
+        if self.fixed_alpha or alpha_lims is None:
             idx = (
                 (self.age >= age_lims[0])
                 & (self.age <= age_lims[1])
@@ -304,8 +295,16 @@ class ssp_models(spectra, repository):
         #    "NO VEO QUE NI LIST NI RANGE SSP DEVUELVAN CORRECTAMENTE LAS
         #    EDADES Y METALICIDADES: VER"
         # )
-        if alpha_list is not None:
-            raise ValueError("Can not take an input alpha_list if `alp_type=fix`")
+        if alpha_list is not None and self.fixed_alpha:
+            raise ValueError(
+                "This repository does not provide variable alpha:\n"
+                + "Source: "
+                + self.source
+                + "Isochrone: "
+                + self.isochrone[0]
+                + "IMF: "
+                + self.imf_type[0]
+            )
 
         # Treating the input list
         age = np.array(age_list).ravel()
@@ -314,7 +313,7 @@ class ssp_models(spectra, repository):
         imf_slope = np.array(imf_slope_list).ravel()
 
         # Checking they have the same number of elements
-        if self.fixed_alpha:
+        if self.fixed_alpha or alpha_list is None:
             if len(set(map(len, (age, met, imf_slope)))) != 1:
                 raise ValueError("Input list values do not have the same length.")
         else:
@@ -326,7 +325,7 @@ class ssp_models(spectra, repository):
         ncases = len(age)
         id = []
         for i in range(ncases):
-            if self.fixed_alpha:
+            if self.fixed_alpha or alpha_list is None:
                 idx = (
                     (np.array(self.age) == age[i])
                     & (np.array(self.met) == met[i])
@@ -361,12 +360,6 @@ class ssp_models(spectra, repository):
 
         return out
 
-    # -----------------------------------------------------------------------------
-    # GET_SSP_BY_PARAMS
-    #
-    # Uses Delaunay triangulation to interpolate the SSP models for certain params
-    # NOTE: It raises an ERROR if desired point is outside the grid
-    # -----------------------------------------------------------------------------
     def get_ssp_by_params(
         self,
         age=None,
@@ -397,81 +390,100 @@ class ssp_models(spectra, repository):
         If return_pars == True, besides above it returns all spectra used for
         interpolation, indices, and weights
 
+        Note
+        ----
+        It raises a RuntimeError if the values are out of the grid.
         """
         # Checking input point is within the grid
-        if self.fixed_alpha:
-            good = (
-                (age >= np.amin(self.age))
-                & (age <= np.amax(self.age))
-                & (met >= np.amin(self.met))
-                & (met <= np.amax(self.met))
-                & (imf_slope >= np.amin(self.imf_slope))
-                & (imf_slope <= np.amax(self.imf_slope))
-            )
-        else:
-            good = (
-                (age >= np.amin(self.age))
-                & (age <= np.amax(self.age))
-                & (met >= np.amin(self.met))
-                & (met <= np.amax(self.met))
-                & (alpha >= np.amin(self.alpha))
-                & (alpha <= np.amax(self.alpha))
-                & (imf_slope >= np.amin(self.imf_slope))
-                & (imf_slope <= np.amax(self.imf_slope))
-            )
+        in_age_lim = (age >= np.amin(self.age)) & (age <= np.amax(self.age))
+        in_met_lim = (met >= np.amin(self.met)) & (met <= np.amax(self.met))
+        in_imf_lim = (imf_slope >= np.amin(self.imf_slope)) & (
+            imf_slope <= np.amax(self.imf_slope)
+        )
 
-        if np.sum(good) == 0:
+        good = in_age_lim & in_met_lim & in_imf_lim
+        if not self.fixed_alpha and alpha is not None:
+            in_alpha_lim = (alpha >= np.amin(self.avail_alphas)) & (
+                alpha <= np.amax(self.avail_alphas)
+            )
+            good &= in_alpha_lim
+
+        if not good:
             raise RuntimeError("Desired point outside model grid")
 
-        # Checking that the IMF_SLOPE desired is available
-        uimf_slope = np.unique(self.imf_slope)
-        nimf_slope = len(uimf_slope)
-        ok = nimf_slope == 1
+        ndims = 2
+        extra_dim = 0
 
-        # Creating Delaunay triangulation of parameters
-        logger.info("# Creating Delaunay triangulation")
-        if self.fixed_alpha:
-            if ok:
-                self.params = np.empty((len(self.age), 2))
-                self.params[:, 0] = self.age
-                self.params[:, 1] = self.met
-            else:
-                self.params = np.empty((len(self.age), 3))
-                self.params[:, 0] = self.age
-                self.params[:, 1] = self.met
-                self.params[:, 2] = self.imf_slope
+        # If there is a single available imf slope, there is no need to interpolate
+        # over it. Also, if the users gives an imf_slope that **exactly** matches
+        # one of the database, we fix the imf_slope for the interpolation
+        interp_fix_imf_slope = len(self.avail_imfs) == 1 or imf_slope in self.avail_imfs
+        if interp_fix_imf_slope:
+            if imf_slope is None:
+                imf_slope = self.avail_imfs[0]
+
+            imf_mask = np.equal(self.imf_slope, imf_slope)
         else:
-            if ok:
-                self.params = np.empty((len(self.age), 3))
-                self.params[:, 0] = self.age
-                self.params[:, 1] = self.met
-                self.params[:, 2] = self.alpha
+            imf_mask = np.full(self.imf_slope.shape, True)
+            extra_dim += 1
+
+        logger.debug(f"Fixed imf during the interpolation? {interp_fix_imf_slope}")
+
+        # Same as above for the imf_slope, however, now we can have nan values in
+        # the repository in the case of "base" models.
+        interp_fix_alpha = (
+            self.fixed_alpha or alpha is None or alpha in self.avail_alphas
+        )
+        if interp_fix_alpha:
+            if alpha is None:
+                alpha_mask = np.isnan(self.alpha)
+            elif alpha in self.avail_alphas:
+                alpha_mask = np.equal(self.alpha, alpha)
             else:
-                self.params = np.empty((len(self.age), 4))
-                self.params[:, 0] = self.age
-                self.params[:, 1] = self.met
-                self.params[:, 2] = self.imf_slope
-                self.params[:, 3] = self.alpha
+                # There is a single alpha in all the repository, so no need to mask
+                alpha_mask = np.full(self.alpha.shape, True)
+        else:
+            # Remove the base alpha (i.e., nans) from the interpolation
+            alpha_mask = ~np.isnan(self.alpha)
+            extra_dim += 1
+
+        logger.debug(f"Fixed alpha during the interpolation? {interp_fix_alpha}")
+
+        idx = alpha_mask & imf_mask
+        n_avail = np.sum(idx)
+
+        logger.debug(f"Interpolating over a grid of {n_avail} spectra")
+        logger.debug(f"Creating {ndims}-D Delaunay triangulation")
+
+        self.params = np.empty((n_avail, ndims))
+        self.params[:, 0] = self.age[idx]
+        self.params[:, 1] = self.met[idx]
+
+        if not interp_fix_imf_slope:
+            self.params[:, 2 + extra_dim] = self.imf_slope[idx]
+            extra_dim += 1
+
+        if not interp_fix_alpha:
+            self.params[:, 2 + extra_dim] = self.alpha[idx]
 
         self.tri = Delaunay(self.params, qhull_options="QJ")
 
-        logger.info("# Searching for the simplex that surrounds the desired point")
+        input_pt = [age, met]
+        if not interp_fix_imf_slope:
+            input_pt.append(imf_slope)
+        if not interp_fix_alpha:
+            input_pt.append(alpha)
 
-        if self.fixed_alpha:
-            if ok:
-                input_pt = np.array([age, met], ndmin=2)
-            else:
-                input_pt = np.array([age, met, imf_slope], ndmin=2)
-        else:
-            if ok:
-                input_pt = np.array([age, met, alpha], ndmin=2)
-            else:
-                input_pt = np.array([age, met, imf_slope, alpha], ndmin=2)
+        logger.info(
+            f"Searching for the simplex that surrounds the desired point: {input_pt}"
+        )
 
-        vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
+        vtx, wts = misc.interp_weights(
+            self.params, np.array(input_pt, ndmin=2), self.tri
+        )
         vtx, wts = vtx.ravel(), wts.ravel()
 
-        logger.info("# Interpolating spectra around the desired point")
+        logger.info("Interpolating spectra")
         wave = self.wave
         spec = np.dot(self.spec[:, vtx], wts)
         # Saving all the new info into an object
@@ -550,11 +562,6 @@ class ssp_models(spectra, repository):
             )
         return outmls
 
-    # -----------------------------------------------------------------------------
-    # CREATE_NEW_OBJECT
-    #
-    # Creates a new object from an interpolated spectra in get_ssp_by_params
-    # -----------------------------------------------------------------------------
     def create_new_object(
         self, age, met, alpha, imf_slope, wave, spec, indices, weights
     ):

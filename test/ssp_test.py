@@ -15,7 +15,6 @@ def miles_ssp():
         version="9.1",
         imf_type="bi",
         isochrone="P",
-        alp_type="fix",
         show_tree=False,
     )
 
@@ -25,6 +24,21 @@ def miles_single(miles_ssp):
     return miles_ssp.get_ssp_by_params(
         age=5.7, met=-0.45, imf_slope=1.3, return_pars=False
     )
+
+
+@pytest.mark.mpl_image_compare
+def test_ssp_by_params_alpha(miles_ssp):
+    miles_1 = miles_ssp.get_ssp_by_params(
+        age=5.7, met=-0.45, imf_slope=1.3, alpha=0.4, return_pars=False
+    )
+    miles_2 = miles_ssp.get_ssp_by_params(
+        age=5.7, met=-0.45, imf_slope=1.3, alpha=0.0, return_pars=False
+    )
+    fig, ax = plt.subplots()
+    ax.plot(miles_1.wave, miles_1.spec, alpha=0.5, label="alpha=0.4")
+    ax.plot(miles_2.wave, miles_2.spec, alpha=0.5, label="alpha=0")
+    ax.legend()
+    return fig
 
 
 @pytest.mark.mpl_image_compare

@@ -15,7 +15,6 @@ def sfh():
         version="9.1",
         imf_type="bi",
         isochrone="T",
-        alp_type="variable",
         show_tree=False,
     )
 
