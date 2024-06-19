@@ -21,34 +21,28 @@ def miles_ssp():
 
 @pytest.fixture
 def miles_single(miles_ssp):
-    return miles_ssp.get_ssp_by_params(
-        age=5.7, met=-0.45, imf_slope=1.3, return_pars=False
-    )
+    return miles_ssp.get_ssp_by_params(age=5.7, met=-0.45, imf_slope=1.3)
 
 
 @pytest.mark.mpl_image_compare
 def test_ssp_by_params_alpha(miles_ssp):
-    miles_1 = miles_ssp.get_ssp_by_params(
-        age=5.7, met=-0.45, imf_slope=1.3, alpha=0.4, return_pars=False
-    )
-    miles_2 = miles_ssp.get_ssp_by_params(
-        age=5.7, met=-0.45, imf_slope=1.3, alpha=0.0, return_pars=False
-    )
+    miles_1 = miles_ssp.get_ssp_by_params(age=5.7, met=-0.45, imf_slope=1.3, alpha=0.4)
+    miles_2 = miles_ssp.get_ssp_by_params(age=5.7, met=-0.45, imf_slope=1.3, alpha=0.0)
     fig, ax = plt.subplots()
     ax.plot(miles_1.wave, miles_1.spec, alpha=0.5, label="alpha=0.4")
     ax.plot(miles_2.wave, miles_2.spec, alpha=0.5, label="alpha=0")
-    ax.legend()
+    ax.legend(loc=0)
+    ax.set_xlim(3500, 7500)
+    ax.set_ylim(0, 6e-5)
     return fig
 
 
 @pytest.mark.mpl_image_compare
 def test_ssp_by_params_img(miles_ssp):
-    miles_1 = miles_ssp.get_ssp_by_params(
-        age=5.7, met=-0.45, imf_slope=1.3, return_pars=False
-    )
+    miles_1 = miles_ssp.get_ssp_by_params(age=5.7, met=-0.45, imf_slope=1.3)
     # Also get the closest ones, which should be the base for the interpolation
     miles_vertices = miles_ssp.get_ssp_by_params(
-        age=5.7, met=-0.45, imf_slope=1.3, return_pars=False, closest=True
+        age=5.7, met=-0.45, imf_slope=1.3, closest=True
     )
     fig, ax = plt.subplots()
     for i in range(miles_vertices.nspec):
@@ -65,7 +59,9 @@ def test_ssp_by_params_img(miles_ssp):
         c="k",
         label=f"Interpolated (age={miles_1.age[0]}, met={miles_1.met[0]})",
     )
-    ax.legend()
+    ax.legend(loc=0)
+    ax.set_xlim(3500, 7500)
+    ax.set_ylim(0, 6e-5)
     return fig
 
 
@@ -150,6 +146,8 @@ def test_tuned_spectra(miles_single, miles_tuned):
     fig, ax = plt.subplots()
     ax.plot(miles_single.wave, miles_single.spec)
     ax.plot(miles_tuned.wave, miles_tuned.spec, "k")
+    ax.set_xlim(3500, 7500)
+    ax.set_ylim(0, 6e-5)
     return fig
 
 

@@ -9,6 +9,7 @@ from itertools import compress
 import h5py
 import numpy as np
 from scipy.spatial import Delaunay
+from typing_extensions import Self
 
 import pymiles.misc as misc
 from pymiles.filter import Filter
@@ -371,9 +372,8 @@ class ssp_models(spectra, repository):
         met=None,
         alpha=None,
         imf_slope=None,
-        return_pars=False,
         closest=False,
-    ):
+    ) -> Self:
         """
         Interpolates SSP models for certain params using Delaunay triangulation
 
@@ -389,14 +389,13 @@ class ssp_models(spectra, repository):
             Desired IMF slope
         closest: bool
             Return the closest spectra, rather than performing the interpolation.
-        return_pars:
-            If True, returns more information about interpolation
 
         Returns
         -------
-        If return_pars == False, returns wavelength and interpolated spectrum
-        If return_pars == True, besides above it returns all spectra used for
-        interpolation, indices, and weights
+        ssp_models
+            Wavelength and interpolated spectrum.
+            If closest == True, return the closest spectra from the repository,
+            rather than doing the interpolation.
 
         Note
         ----
@@ -493,6 +492,7 @@ class ssp_models(spectra, repository):
         logger.debug(f"Simplex formed by the ids: {self.index[idx][vtx]}")
         logger.debug(f"Age of simplex vertices: {self.age[idx][vtx]}")
         logger.debug(f"Metallicity of simplex vertices: {self.met[idx][vtx]}")
+        logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
 
         if closest:
             logger.info("Getting closest spectra")
@@ -501,17 +501,12 @@ class ssp_models(spectra, repository):
         else:
             logger.info("Interpolating spectra")
             wave = self.wave
-            spec = np.dot(self.spec[:, vtx], wts)
+            spec = np.dot(self.spec[:, idx][:, vtx], wts)
             # Saving all the new info into an object
             out = self.create_new_object(
-                age, met, alpha, imf_slope, wave, spec, vtx, wts
+                age, met, alpha, imf_slope, wave, spec, self.index[idx][vtx], wts
             )
             return out
-
-    #        if return_pars == True:
-    #            return wave, spec, all_spec, self.params[vtx,:], wts
-    #        else:
-    #            return wave, spec
 
     def mass_to_light(
         self, filters: list[Filter], mass_in: typing.Union[str, list[str]] = "star+remn"
