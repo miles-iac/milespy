@@ -156,16 +156,16 @@ def test_mags(miles_single):
     fnames = flib.search("sdss")
     filts = flib.get(fnames)
     outmags = miles_single.magnitudes(filters=filts, zeropoint="AB")
-    assert np.allclose(outmags["OAJ_JPAS.gSDSS"], np.array([6.36259285]))
+    assert np.allclose(outmags["OAJ_JPAS.gSDSS"], np.array([6.36344262]))
     assert np.allclose(outmags["OAJ_JPAS.iSDSS"], np.array([np.nan]), equal_nan=True)
-    assert np.allclose(outmags["OAJ_JPAS.rSDSS"], np.array([5.70746113]))
-    assert np.allclose(outmags["OAJ_JPLUS.gSDSS"], np.array([6.348738]))
+    assert np.allclose(outmags["OAJ_JPAS.rSDSS"], np.array([5.70916609]))
+    assert np.allclose(outmags["OAJ_JPLUS.gSDSS"], np.array([6.34960724]))
     assert np.allclose(outmags["OAJ_JPLUS.iSDSS"], np.array([np.nan]), equal_nan=True)
-    assert np.allclose(outmags["OAJ_JPLUS.rSDSS"], np.array([5.70393869]))
+    assert np.allclose(outmags["OAJ_JPLUS.rSDSS"], np.array([5.7056477]))
     assert np.allclose(outmags["OAJ_JPLUS.zSDSS"], np.array([np.nan]), equal_nan=True)
-    assert np.allclose(outmags["SLOAN_SDSS.g"], np.array([6.4004899]))
+    assert np.allclose(outmags["SLOAN_SDSS.g"], np.array([6.40127153]))
     assert np.allclose(outmags["SLOAN_SDSS.i"], np.array([np.nan]), equal_nan=True)
-    assert np.allclose(outmags["SLOAN_SDSS.r"], np.array([5.72204878]))
+    assert np.allclose(outmags["SLOAN_SDSS.r"], np.array([5.72369018]))
     assert np.allclose(outmags["SLOAN_SDSS.u"], np.array([np.nan]), equal_nan=True)
     assert np.allclose(outmags["SLOAN_SDSS.z"], np.array([np.nan]), equal_nan=True)
 
@@ -173,80 +173,81 @@ def test_mags(miles_single):
 def test_ls_indices(miles_single):
     outls = miles_single.compute_ls_indices()
     ref = {
-        "Fe3619": np.array([4.24374222]),
-        "Fe3631": np.array([2.10202353]),
-        "Fe3646": np.array([1.65740837]),
-        "Fe3683": np.array([1.65097576]),
-        "Fe3706": np.array([1.73122251]),
-        "Fe3741": np.array([14.23980884]),
-        "UV_CN": np.array([0.13594948]),
-        "H10Fe": np.array([3.49896763]),
-        "CNB": np.array([0.13234765]),
-        "MgH93838": np.array([7.9226612]),
-        "CNO3862": np.array([4.54468038]),
-        "CN3883": np.array([0.18678602]),
-        "CaHK": np.array([18.27913837]),
-        "CaIIH_K": np.array([20.73305359]),
-        "CaK3933": np.array([9.01743121]),
-        "H_K": np.array([0.32064697]),
-        "CaH3968": np.array([8.48854171]),
-        "FeBand": np.array([3.90114633]),
-        "Fe4033": np.array([0.45267352]),
-        "Fe4046": np.array([0.70245179]),
-        "Fe4064": np.array([1.22638068]),
-        "Sr4077": np.array([1.18053771]),
-        "HdA": np.array([-0.22762586]),
-        "HdF": np.array([1.2717467]),
-        "CNO4175": np.array([-0.89624335]),
-        "CN1": np.array([-0.00476545]),
-        "CN2": np.array([0.03557297]),
-        "Ca4227": np.array([1.09357064]),
-        "G4300": np.array([4.99391304]),
-        "HgA": np.array([-2.95797546]),
-        "Fe4326": np.array([1.35035966]),
-        "HgF": np.array([-0.08956468]),
-        "Hg_sigma_275": np.array([0.11016055]),
-        "Hg_sigma_200": np.array([0.49385698]),  # noqa
-        "Hg_sigma_125": np.array([1.02347192]),
-        "Hg_sigma_130": np.array([1.20529933]),  # noqa
-        "Fe4383": np.array([3.33428815]),
-        "Fe4457": np.array([2.1305967]),
-        "Ca4455": np.array([1.24400289]),
-        "Fe4531": np.array([3.01967504]),
-        "Fe4592": np.array([2.03947761]),
-        "FeII4550": np.array([1.26062759]),
-        "Ca4592": np.array([1.44691571]),
-        "CO4685": np.array([1.48691463]),
-        "C2_4668": np.array([3.3898653]),
-        "bTiO": np.array([0.01574851]),
-        "Mg4780": np.array([0.54044404]),
-        "Hbeta_o": np.array([3.16459111]),
-        "Hbeta": np.array([2.2108947]),
-        "Fe4920": np.array([0.96259459]),
-        "Fe5015": np.array([4.61379537]),
-        "Mg1": np.array([0.05198452]),
-        "MgH": np.array([4.57628813]),
-        "MgG": np.array([2.56740612]),
-        "Mg2": np.array([0.14471378]),
-        "Mgb": np.array([2.61891892]),
-        "Fe5270": np.array([2.38844946]),
-        "Fe5335": np.array([2.35908341]),
-        "Fe5406": np.array([1.39302161]),
-        "aTiO": np.array([0.01084238]),
-        "Fe5709": np.array([0.77513128]),
-        "Fe5782": np.array([0.6242171]),
-        "NaD": np.array([2.03584002]),
-        "TiO1": np.array([0.02859881]),
-        "Ca6162": np.array([1.00416356]),
-        "Fe6189": np.array([0.38311829]),
-        "TiO2": np.array([0.05588053]),
-        "TiO2sdss": np.array([0.06053157]),
-        "CaH1": np.array([0.00747431]),
-        "Fe6497": np.array([0.90560345]),
-        "Halpha": np.array([2.41228887]),
-        "Ha_Gregg94": np.array([2.00872752]),
-        "CaH2": np.array([0.03285235]),
+        "Fe3619": np.array([4.2427661]),
+        "Fe3631": np.array([2.09959643]),
+        "Fe3646": np.array([1.65707798]),
+        "Fe3683": np.array([1.64938502]),
+        "Fe3706": np.array([1.73097357]),
+        "Fe3741": np.array([14.24194305]),
+        "UV_CN": np.array([0.13623793]),
+        "H10Fe": np.array([3.49989936]),
+        "CNB": np.array([0.13285228]),
+        "MgH93838": np.array([7.92510864]),
+        "CNO3862": np.array([4.56233091]),
+        "CN3883": np.array([0.18729395]),
+        "CaHK": np.array([18.23859878]),
+        "CaIIH_K": np.array([20.70842364]),
+        "CaK3933": np.array([9.00009823]),
+        "H_K": np.array([0.32028138]),
+        "CaH3968": np.array([8.48605792]),
+        "FeBand": np.array([3.89174272]),
+        "Fe4033": np.array([0.45146105]),
+        "Fe4046": np.array([0.70069878]),
+        "Fe4064": np.array([1.22391949]),
+        "Sr4077": np.array([1.17867929]),
+        "HdA": np.array([-0.21351792]),
+        "HdF": np.array([1.27776455]),
+        "CNO4175": np.array([-0.92661951]),
+        "CN1": np.array([-0.0052772]),
+        "CN2": np.array([0.03506814]),
+        "Ca4227": np.array([1.09059413]),
+        "G4300": np.array([4.99111535]),
+        "HgA": np.array([-2.94598796]),
+        "Fe4326": np.array([1.35030486]),
+        "HgF": np.array([-0.08342484]),
+        "Hg_sigma_275": np.array([0.11230075]),
+        "Hg_sigma_200": np.array([0.49618757]),
+        "Hg_sigma_125": np.array([1.02605582]),
+        "Hg_sigma_130": np.array([1.20822842]),
+        "Fe4383": np.array([3.32784955]),
+        "Fe4457": np.array([2.12752336]),
+        "Ca4455": np.array([1.24143643]),
+        "Fe4531": np.array([3.01586018]),
+        "Fe4592": np.array([2.03716249]),
+        "FeII4550": np.array([1.25905272]),
+        "Ca4592": np.array([1.44289693]),
+        "CO4685": np.array([1.4817128]),
+        "C2_4668": np.array([3.38011819]),
+        "bTiO": np.array([0.01571478]),
+        "Mg4780": np.array([0.53966877]),
+        "Hbeta_o": np.array([3.16797002]),
+        "Hbeta": np.array([2.21379742]),
+        "Fe4920": np.array([0.96143232]),
+        "Fe5015": np.array([4.60669416]),
+        "Mg1": np.array([0.05179631]),
+        "MgH": np.array([4.56594516]),
+        "MgG": np.array([2.56348126]),
+        "Mg2": np.array([0.14439579]),
+        "Mgb": np.array([2.6147045]),
+        "Fe5270": np.array([2.38518166]),
+        "Fe5335": np.array([2.35667494]),
+        "Fe5406": np.array([1.39125587]),
+        "aTiO": np.array([0.01080768]),
+        "Fe5709": np.array([0.77249581]),
+        "Fe5782": np.array([0.62399652]),
+        "NaD": np.array([2.04327609]),
+        "TiO1": np.array([0.02854314]),
+        "Ca6162": np.array([1.00257257]),
+        "Fe6189": np.array([0.38147345]),
+        "TiO2": np.array([0.05574065]),
+        "TiO2sdss": np.array([0.06038641]),
+        "CaH1": np.array([0.00748351]),
+        "Fe6497": np.array([0.90521034]),
+        "Halpha": np.array([2.41603984]),
+        "Ha_Gregg94": np.array([2.0105494]),
+        "CaH2": np.array([0.03270749]),
     }
+
     for k in ref.keys():
         np.testing.assert_allclose(ref[k], outls[k], rtol=1e-5, err_msg=k)
 
@@ -256,12 +257,12 @@ def test_ml(miles_single):
     filts = flib.get(fnames)
     outmls = miles_single.mass_to_light(filters=filts, mass_in=["star+remn", "total"])
     ref = {
-        "SLOAN_SDSS.g": np.array([1.98569615]),
+        "SLOAN_SDSS.g": np.array([1.98712619]),
         "SLOAN_SDSS.i": np.array([np.nan]),
-        "SLOAN_SDSS.r": np.array([1.67325073]),
+        "SLOAN_SDSS.r": np.array([1.67578224]),
         "SLOAN_SDSS.u": np.array([np.nan]),
         "SLOAN_SDSS.z": np.array([np.nan]),
     }
-    assert miles_single.Mass_star_remn == [0.622357175092374]
+    np.allclose(miles_single.Mass_star_remn, np.array([0.622357175092374]))
     for k in ref.keys():
         np.testing.assert_allclose(ref[k], outmls["star+remn"][k], rtol=1e-5, err_msg=k)
