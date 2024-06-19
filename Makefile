@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := init
-.PHONY: add_major_version add_minor_version add_patch_version add_premajor_version add_preminor_version add_prepatch_version add_prerelease_version prepare-dev install-dev data help lint reference-plot tests upload-prod-pypi upload-test-pypi update_req update_req_dev pyclean doc
+.PHONY: add_major_version add_minor_version add_patch_version add_premajor_version add_preminor_version add_prepatch_version add_prerelease_version prepare-dev install-dev data help lint reference-img tests upload-prod-pypi upload-test-pypi update_req update_req_dev pyclean doc
 VENV = ".pymiles"
 
 define PROJECT_HELP_MSG
