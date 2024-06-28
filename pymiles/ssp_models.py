@@ -373,7 +373,7 @@ class ssp_models(spectra, repository):
         alpha=None,
         imf_slope=None,
         closest=False,
-        force_interp=None,
+        force_interp=[],
     ) -> Self:
         """
         Interpolates SSP models for certain params using Delaunay triangulation
@@ -390,7 +390,7 @@ class ssp_models(spectra, repository):
             Desired IMF slope
         closest: bool
             Return the closest spectra, rather than performing the interpolation.
-        force_interp: list | None
+        force_interp: list
             Force the interpolation over the indicated variables, even if the
             asked alpha/imf_slope is sampled in the repository. Valid values
             are "alpha" and "imf_slope".
