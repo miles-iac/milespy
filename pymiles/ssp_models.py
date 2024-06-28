@@ -448,6 +448,8 @@ class ssp_models(spectra, repository):
         interp_fix_alpha = (
             self.fixed_alpha or alpha is None or alpha in self.avail_alphas
         )
+        if self.fixed_alpha and alpha is not None:
+            logger.warning("There is no alpha-enhanced SSPs with this model choice")
         interp_fix_alpha &= not ("alpha" in force_interp)
         if interp_fix_alpha:
             if alpha is None:

@@ -25,15 +25,31 @@ def miles_single(miles_ssp):
 
 
 @pytest.mark.mpl_image_compare
-def test_ssp_by_params_alpha(miles_ssp):
-    miles_1 = miles_ssp.get_ssp_by_params(age=5.7, met=-0.45, imf_slope=1.3, alpha=0.4)
-    miles_2 = miles_ssp.get_ssp_by_params(age=5.7, met=-0.45, imf_slope=1.3, alpha=0.0)
+def test_ssp_by_params_alpha():
+    # This test reproduces Fig 10 of Vazdekis et al. 2015
+    miles_ssp = ssp(
+        source="MILES_SSP",
+        version="9.1",
+        imf_type="bi",
+        isochrone="T",
+        show_tree=False,
+    )
     fig, ax = plt.subplots()
-    ax.plot(miles_1.wave, miles_1.spec, alpha=0.5, label="alpha=0.4")
-    ax.plot(miles_2.wave, miles_2.spec, alpha=0.5, label="alpha=0")
+
+    # 12 Gyr
+    enhanced = miles_ssp.get_ssp_by_params(age=12.0, met=0.0, imf_slope=1.3, alpha=0.4)
+    base = miles_ssp.get_ssp_by_params(age=12.0, met=0.0, imf_slope=1.3)
+    ax.plot(base.wave, enhanced.spec / base.spec, label="Age = 12 Gyr", c="k")
+
+    # 2 Gyr
+    enhanced = miles_ssp.get_ssp_by_params(age=2.0, met=0.0, imf_slope=1.3, alpha=0.4)
+    base = miles_ssp.get_ssp_by_params(age=2.0, met=0.0, imf_slope=1.3)
+    ax.plot(base.wave, enhanced.spec / base.spec, label="Age = 2 Gyr", c="g")
+
+    ax.axhline(1.0, c="k")
     ax.legend(loc=0)
     ax.set_xlim(3500, 7500)
-    ax.set_ylim(0, 6e-5)
+    ax.set_ylim(0.9, 2.0)
     return fig
 
 
