@@ -373,6 +373,7 @@ class ssp_models(spectra, repository):
         alpha=None,
         imf_slope=None,
         closest=False,
+        force_interp=None,
     ) -> Self:
         """
         Interpolates SSP models for certain params using Delaunay triangulation
@@ -389,6 +390,10 @@ class ssp_models(spectra, repository):
             Desired IMF slope
         closest: bool
             Return the closest spectra, rather than performing the interpolation.
+        force_interp: list | None
+            Force the interpolation over the indicated variables, even if the
+            asked alpha/imf_slope is sampled in the repository. Valid values
+            are "alpha" and "imf_slope".
 
         Returns
         -------
@@ -425,6 +430,8 @@ class ssp_models(spectra, repository):
         # over it. Also, if the users gives an imf_slope that **exactly** matches
         # one of the database, we fix the imf_slope for the interpolation
         interp_fix_imf_slope = len(self.avail_imfs) == 1 or imf_slope in self.avail_imfs
+        # But this can be overruled
+        interp_fix_imf_slope &= not ("imf_slope" in force_interp)
         if interp_fix_imf_slope:
             if imf_slope is None:
                 imf_slope = self.avail_imfs[0]
@@ -432,7 +439,7 @@ class ssp_models(spectra, repository):
             imf_mask = np.equal(self.imf_slope, imf_slope)
         else:
             imf_mask = np.full(self.imf_slope.shape, True)
-            extra_dim += 1
+            ndims += 1
 
         logger.debug(f"Fixed imf during the interpolation? {interp_fix_imf_slope}")
 
@@ -441,6 +448,7 @@ class ssp_models(spectra, repository):
         interp_fix_alpha = (
             self.fixed_alpha or alpha is None or alpha in self.avail_alphas
         )
+        interp_fix_alpha &= not ("alpha" in force_interp)
         if interp_fix_alpha:
             if alpha is None:
                 alpha_mask = np.isnan(self.alpha)
@@ -452,7 +460,7 @@ class ssp_models(spectra, repository):
         else:
             # Remove the base alpha (i.e., nans) from the interpolation
             alpha_mask = ~np.isnan(self.alpha)
-            extra_dim += 1
+            ndims += 1
 
         logger.debug(f"Fixed alpha during the interpolation? {interp_fix_alpha}")
 
@@ -493,6 +501,9 @@ class ssp_models(spectra, repository):
         logger.debug(f"Age of simplex vertices: {self.age[idx][vtx]}")
         logger.debug(f"Metallicity of simplex vertices: {self.met[idx][vtx]}")
         logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
+
+        # Save which spectra has been used for building the tesselation
+        self.idx = idx
 
         if closest:
             logger.info("Getting closest spectra")

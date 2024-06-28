@@ -848,6 +848,7 @@ class sfh(ssp_models):
             met=self.met_evol[0],
             imf_slope=self.imf_evol[0],
             alpha=self.alpha_evol[0],
+            force_interp=["alpha", "imf_slope"],
         )
         nspec_in = intp.spec.shape[1]
 
@@ -919,16 +920,21 @@ class sfh(ssp_models):
                 # where n is the final (oldest) age in the SFH
                 if intp_val.shape[0] == nspec_in:
                     if t == 0:
-                        setattr(out, keys[i], np.dot(intp_val[vtx], wts) * self.wts[t])
+                        setattr(
+                            out,
+                            keys[i],
+                            np.dot(intp_val[self.idx][vtx], wts) * self.wts[t],
+                        )
                     else:
                         setattr(
                             out,
                             keys[i],
-                            pre_val + np.dot(intp_val[vtx], wts) * self.wts[t],
+                            pre_val
+                            + np.dot(intp_val[self.idx][vtx], wts) * self.wts[t],
                         )
 
             # The final spectrum is also the mass-weighted one
-            ospec = ospec + np.dot(intp.spec[:, vtx], wts) * self.wts[t]
+            ospec = ospec + np.dot(intp.spec[:, self.idx][:, vtx], wts) * self.wts[t]
 
         # Formating the instance so it can be used latter
         out.spec = np.array(ospec, ndmin=2).T
