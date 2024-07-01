@@ -15,11 +15,23 @@ def test_get_starname(lib):
     assert lib.get_starname(id=100) == ["HD017382"]
 
 
+def test_get_starname_multiple(lib):
+    tmp = lib.get_starname(id=[100, 101])
+    assert tmp[0] == "HD017382"
+    assert tmp[1] == "HD017548"
+
+
 def test_search_by_id(lib):
     tmp = lib.search_by_id(id=100)
     assert tmp.starname == ["HD017382"]
     assert tmp.wave_init == 3500.0
     assert tmp.wave_last == 7429.4
+
+
+def test_search_by_id_multiple(lib):
+    tmp = lib.search_by_id(id=[100, 101])
+    assert tmp.starname[0] == "HD017382"
+    assert tmp.starname[1] == "HD017548"
 
 
 @pytest.mark.mpl_image_compare

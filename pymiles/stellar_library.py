@@ -4,6 +4,7 @@ from copy import copy
 
 import h5py
 import numpy as np
+import numpy.typing as npt
 from scipy.spatial import Delaunay
 
 import pymiles.misc as misc
@@ -139,15 +140,23 @@ class stellar_library(spectra, repository):
 
         """
 
-        idx = np.array(self.id) == id
-        if np.sum(idx) == 0:
-            raise ValueError("No star with that ID")
+        idx = self._id_to_idx(id)
 
         out = self.set_item(idx)
 
         return out
 
+    def _id_to_idx(self, lib_id: npt.ArrayLike) -> np.ndarray:
+        id_arr = np.array(lib_id, ndmin=1)
+        common, _, idx = np.intersect1d(
+            id_arr, self.id, assume_unique=True, return_indices=True
+        )
+        if len(common) != len(id_arr):
+            raise ValueError("No star with that ID")
+        return idx
+
     # -----------------------------------------------------------------------------
+
     def get_starname(self, id=None):
         """
         Gets a starname in database for a given ID
@@ -163,9 +172,7 @@ class stellar_library(spectra, repository):
 
         """
 
-        idx = np.array(self.id) == id
-        if np.sum(idx) == 0:
-            raise ValueError("No star with that ID")
+        idx = self._id_to_idx(id)
 
         out = self.set_item(idx)
 
