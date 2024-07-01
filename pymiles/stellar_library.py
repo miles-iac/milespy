@@ -114,7 +114,10 @@ class stellar_library(spectra, repository):
         out.starname = np.array(self.starname)[idx]
         out.filename = np.array(self.filename)[idx]
         out.id = np.array(self.id)[idx]
-        out.nspec = 1
+        if hasattr(idx, "__len__"):
+            out.nspec = len(idx)
+        else:
+            out.nspec = 1
         out.wave = np.array(self.wave)
         out.spec = np.array(self.spec)[:, idx]
 
