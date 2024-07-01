@@ -32,6 +32,7 @@ def test_search_by_id_multiple(lib):
     tmp = lib.search_by_id(id=[100, 101])
     assert tmp.starname[0] == "HD017382"
     assert tmp.starname[1] == "HD017548"
+    assert tmp.nspec == 2
 
 
 @pytest.mark.mpl_image_compare
