@@ -199,14 +199,7 @@ class ssp_models(spectra, repository):
         met_lims=[-5.0, 1.0],
         alpha_lims=None,
         imf_slope_lims=[0.0, 5.0],
-    ):
-        #    def get_ssp_in_range(self, age_lims=[0.0,20.0], met_lims=[-5.0,1.0],
-        #                         alpha_lims=[-1.0,1.0],
-        #                         imf_slope_lims=[0.0,5.0]):
-        # print(
-        #    "NO VEO QUE NI LIST NI RANGE SSP DEVUELVAN CORRECTAMENTE LAS EDADES
-        #    Y METALICIDADES: VER"
-        # )
+    ) -> Self | None:
         """
         Extracts SSP models within selected limits
 
@@ -228,7 +221,7 @@ class ssp_models(spectra, repository):
 
         """
 
-        logger.info("# Searching for models within parameters range")
+        logger.debug("Searching for models within parameters range")
 
         if self.fixed_alpha or alpha_lims is None:
             idx = (
@@ -252,15 +245,14 @@ class ssp_models(spectra, repository):
             )
 
         ncases = np.sum(idx)
-        logger.debug(" - " + str(ncases) + " cases found")
+        logger.debug(f"{ncases} cases found")
 
         if ncases == 0:
-            logger.warning("get_ssp_in_range returning NoneType object")
+            logger.warning("No matching SSPs: returning NoneType object")
             return
 
         out = self.set_item(idx)
 
-        logger.info("DONE")
         return out
 
     # -----------------------------------------------------------------------------
@@ -270,7 +262,7 @@ class ssp_models(spectra, repository):
         met_list=None,
         alpha_list=None,
         imf_slope_list=None,
-    ):
+    ) -> Self:
         """
         Extracts a selected set of models from init instance.
 
@@ -297,10 +289,6 @@ class ssp_models(spectra, repository):
             Object instance with selected list items
 
         """
-        # print(
-        #    "NO VEO QUE NI LIST NI RANGE SSP DEVUELVAN CORRECTAMENTE LAS
-        #    EDADES Y METALICIDADES: VER"
-        # )
         if alpha_list is not None and self.fixed_alpha:
             raise ValueError(
                 "This repository does not provide variable alpha:\n"
@@ -326,9 +314,9 @@ class ssp_models(spectra, repository):
             if len(set(map(len, (age, met, alpha, imf_slope)))) != 1:
                 raise ValueError("Input list values do not have the same length.")
 
-        logger.info("# Searching for selected cases")
-
         ncases = len(age)
+        logger.debug("Searching for {ncases} SSPs")
+
         id = []
         for i in range(ncases):
             if self.fixed_alpha or alpha_list is None:
@@ -349,20 +337,24 @@ class ssp_models(spectra, repository):
                 id = np.append(id, self.index[idx])
 
         good = np.array(id, dtype=int)
-        ncases = len(good)
-        logger.debug(" - " + str(ncases) + " cases found")
+        ngood = len(good)
+        logger.debug(f"{ngood} cases found")
 
-        assert ncases > 0, (
-            "Check those values exist for isochrone: "
-            + self.isochrone[0]
-            + " and IMF_Type: "
-            + self.imf_type[0]
-            + ". Please check this agrees with init instance."
-        )
+        if ncases != ngood:
+            if ngood == 0:
+                raise ValueError(
+                    "Check those values exist for isochrone: "
+                    + self.isochrone[0]
+                    + " and IMF_Type: "
+                    + self.imf_type[0]
+                    + ". Please check this agrees with init instance."
+                )
+            else:
+                logger.warning(
+                    f"Asked for {ncases} SSPs, but found only {ngood} matching ones"
+                )
 
         out = self.set_item(good)
-
-        logger.info("DONE")
 
         return out
 

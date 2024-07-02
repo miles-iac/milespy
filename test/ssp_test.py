@@ -81,35 +81,18 @@ def test_ssp_by_params_img(miles_ssp):
     return fig
 
 
+def test_ssp_out_of_range(miles_ssp):
+    out = miles_ssp.get_ssp_in_range(age_lims=[25.0, 30.0], met_lims=[4, 5])
+    assert out is None
+
+
 def test_ssp_in_range(miles_ssp):
-    miles_1 = miles_ssp.get_ssp_in_range(age_lims=[17.0, 20.0], met_lims=[0.1, 0.5])
-    assert miles_1.age.shape == (14,)
-    # Is it ok that they all have the same age and metallicity?
-    assert miles_1.age.min() == 17.7828
-    assert miles_1.age.max() == 17.7828
-    assert miles_1.met.max() == 0.22
-    assert miles_1.met.min() == 0.22
-    assert np.array_equal(
-        miles_1.Mass_star_remn,
-        np.array(
-            [
-                0.3354,
-                0.3414,
-                0.3983,
-                0.4725,
-                0.612,
-                0.6999,
-                0.8023,
-                0.8508,
-                0.901,
-                0.924,
-                0.9481,
-                0.9594,
-                0.9716,
-                0.9775,
-            ]
-        ),
-    )
+    miles_1 = miles_ssp.get_ssp_in_range(age_lims=[15.0, 20.0], met_lims=[-0.1, 0.5])
+    assert miles_1.nspec == 56
+    assert miles_1.age.min() > 15.0
+    assert miles_1.age.max() < 20.0
+    assert miles_1.met.max() < 0.5
+    assert miles_1.met.min() > -0.1
 
 
 def test_assert_alpha_in_fix(miles_ssp):
@@ -132,6 +115,15 @@ def test_ssp_in_list(miles_ssp):
     assert np.array_equal(miles_1.age, np.array([0.2512, 0.0708, 1.4125]))
     assert np.array_equal(miles_1.met, np.array([0.22, 0.0, -1.71]))
     assert np.array_equal(miles_1.imf_slope, np.array([1.3, 1.3, 1.3]))
+
+
+def test_ssp_not_in_list(miles_ssp):
+    with pytest.raises(ValueError):
+        _ = miles_ssp.get_ssp_in_list(
+            age_list=[1e6, 1e6, 1e6],
+            met_list=[1e6, 1e6, 1e6],
+            imf_slope_list=[1e6, 1e6, 1e6],
+        )
 
 
 def test_ssp_by_params(miles_single):
