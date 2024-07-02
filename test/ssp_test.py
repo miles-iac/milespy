@@ -21,11 +21,11 @@ def miles_ssp():
 
 @pytest.fixture
 def miles_single(miles_ssp):
-    return miles_ssp.get_ssp_by_params(age=5.7, met=-0.45, imf_slope=1.3)
+    return miles_ssp.interpolate(age=5.7, met=-0.45, imf_slope=1.3)
 
 
 @pytest.mark.mpl_image_compare
-def test_ssp_by_params_alpha():
+def test_ssp_interp_alpha():
     # This test reproduces Fig 10 of Vazdekis et al. 2015
     miles_ssp = ssp(
         source="MILES_SSP",
@@ -37,13 +37,13 @@ def test_ssp_by_params_alpha():
     fig, ax = plt.subplots()
 
     # 12 Gyr
-    enhanced = miles_ssp.get_ssp_by_params(age=12.0, met=0.0, imf_slope=1.3, alpha=0.4)
-    base = miles_ssp.get_ssp_by_params(age=12.0, met=0.0, imf_slope=1.3)
+    enhanced = miles_ssp.interpolate(age=12.0, met=0.0, imf_slope=1.3, alpha=0.4)
+    base = miles_ssp.interpolate(age=12.0, met=0.0, imf_slope=1.3)
     ax.plot(base.wave, enhanced.spec / base.spec, label="Age = 12 Gyr", c="k")
 
     # 2 Gyr
-    enhanced = miles_ssp.get_ssp_by_params(age=2.0, met=0.0, imf_slope=1.3, alpha=0.4)
-    base = miles_ssp.get_ssp_by_params(age=2.0, met=0.0, imf_slope=1.3)
+    enhanced = miles_ssp.interpolate(age=2.0, met=0.0, imf_slope=1.3, alpha=0.4)
+    base = miles_ssp.interpolate(age=2.0, met=0.0, imf_slope=1.3)
     ax.plot(base.wave, enhanced.spec / base.spec, label="Age = 2 Gyr", c="g")
 
     ax.axhline(1.0, c="k")
@@ -54,10 +54,10 @@ def test_ssp_by_params_alpha():
 
 
 @pytest.mark.mpl_image_compare
-def test_ssp_by_params_img(miles_ssp):
-    miles_1 = miles_ssp.get_ssp_by_params(age=5.7, met=-0.45, imf_slope=1.3)
+def test_ssp_interp_img(miles_ssp):
+    miles_1 = miles_ssp.interpolate(age=5.7, met=-0.45, imf_slope=1.3)
     # Also get the closest ones, which should be the base for the interpolation
-    miles_vertices = miles_ssp.get_ssp_by_params(
+    miles_vertices = miles_ssp.interpolate(
         age=5.7, met=-0.45, imf_slope=1.3, closest=True
     )
     fig, ax = plt.subplots()
@@ -82,12 +82,12 @@ def test_ssp_by_params_img(miles_ssp):
 
 
 def test_ssp_out_of_range(miles_ssp):
-    out = miles_ssp.get_ssp_in_range(age_lims=[25.0, 30.0], met_lims=[4, 5])
+    out = miles_ssp.in_range(age_lims=[25.0, 30.0], met_lims=[4, 5])
     assert out is None
 
 
 def test_ssp_in_range(miles_ssp):
-    miles_1 = miles_ssp.get_ssp_in_range(age_lims=[15.0, 20.0], met_lims=[-0.1, 0.5])
+    miles_1 = miles_ssp.in_range(age_lims=[15.0, 20.0], met_lims=[-0.1, 0.5])
     assert miles_1.nspec == 56
     assert miles_1.age.min() > 15.0
     assert miles_1.age.max() < 20.0
@@ -97,7 +97,7 @@ def test_ssp_in_range(miles_ssp):
 
 def test_assert_alpha_in_fix(miles_ssp):
     with pytest.raises(ValueError):
-        miles_ssp.get_ssp_in_list(
+        miles_ssp.in_list(
             age_list=[0.2512, 0.0708, 1.4125],
             met_list=[0.22, 0.0, -1.71],
             imf_slope_list=[1.3, 1.3, 1.3],
@@ -106,7 +106,7 @@ def test_assert_alpha_in_fix(miles_ssp):
 
 
 def test_ssp_in_list(miles_ssp):
-    miles_1 = miles_ssp.get_ssp_in_list(
+    miles_1 = miles_ssp.in_list(
         age_list=[0.2512, 0.0708, 1.4125],
         met_list=[0.22, 0.0, -1.71],
         imf_slope_list=[1.3, 1.3, 1.3],
@@ -119,14 +119,14 @@ def test_ssp_in_list(miles_ssp):
 
 def test_ssp_not_in_list(miles_ssp):
     with pytest.raises(ValueError):
-        _ = miles_ssp.get_ssp_in_list(
+        _ = miles_ssp.in_list(
             age_list=[1e6, 1e6, 1e6],
             met_list=[1e6, 1e6, 1e6],
             imf_slope_list=[1e6, 1e6, 1e6],
         )
 
 
-def test_ssp_by_params(miles_single):
+def test_ssp_interp(miles_single):
     assert miles_single.age == [5.7]
     assert miles_single.met == [-0.45]
     assert miles_single.imf_slope == [1.3]

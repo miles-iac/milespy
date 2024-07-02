@@ -841,9 +841,9 @@ class sfh(ssp_models):
         intp = copy(self)
         out = copy(self)
 
-        # We make an initial call to get_ssp_params (ssp_model_class) to
+        # We make an initial call to interpolate (ssp_model_class) to
         # obtain the values of the triangulation to be used extensively below
-        tmp = self.get_ssp_by_params(
+        tmp = self.interpolate(
             age=self.time[0],
             met=self.met_evol[0],
             imf_slope=self.imf_evol[0],

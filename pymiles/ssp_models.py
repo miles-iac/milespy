@@ -188,12 +188,7 @@ class ssp_models(spectra, repository):
 
         return out
 
-    # -----------------------------------------------------------------------------
-    # GET_SSP_IN_RANGE
-    #
-    # Extracts SSP models within selected limits for a give instance
-    # -----------------------------------------------------------------------------
-    def get_ssp_in_range(
+    def in_range(
         self,
         age_lims=[0.0, 20.0],
         met_lims=[-5.0, 1.0],
@@ -255,8 +250,7 @@ class ssp_models(spectra, repository):
 
         return out
 
-    # -----------------------------------------------------------------------------
-    def get_ssp_in_list(
+    def in_list(
         self,
         age_list=None,
         met_list=None,
@@ -358,7 +352,7 @@ class ssp_models(spectra, repository):
 
         return out
 
-    def get_ssp_by_params(
+    def interpolate(
         self,
         age=None,
         met=None,
@@ -508,7 +502,7 @@ class ssp_models(spectra, repository):
             wave = self.wave
             spec = np.dot(self.spec[:, idx][:, vtx], wts)
             # Saving all the new info into an object
-            out = self.create_new_object(
+            out = self._create_new_object(
                 age, met, alpha, imf_slope, wave, spec, self.index[idx][vtx], wts
             )
             return out
@@ -580,11 +574,11 @@ class ssp_models(spectra, repository):
             )
         return outmls
 
-    def create_new_object(
+    def _create_new_object(
         self, age, met, alpha, imf_slope, wave, spec, indices, weights
     ):
         """
-        Creates a new object using the info from the get_ssp_by_params method
+        Creates a new object using the info from the self.by_params method
 
         Parameters
         ----------

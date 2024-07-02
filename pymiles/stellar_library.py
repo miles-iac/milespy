@@ -180,9 +180,7 @@ class stellar_library(spectra, repository):
 
     # -----------------------------------------------------------------------------
 
-    def get_stars_in_range(
-        self, teff_lims=None, logg_lims=None, FeH_lims=None, MgFe_lims=None
-    ):
+    def in_range(self, teff_lims=None, logg_lims=None, FeH_lims=None, MgFe_lims=None):
         """
         Gets set of stars with parameters range
 
@@ -269,9 +267,7 @@ class stellar_library(spectra, repository):
         return out
 
     # -----------------------------------------------------------------------------
-    def get_spectrum_by_params_delaunay(
-        self, teff=None, logg=None, FeH=None, MgFe=None
-    ):
+    def interpolate(self, teff=None, logg=None, FeH=None, MgFe=None):
         """
         Interpolates a star spectrum for given set of parameters using Delaunay
         triangulation
@@ -312,14 +308,14 @@ class stellar_library(spectra, repository):
         #        print(wts)
 
         # Saving all the new info into an object
-        out = self.create_new_object(teff, logg, FeH, MgFe, wave, spec, vtx, wts)
+        out = self._create_new_object(teff, logg, FeH, MgFe, wave, spec, vtx, wts)
 
         return out
 
-    def create_new_object(self, teff, logg, FeH, MgFe, wave, spec, indices, weights):
+    def _create_new_object(self, teff, logg, FeH, MgFe, wave, spec, indices, weights):
         """
         Creates a new object using the info from the
-        :meth:`pymiles.stellar_library.get_spectrum_by_params_delaunay` method
+        :meth:`pymiles.stellar_library.interpolate` method
 
         Parameters
         ----------

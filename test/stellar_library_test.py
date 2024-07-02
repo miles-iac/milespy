@@ -45,7 +45,7 @@ def test_search_by_id_img(lib):
 
 
 def test_stars_in_range(lib):
-    tmp = lib.get_stars_in_range(
+    tmp = lib.in_range(
         teff_lims=[4500.0, 5000.0], logg_lims=[2.0, 2.5], FeH_lims=[0.0, 0.2]
     )
     assert tmp.spec.shape == (4367, 14)
@@ -81,7 +81,7 @@ def test_interpolated_spectrum(lib):
     # Get spectrum by params (gets interpolated spectrum for those params)
     # Pablo had some prints inside this functions?..
     tmp1 = lib.search_by_params(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
-    tmp2 = lib.get_spectrum_by_params_delaunay(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
+    tmp2 = lib.interpolate(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
     fig, ax = plt.subplots()
     ax.plot(tmp1.wave, tmp1.spec, label="Closest star")
     ax.plot(tmp2.wave, tmp2.spec, label="Interpolated star")
