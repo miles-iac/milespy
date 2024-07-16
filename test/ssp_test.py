@@ -64,7 +64,7 @@ def test_ssp_interp_img(miles_ssp):
             miles_vertices.flux[i, :],
             alpha=0.3,
             label=f"Vertex (age={miles_vertices.meta['age'][i]}, "
-            "met={miles_vertices.meta['met'][i]})",
+            f"met={miles_vertices.meta['met'][i]})",
         )
     ax.plot(
         miles_1.spectral_axis,
@@ -72,7 +72,7 @@ def test_ssp_interp_img(miles_ssp):
         alpha=0.5,
         c="k",
         label=f"Interpolated (age={miles_1.meta['age'][0]}, "
-        "met={miles_1.meta['met'][0]})",
+        f"met={miles_1.meta['met'][0]})",
     )
     ax.legend(loc=0)
     ax.set_xlim(3500, 7500)
