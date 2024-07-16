@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
-from copy import copy
 
 import numpy as np
 from scipy.integrate import simps
 
 import pymiles.misc as misc
+from pymiles.spectra import spectra
 from pymiles.ssp_models import ssp_models
 
 # from ipdb import set_trace as stop
@@ -58,8 +58,9 @@ class sfh(ssp_models):
         )
 
         # The SFH is defined based on a time array
-        self.time = np.sort(list(set(self.age)))
-        self.wts = np.zeros_like(self.time)
+        self.time = np.sort(np.unique(self.models.meta["age"]))
+        logger.debug(f"Avail times {self.time}")
+        self.time_weights = np.zeros_like(self.time)
         self.sfr = np.zeros_like(self.time)
         self.alpha_evol = np.zeros_like(self.time)
         self.imf_evol = np.zeros_like(self.time) + 1.3
@@ -129,8 +130,8 @@ class sfh(ssp_models):
         if start < end:
             raise ValueError("Start date must be older than end date")
 
-        idx = (self.age <= start) & (self.age >= end)
-        self.time = np.sort(list(set(self.age[idx])))
+        idx = (self.models.meta["age"] <= start) & (self.models.meta["age"] >= end)
+        self.time = np.sort(np.unique(self.models.meta["age"][idx]))
         self.met_evol = np.zeros_like(self.time)
         self.alpha_evol = np.zeros_like(self.time)
         self.imf_evol = np.zeros_like(self.time) + 1.3
@@ -216,9 +217,9 @@ class sfh(ssp_models):
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
         dt[0] = dt[1]
-        self.wts = self.sfr * dt
+        self.time_weights = self.sfr * dt
         # Normalized to a total of 1 Msun
-        self.wts = self.wts / np.sum(self.wts)
+        self.time_weights = self.time_weights / np.sum(self.time_weights)
 
         # Set as constant the other SFH parameters
         self.met_evol = np.zeros_like(self.time) + met
@@ -270,9 +271,9 @@ class sfh(ssp_models):
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
         dt[0] = dt[1]
-        self.wts = self.sfr * dt
+        self.time_weights = self.sfr * dt
         # Normalized to a total of 1 Msun
-        self.wts = self.wts / np.sum(self.wts)
+        self.time_weights = self.time_weights / np.sum(self.time_weights)
 
         # Set as constant the other SFH parameters
         self.met_evol = np.zeros_like(self.time) + met
@@ -325,9 +326,9 @@ class sfh(ssp_models):
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
         dt[0] = dt[1]
-        self.wts = self.sfr * dt
+        self.time_weights = self.sfr * dt
         # Normalized to a total of 1 Msun
-        self.wts = self.wts / np.sum(self.wts)
+        self.time_weights = self.time_weights / np.sum(self.time_weights)
 
         # Set as constant the other SFH parameters
         self.met_evol = np.zeros_like(self.time) + met
@@ -385,9 +386,9 @@ class sfh(ssp_models):
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
         dt[0] = dt[1]
-        self.wts = self.sfr * dt
+        self.time_weights = self.sfr * dt
         # Normalized to a total of 1 Msun
-        self.wts = self.wts / np.sum(self.wts)
+        self.time_weights = self.time_weights / np.sum(self.time_weights)
 
         # Set as constant the other SFH parameters
         self.met_evol = np.zeros_like(self.time) + met
@@ -443,9 +444,9 @@ class sfh(ssp_models):
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
         dt[0] = dt[1]
-        self.wts = self.sfr * dt
+        self.time_weights = self.sfr * dt
         # Normalized to a total of 1 Msun
-        self.wts = self.wts / np.sum(self.wts)
+        self.time_weights = self.time_weights / np.sum(self.time_weights)
 
         # Set as constant the other SFH parameters
         self.met_evol = np.zeros_like(self.time) + met
@@ -487,23 +488,29 @@ class sfh(ssp_models):
             raise ValueError("You forgot to include your bursts")
         self.time = np.array(ages)
 
-        self.wts = wts
-        self._process_param("Weights", self.wts, "Age", self.age, offset=1)
-        if np.any(self.wts < 0):
+        self.time_weights = wts
+        self._process_param(
+            "Weights", self.time_weights, "Age", self.models.meta["age"], offset=1
+        )
+        if np.any(self.time_weights < 0):
             raise ValueError("Weight array should not be negative")
-        self.wts = self.wts / np.sum(self.wts)
+        self.time_weights = self.time_weights / np.sum(self.time_weights)
 
         self.met_evol = mets
-        self._process_param("Metallicity", self.met_evol, "Age", self.age)
+        self._process_param(
+            "Metallicity", self.met_evol, "Age", self.models.meta["age"]
+        )
 
         self.alpha_evol = alphas
-        self._process_param("[alpha/Fe]", self.alpha_evol, "Age", self.age)
+        self._process_param(
+            "[alpha/Fe]", self.alpha_evol, "Age", self.models.meta["age"]
+        )
 
         self.imf_evol = imfs
-        self._process_param("IMF", self.imf_evol, "Age", self.age)
+        self._process_param("IMF", self.imf_evol, "Age", self.models.meta["age"])
 
         # Since the SFR could be ill-define we set it to NaN (it won't be actually used)
-        self.sfr = np.zeros(len(self.wts)) + float("NaN")
+        self.sfr = np.zeros(len(self.time_weights)) + float("NaN")
 
         # Make sure everything is within the allowed range of models
         self._validate_sfh()
@@ -543,27 +550,33 @@ class sfh(ssp_models):
             raise ValueError("You forgot to include your bursts")
         self.time = np.array(ages)
 
-        self.wts = wts
-        self._process_param("Weights", self.wts, "Age", self.age, offset=1)
-        if np.any(self.wts < 0):
+        self.time_weights = wts
+        self._process_param(
+            "Weights", self.time_weights, "Age", self.models.meta["age"], offset=1
+        )
+        if np.any(self.time_weights < 0):
             raise ValueError("Weight array should not be negative")
-        self.wts = self.wts / np.sum(self.wts)
+        self.time_weights = self.time_weights / np.sum(self.time_weights)
 
         self.met_evol = mets
-        self._process_param("Metallicity", self.met_evol, "Age", self.age)
+        self._process_param(
+            "Metallicity", self.met_evol, "Age", self.models.meta["age"]
+        )
 
         self.alpha_evol = alphas
-        self._process_param("[alpha/Fe]", self.alpha_evol, "Age", self.age)
+        self._process_param(
+            "[alpha/Fe]", self.alpha_evol, "Age", self.models.meta["age"]
+        )
 
         self.imf_evol = imfs
-        self._process_param("IMF", self.imf_evol, "Age", self.age)
+        self._process_param("IMF", self.imf_evol, "Age", self.models.meta["age"])
 
         self.time = np.sort(list(set(ages)))
         dt = self.time - np.roll(self.time, 1)
         dt[0] = dt[1]
 
-        self.wts = self.wts / np.sum(self.wts)
-        self.sfr = self.wts / dt
+        self.time_weights = self.time_weights / np.sum(self.time_weights)
+        self.sfr = self.time_weights / dt
         # Normalization to form 1 Msun
         norm = simps(self.sfr, self.time)
         self.sfr = self.sfr / norm
@@ -602,7 +615,12 @@ class sfh(ssp_models):
         for inp in (start, end, tc, gamma):
             self._validate_scalar(inp)
 
-        self._validate_in_range(tc, min(self.age), max(self.age), "Transition time")
+        self._validate_in_range(
+            tc,
+            min(self.models.meta["age"]),
+            max(self.models.meta["age"]),
+            "Transition time",
+        )
 
         self.met_evol = (end - start) / (
             1.0 + np.exp(-gamma * (tc - self.time))
@@ -637,8 +655,18 @@ class sfh(ssp_models):
         for inp in (start, end, t_start, t_end):
             self._validate_scalar(inp)
 
-        self._validate_in_range(t_start, min(self.age), max(self.age), "Start time")
-        self._validate_in_range(t_end, min(self.age), max(self.age), "End time")
+        self._validate_in_range(
+            t_start,
+            min(self.models.meta["age"]),
+            max(self.models.meta["age"]),
+            "Start time",
+        )
+        self._validate_in_range(
+            t_end,
+            min(self.models.meta["age"]),
+            max(self.models.meta["age"]),
+            "End time",
+        )
 
         slope = (start - end) / (t_start - t_end)
 
@@ -682,7 +710,12 @@ class sfh(ssp_models):
         for inp in (start, end, tc, gamma):
             self._validate_scalar(inp)
 
-        self._validate_in_range(tc, min(self.age), max(self.age), "Transition time")
+        self._validate_in_range(
+            tc,
+            min(self.models.meta["age"]),
+            max(self.models.meta["age"]),
+            "Transition time",
+        )
 
         self.alp_evol = (end - start) / (
             1.0 + np.exp(-gamma * (tc - self.time))
@@ -717,8 +750,18 @@ class sfh(ssp_models):
         for inp in (start, end, t_start, t_end):
             self._validate_scalar(inp)
 
-        self._validate_in_range(t_start, min(self.age), max(self.age), "Start time")
-        self._validate_in_range(t_end, min(self.age), max(self.age), "End time")
+        self._validate_in_range(
+            t_start,
+            min(self.models.meta["age"]),
+            max(self.models.meta["age"]),
+            "Start time",
+        )
+        self._validate_in_range(
+            t_end,
+            min(self.models.meta["age"]),
+            max(self.models.meta["age"]),
+            "End time",
+        )
 
         slope = (start - end) / (t_start - t_end)
 
@@ -762,7 +805,12 @@ class sfh(ssp_models):
         for inp in (start, end, tc, gamma):
             self._validate_scalar(inp)
 
-        self._validate_in_range(tc, min(self.age), max(self.age), "Transition time")
+        self._validate_in_range(
+            tc,
+            min(self.models.meta["age"]),
+            max(self.models.meta["age"]),
+            "Transition time",
+        )
 
         self.imf_evol = (end - start) / (
             1.0 + np.exp(-gamma * (tc - self.time))
@@ -797,8 +845,18 @@ class sfh(ssp_models):
         for inp in (start, end, t_start, t_end):
             self._validate_scalar(inp)
 
-        self._validate_in_range(t_start, min(self.age), max(self.age), "Start time")
-        self._validate_in_range(t_end, min(self.age), max(self.age), "End time")
+        self._validate_in_range(
+            t_start,
+            min(self.models.meta["age"]),
+            max(self.models.meta["age"]),
+            "Start time",
+        )
+        self._validate_in_range(
+            t_end,
+            min(self.models.meta["age"]),
+            max(self.models.meta["age"]),
+            "End time",
+        )
 
         slope = (start - end) / (t_start - t_end)
 
@@ -837,25 +895,27 @@ class sfh(ssp_models):
             MILES predictions
         """
 
-        # We make a copy of the instance to speed up the interpolation
-        intp = copy(self)
-        out = copy(self)
-
         # We make an initial call to interpolate (ssp_model_class) to
         # obtain the values of the triangulation to be used extensively below
-        tmp = self.interpolate(
+        _ = self.interpolate(
             age=self.time[0],
             met=self.met_evol[0],
             imf_slope=self.imf_evol[0],
             alpha=self.alpha_evol[0],
             force_interp=["alpha", "imf_slope"],
         )
-        nspec_in = intp.spec.shape[1]
 
         # Making sure we select the right IMF and alpha models
-        uimf_slope = np.unique(self.imf_slope)
+        uimf_slope = np.unique(self.models.meta["imf_slope"])
         nimf_slope = len(uimf_slope)
-        ospec = np.zeros(len(np.squeeze(tmp.spec)))
+        ospec = np.zeros(self.models.npix)
+        new_meta = {}
+        for k in self.models.meta.keys():
+            if len(self.models.meta[k]) > 1:
+                # Skip the interpolation of string data, e.g., filenames
+                kind = self.models.meta[k].dtype.kind
+                if "f" in kind:
+                    new_meta[k] = np.zeros_like(self.models.meta[k])
 
         # We iterate now over all the age bins in the SFH
         for t, date in enumerate(self.time):
@@ -883,72 +943,27 @@ class sfh(ssp_models):
                         ndmin=2,
                     )
 
-            vtx, wts = misc.interp_weights(tmp.params, input_pt, tmp.tri)
+            vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
             vtx, wts = vtx.ravel(), wts.ravel()
 
             # Update quantities
-            keys = list(out.main_keys)
-            for i in range(len(out.main_keys)):
-                if (
-                    (keys[i] == "wave")
-                    or (keys[i] == "spec")
-                    or (keys[i] == "nspec")
-                    or (keys[i] == "age")
-                    or (keys[i] == "met")
-                    or (keys[i] == "alpha")
-                    or (keys[i] == "imf_slope")
-                    or (keys[i] == "filename")
-                    or (keys[i] == "isochrone")
-                    or (keys[i] == "imf_type")
-                    or (keys[i] == "index")
-                ):
-                    continue
-
-                # pre_val is the quantity to be updated. intp_val contains all
-                # the models and it is used for the interpolation
-                pre_val = np.array(getattr(out, keys[i]))
-                intp_val = np.array(getattr(intp, keys[i]))
-
-                if np.ndim(intp_val) == 0:
-                    continue
-
-                # This is where the interpolation happens using the
-                # triangulation calculated above and over the models stored in
-                # intp_val. Note that the final value of each key is the mass
-                # weighted combination
-                # keys_final = keys_t=0 * weights_t=0 + .... + keys_t=n * weights_t=n
-                # where n is the final (oldest) age in the SFH
-                if intp_val.shape[0] == nspec_in:
-                    if t == 0:
-                        setattr(
-                            out,
-                            keys[i],
-                            np.dot(intp_val[self.idx][vtx], wts) * self.wts[t],
-                        )
-                    else:
-                        setattr(
-                            out,
-                            keys[i],
-                            pre_val
-                            + np.dot(intp_val[self.idx][vtx], wts) * self.wts[t],
-                        )
+            for k in new_meta:
+                if len(self.models.meta[k]) > 1:
+                    new_meta[k] += (
+                        np.dot(self.models.meta[k][self.idx][vtx], wts)
+                        * self.time_weights[t]
+                    )
 
             # The final spectrum is also the mass-weighted one
-            ospec = ospec + np.dot(intp.spec[:, self.idx][:, vtx], wts) * self.wts[t]
+            ospec = (
+                ospec
+                + np.dot(self.models.flux[self.idx, :][vtx].T, wts)
+                * self.time_weights[t]
+            )
 
-        # Formating the instance so it can be used latter
-        out.spec = np.array(ospec, ndmin=2).T
-        out.age = np.sum(self.time * self.wts)
-        out.met = np.sum(self.met_evol * self.wts)
-        out.alpha = np.sum(self.alpha_evol * self.wts)
-        out.imf_slope = np.sum(self.imf_evol * self.wts)
-        out.nspec = 1
-        out.filename = None
-        out.isochrone = out.isochrone[0]
-        out.imf_type = out.imf_type[0]
-        out.index = np.nan
-
-        return out
+        return spectra(
+            spectral_axis=self.models.spectral_axis, flux=ospec, meta=new_meta
+        )
 
     def sfh_check_ssp_range(self):
         """Checks if expected SSPs are within the model grid
@@ -969,14 +984,14 @@ class sfh(ssp_models):
 
         """
         if (
-            (max(self.time) <= max(self.age))
-            and (min(self.time) >= min(self.age))
-            and (max(self.met_evol) <= max(self.met))
-            and (min(self.met_evol) >= min(self.met))
-            and (max(self.alpha_evol) <= max(self.alpha))
-            and (min(self.alpha_evol) >= min(self.alpha))
-            and (max(self.imf_evol) <= max(self.imf_slope))
-            and (min(self.imf_evol) >= min(self.imf_slope))
+            (max(self.time) <= max(self.models.meta["age"]))
+            and (min(self.time) >= min(self.models.meta["age"]))
+            and (max(self.met_evol) <= max(self.models.meta["met"]))
+            and (min(self.met_evol) >= min(self.models.meta["met"]))
+            and (max(self.alpha_evol) <= max(self.models.meta["alpha"]))
+            and (min(self.alpha_evol) >= min(self.models.meta["alpha"]))
+            and (max(self.imf_evol) <= max(self.models.meta["imf_slope"]))
+            and (min(self.imf_evol) >= min(self.models.meta["imf_slope"]))
         ):
             safe = True
         else:
@@ -1001,6 +1016,6 @@ class sfh(ssp_models):
         """
 
         # Normalization to form 1 Msun
-        self.wts = self.wts / np.sum(self.wts)
+        self.time_weights = self.time_weights / np.sum(self.time_weights)
         norm = simps(self.sfr, self.time)
         self.sfr = self.sfr / norm

@@ -458,7 +458,6 @@ class ssp_models(repository):
                         if "U" not in self.models.meta[k].dtype.kind:
                             new_meta[k] = np.dot(self.models.meta[k][idx][vtx], wts)
 
-            # Copying basic info
             out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)
 
             return out

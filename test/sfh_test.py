@@ -55,8 +55,8 @@ def test_predictions(pred):
     filts = flib.get(fnames)
     outmls = pred.mass_to_light(filters=filts, mass_in="star+remn")
 
-    np.testing.assert_equal(pred.age, 9.747229444806024)
-    np.testing.assert_almost_equal(pred.met, -0.9777525480919624)
+    np.testing.assert_equal(pred.meta["age"], 9.747229444806024)
+    np.testing.assert_almost_equal(pred.meta["met"], -0.9777525480919624)
     np.testing.assert_almost_equal(outmls["SLOAN_SDSS.g"], 3.01242965)
 
 
@@ -64,7 +64,7 @@ def test_predictions(pred):
 def test_spectra_img(pred):
     # And finally the spectra
     fig, ax = plt.subplots()
-    ax.plot(pred.wave, pred.spec)
+    ax.plot(pred.spectral_axis, pred.flux)
     ax.set_xlabel("Wavelength")
     ax.set_ylabel("Flux")
     ax.legend()
