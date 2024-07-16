@@ -9,7 +9,6 @@ from astropy.io import ascii
 from scipy import interpolate
 from specutils import Spectrum1D
 
-import pymiles.cap_utils as cap
 import pymiles.misc as misc
 from pymiles import get_config_file
 from pymiles.filter import Filter
@@ -220,29 +219,29 @@ class spectra(Spectrum1D):
             Object instance with ln-rebinned spectra and updated info
 
         """
-        logger.info("# Ln-rebining the spectra ...")
+        # logger.info("# Ln-rebining the spectra ...")
 
-        if self.sampling == "ln":
-            logger.warning("Spectra already in ln-lambda.")
-            return copy(self)
+        # if self.sampling == "ln":
+        #     logger.warning("Spectra already in ln-lambda.")
+        #     return copy(self)
 
-        out = copy(self)
-        lamRange = [out.wave_init, out.wave_last]
-        lspec, lwave, velscale = cap.log_rebin(
-            lamRange, out.spec[:, 0], velscale=velscale
-        )
-        out_spec = np.zeros((len(lspec), out.nspec))
-        for i in range(out.nspec):
-            out_spec[:, i], lwave, velscale = cap.log_rebin(
-                lamRange, self.spec[:, i], velscale=velscale
-            )
-            if logger.getEffectiveLevel() <= logging.INFO:
-                misc.printProgress(i + 1, out.nspec)
+        # out = copy(self)
+        # lamRange = [out.wave_init, out.wave_last]
+        # lspec, lwave, velscale = cap.log_rebin(
+        #     lamRange, out.spec[:, 0], velscale=velscale
+        # )
+        # out_spec = np.zeros((len(lspec), out.nspec))
+        # for i in range(out.nspec):
+        #     out_spec[:, i], lwave, velscale = cap.log_rebin(
+        #         lamRange, self.spec[:, i], velscale=velscale
+        #     )
+        #     if logger.getEffectiveLevel() <= logging.INFO:
+        #         misc.printProgress(i + 1, out.nspec)
 
-        out.sampling = "ln"
-        # out.update_basic_pars(lwave, out_spec)
+        # out.sampling = "ln"
+        # # out.update_basic_pars(lwave, out_spec)
 
-        return out
+        # return out
 
     # -----------------------------------------------------------------------------
     def log_unbin_spectra(self, flux=True):
@@ -261,27 +260,27 @@ class spectra(Spectrum1D):
 
         """
 
-        logger.info("# Unbin ln spectra ...")
+        # logger.info("# Unbin ln spectra ...")
 
-        if self.sampling == "lin":
-            logger.warning("Spectra already in linear lambda.")
-            return copy(self)
+        # if self.sampling == "lin":
+        #     logger.warning("Spectra already in linear lambda.")
+        #     return copy(self)
 
-        out = copy(self)
-        lamRange = [out.wave_init, out.wave_last]
-        spec, wave = cap.log_unbinning(lamRange, out.spec[:, 0])
-        out_spec = np.zeros((len(spec), out.nspec))
-        for i in range(out.nspec):
-            out_spec[:, i], wave = cap.log_unbinning(lamRange, self.spec[:, i])
-            if logger.getEffectiveLevel() <= logging.INFO:
-                misc.printProgress(i + 1, out.nspec)
+        # out = copy(self)
+        # lamRange = [out.wave_init, out.wave_last]
+        # spec, wave = cap.log_unbinning(lamRange, out.spec[:, 0])
+        # out_spec = np.zeros((len(spec), out.nspec))
+        # for i in range(out.nspec):
+        #     out_spec[:, i], wave = cap.log_unbinning(lamRange, self.spec[:, i])
+        #     if logger.getEffectiveLevel() <= logging.INFO:
+        #         misc.printProgress(i + 1, out.nspec)
 
-        out.spec = out_spec
-        out.wave = wave
-        out.sampling = "lin"
-        # out.update_basic_pars()
+        # out.spec = out_spec
+        # out.wave = wave
+        # out.sampling = "lin"
+        # # out.update_basic_pars()
 
-        return out
+        # return out
 
     # -----------------------------------------------------------------------------
     def convolve(self, lsf_wave=None, lsf=None, mode="FWHM"):
