@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
-import os
+import typing
 import warnings
 from copy import copy
 
-import h5py
 import numpy as np
 from astropy.io import ascii
-from astropy.io import fits
 from scipy import interpolate
+from specutils import Spectrum1D
 
 import pymiles.cap_utils as cap
 import pymiles.misc as misc
@@ -18,35 +17,21 @@ from pymiles.ls_indices import LineStrengthIndeces
 from pymiles.ls_indices import lsindex
 from pymiles.magnitudes import compute_mags
 from pymiles.magnitudes import Magnitude
+from pymiles.magnitudes import sun_magnitude
 
 # ==============================================================================
 
 logger = logging.getLogger("pymiles.spectra")
 
 
-class spectra:
+class spectra(Spectrum1D):
     warnings.filterwarnings("ignore")
 
     solar_ref_spec = get_config_file("sun_mod_001.fits")
     emiles_lsf = get_config_file("EMILES.lsf")
     lsfile = get_config_file("ls_indices_full.def")
 
-    # -----------------------------------------------------------------------------
-    # __INIT__
-    #
-    # Creates an instance of the class
-    # -----------------------------------------------------------------------------
-    def __init__(
-        self,
-        wave_init=None,
-        wave_last=None,
-        dwave=None,
-        source=None,
-        redshift=0.0,
-        sampling="lin",
-        wave=None,
-        spec=None,
-    ):
+    def __init__(self, **kwargs):
         """
         Creates an instance of the class
 
@@ -77,92 +62,41 @@ class spectra:
         spectra
 
         """
-        logger.debug(wave)
-        if len(wave) == 0:
-            wave = np.zeros(10)
-        if len(spec) == 0:
-            spec = np.zeros((10, 1))
+        super().__init__(**kwargs)
 
-        if wave_init is None:
-            self.wave_init = np.amin(wave)
+        # We keep them now for convenience
+        if len(self.data.shape) > 1:
+            self.npix = self.data.shape[1]
+            self.nspec = self.data.shape[0]
         else:
-            self.wave_init = wave_init
-
-        if wave_last is None:
-            self.wave_last = np.amax(wave)
-        else:
-            self.wave_last = wave_last
-
-        if dwave is None:
-            self.dwave = wave[1] - wave[0]
-        else:
-            self.dwave = dwave
-
-        self.redshift = redshift
-        self.sampling = sampling
-        self.wave = np.array(wave)
-        self.spec = np.array(spec)
-        self.npix = spec.shape[0]
-        self.nspec = spec.shape[1]
-        self.source = source
+            self.npix = self.data.shape[0]
+            self.nspec = 1
 
         # Computing the LSF
         #       if source != None:
         #          self.compute_lsf()
 
-        # Checking inputs and redifining values if needed
-        if np.amin(wave) < self.wave_init:
-            wave_init = np.amin(wave)
-
-        if np.amax(wave) > self.wave_last:
-            wave_last = np.amax(wave)
-
-        if len(wave) != self.npix:
-            raise ValueError("Number of pixels in WAVE not equal to SPEC.")
-
-        sampling_list = ["lin", "ln"]
-        if sampling not in sampling_list:
-            raise ValueError("SAMPLING has to be lin/ln")
-
-        if redshift < 0.0:
-            raise ValueError("REDSHIFT cannot be lower than 0.0")
+        # sampling_list = ["lin", "ln"]
+        # if sampling not in sampling_list:
+        #     raise ValueError("SAMPLING has to be lin/ln")
 
         return
 
-    # -----------------------------------------------------------------------------
-
-    # -----------------------------------------------------------------------------
-    def update_basic_pars(self, wave, spec):
-        """
-        Updates basic values of the spectra in instance
-
-        Parameters
-        ----------
-        wave:
-            Vector with input wavelengths in Angstroms
-        spec:
-            [N,M] array with input spectra
-
-        Returns
-        -------
-        spectra
-
-        """
-
-        self.wave_init = np.amin(wave)
-        self.wave_last = np.amax(wave)
-        self.dwave = wave[1] - wave[0]
-        self.wave = wave
-        self.spec = spec
-        self.npix = spec.shape[0]
-        self.nspec = spec.shape[1]
-
-        return
+    def __getitem__(self, item):
+        out = super().__getitem__(item)
+        for k in out.meta.keys():
+            try:
+                if len(out.meta[k]) > 1:
+                    out.meta[k] = out.meta[k][item]
+            except TypeError:
+                pass
+        return out
 
     # -----------------------------------------------------------------------------
     def compute_lsf(self):
+        # This information could be given in the repository files!
         """
-        Returns the LSF given a source and wavelength from self
+        Returns the line-spread function (LSF) given a source and wavelength from self
 
         Returns
         -------
@@ -209,218 +143,38 @@ class spectra:
         return
 
     # -----------------------------------------------------------------------------
-    def trim_spectra(self, wave_lims=None):
-        """
-        Trims spectra to desired wavelength limits
+    # def trim_spectra(self, wave_lims=None):
+    #    """
+    #    Trims spectra to desired wavelength limits
 
-        Parameters
-        ----------
-        wave_lims:
-            Wavelength limits in Angtroms
+    #    Parameters
+    #    ----------
+    #    wave_lims:
+    #        Wavelength limits in Angtroms
 
-        Returns
-        -------
-        spectra
-            Object instance with spectra trimmed and updated info
+    #    Returns
+    #    -------
+    #    spectra
+    #        Object instance with spectra trimmed and updated info
 
-        """
-        logger.info("# Trimming spectra in wavelength ...")
+    #    """
+    #    logger.info("# Trimming spectra in wavelength ...")
 
-        out = copy(self)
-        idx = (out.wave >= wave_lims[0]) & (out.wave <= wave_lims[1])
-        wave = out.wave[idx]
-        spec = out.spec[idx, :]
-        out.update_basic_pars(wave, spec)
-        out.compute_lsf()
+    #    out = copy(self)
+    #    idx = (out.wave >= wave_lims[0]) & (out.wave <= wave_lims[1])
+    #    wave = out.wave[idx]
+    #    spec = out.spec[idx, :]
+    #    #out.update_basic_pars(wave, spec)
+    #    out.compute_lsf()
 
-        return out
+    #    return out
 
     # -----------------------------------------------------------------------------
-    def resample_spectra(self, wave_lims=None, dwave=None):
-        """
-        Returns a copy of the instance with the wavelength vector
-        and spectra array rebinned to the desired wavelength step
-
-        Parameters
-        ----------
-        wave_lims:
-            Desired wavelength limits in Angtroms
-        dwave:
-            Desired wavelength step in Angstroms
-
-        Returns
-        -------
-        spectra
-            Object instance with spectra resampled and updated info
-
-        """
-        logger.info("# Resampling spectra ...")
-
-        out = copy(self)
-        new_wave = np.arange(wave_lims[0], wave_lims[1], dwave)
-        npix = len(new_wave)
-        spec = np.zeros((npix, out.nspec))
-        for i in range(out.nspec):
-            spec[:, i] = self._spectres(new_wave, out.wave, out.spec[:, i], fill=0.0)
-            if logger.getEffectiveLevel() <= logging.INFO:
-                misc.printProgress(i + 1, out.nspec)
-        out.update_basic_pars(new_wave, spec)
-        out.compute_lsf()
-
-        return out
-
-    def _spectres(self, new_wavs, spec_wavs, spec_fluxes, spec_errs=None, fill=None):
-        """
-        Function for resampling spectra (and optionally associated
-        uncertainties) onto a new wavelength basis.
-        Parameters
-
-        Taken from:
-        https://github.com/ACCarnall/SpectRes/blob/master/spectres/spectral_resampling.py
-        ----------
-        new_wavs : np.ndarray
-            Array containing the new wavelength sampling desired for the
-            spectrum or spectra.
-        spec_wavs : np.ndarray
-            1D array containing the current wavelength sampling of the
-            spectrum or spectra.
-        spec_fluxes : np.ndarray
-            Array containing spectral fluxes at the wavelengths specified in
-            spec_wavs, last dimension must correspond to the shape of
-            spec_wavs. Extra dimensions before this may be used to include
-            multiple spectra.
-        spec_errs : np.ndarray (optional)
-            Array of the same shape as spec_fluxes containing uncertainties
-            associated with each spectral flux value.
-        fill : float (optional)
-            Value for all new_fluxes and new_errs that fall outside the
-            wavelength range in spec_wavs. These will be nan by default.
-        Returns
-        -------
-        new_fluxes : np.ndarray
-            Array of resampled flux values, first dimension is the same
-            length as new_wavs, other dimensions are the same as
-            spec_fluxes.
-        new_errs : np.ndarray
-            Array of uncertainties associated with fluxes in new_fluxes.
-            Only returned if spec_errs was specified.
-        """
-
-        # Rename the input variables for clarity within the function.
-        old_wavs = spec_wavs
-        old_fluxes = spec_fluxes
-        old_errs = spec_errs
-
-        # Arrays of left hand sides and widths for the old and new bins
-        old_lhs = np.zeros(old_wavs.shape[0])
-        old_widths = np.zeros(old_wavs.shape[0])
-        old_lhs = np.zeros(old_wavs.shape[0])
-        old_lhs[0] = old_wavs[0]
-        old_lhs[0] -= (old_wavs[1] - old_wavs[0]) / 2
-        old_widths[-1] = old_wavs[-1] - old_wavs[-2]
-        old_lhs[1:] = (old_wavs[1:] + old_wavs[:-1]) / 2
-        old_widths[:-1] = old_lhs[1:] - old_lhs[:-1]
-        old_max_wav = old_lhs[-1] + old_widths[-1]
-
-        new_lhs = np.zeros(new_wavs.shape[0] + 1)
-        new_widths = np.zeros(new_wavs.shape[0])
-        new_lhs[0] = new_wavs[0]
-        new_lhs[0] -= (new_wavs[1] - new_wavs[0]) / 2
-        new_widths[-1] = new_wavs[-1] - new_wavs[-2]
-        new_lhs[-1] = new_wavs[-1]
-        new_lhs[-1] += (new_wavs[-1] - new_wavs[-2]) / 2
-        new_lhs[1:-1] = (new_wavs[1:] + new_wavs[:-1]) / 2
-        new_widths[:-1] = new_lhs[1:-1] - new_lhs[:-2]
-
-        # Generate output arrays to be populated
-        new_fluxes = np.zeros(old_fluxes[..., 0].shape + new_wavs.shape)
-
-        if old_errs is not None:
-            if old_errs.shape != old_fluxes.shape:
-                raise ValueError(
-                    "If specified, spec_errs must be the same shape " "as spec_fluxes."
-                )
-            else:
-                new_errs = np.copy(new_fluxes)
-
-        start = 0
-        stop = 0
-
-        # Calculate new flux and uncertainty values, looping over new bins
-        for j in range(new_wavs.shape[0]):
-            # Add filler values if new_wavs extends outside of spec_wavs
-            if (new_lhs[j] < old_lhs[0]) or (new_lhs[j + 1] > old_max_wav):
-                new_fluxes[..., j] = fill
-
-                if spec_errs is not None:
-                    new_errs[..., j] = fill
-
-                if j == 0:
-                    print(
-                        "\nSpectres: new_wavs contains values outside the range "
-                        "in spec_wavs. New_fluxes and new_errs will be filled "
-                        "with the value set in the 'fill' keyword argument (nan "
-                        "by default).\n"
-                    )
-                continue
-
-            # Find first old bin which is partially covered by the new bin
-            while old_lhs[start + 1] <= new_lhs[j]:
-                start += 1
-
-            # Find last old bin which is partially covered by the new bin
-            while old_lhs[stop + 1] < new_lhs[j + 1]:
-                stop += 1
-
-            # If new bin is fully inside an old bin start and stop are equal
-            if stop == start:
-                new_fluxes[..., j] = old_fluxes[..., start]
-                if old_errs is not None:
-                    new_errs[..., j] = old_errs[..., start]
-
-            # Otherwise multiply the first and last old bin widths by P_ij
-            else:
-                start_factor = (old_lhs[start + 1] - new_lhs[j]) / (
-                    old_lhs[start + 1] - old_lhs[start]
-                )
-
-                end_factor = (new_lhs[j + 1] - old_lhs[stop]) / (
-                    old_lhs[stop + 1] - old_lhs[stop]
-                )
-
-                old_widths[start] *= start_factor
-                old_widths[stop] *= end_factor
-
-                # Populate new_fluxes spectrum and uncertainty arrays
-                f_widths = (
-                    old_widths[start : stop + 1] * old_fluxes[..., start : stop + 1]
-                )
-                new_fluxes[..., j] = np.sum(f_widths, axis=-1)
-                new_fluxes[..., j] /= np.sum(old_widths[start : stop + 1])
-
-                if old_errs is not None:
-                    e_wid = (
-                        old_widths[start : stop + 1] * old_errs[..., start : stop + 1]
-                    )
-
-                    new_errs[..., j] = np.sqrt(np.sum(e_wid**2, axis=-1))
-                    new_errs[..., j] /= np.sum(old_widths[start : stop + 1])
-
-                # Put back the old bin widths to their initial values
-                old_widths[start] /= start_factor
-                old_widths[stop] /= end_factor
-
-        # If errors were supplied return both new_fluxes and new_errs.
-        if old_errs is not None:
-            return new_fluxes, new_errs
-
-        # Otherwise just return the new_fluxes spectrum array
-        else:
-            return new_fluxes
 
     # -----------------------------------------------------------------------------
 
     def redshift_spectra(self, redshift=None):
+        # This may still be required because it also changes the LSF
         """
         Returns a copy of the instance with a redshifted wavelength vector,
         spectra and LSF
@@ -440,8 +194,8 @@ class spectra:
 
         out = copy(self)
         wave = out.wave * (1.0 + redshift)
-        spec = out.spec / (1.0 + redshift)
-        out.update_basic_pars(wave, spec)
+        # spec = out.spec / (1.0 + redshift)
+        # out.update_basic_pars(wave, spec)
         out.redshift = redshift
         out.lsf_wave = wave
         out.lsf_fwhm = out.lsf_fwhm / (1.0 + redshift)
@@ -451,6 +205,7 @@ class spectra:
 
     # -----------------------------------------------------------------------------
     def logrebin_spectra(self, velscale=None):
+        # Is this really needed?
         """
         Returns a logrebinned version of the spectra
 
@@ -485,7 +240,7 @@ class spectra:
                 misc.printProgress(i + 1, out.nspec)
 
         out.sampling = "ln"
-        out.update_basic_pars(lwave, out_spec)
+        # out.update_basic_pars(lwave, out_spec)
 
         return out
 
@@ -524,12 +279,12 @@ class spectra:
         out.spec = out_spec
         out.wave = wave
         out.sampling = "lin"
-        out.update_basic_pars()
+        # out.update_basic_pars()
 
         return out
 
     # -----------------------------------------------------------------------------
-    def convolve_spectra(self, lsf_wave=None, lsf=None, mode="FWHM"):
+    def convolve(self, lsf_wave=None, lsf=None, mode="FWHM"):
         """
         Returns a convolved version of the spectra
 
@@ -578,9 +333,7 @@ class spectra:
 
         out_spec = np.zeros_like(out.spec)
         for i in range(out.nspec):
-            out_spec[:, i] = cap.gaussian_filter1d(out.spec[:, i], sigma)
-            if logger.getEffectiveLevel() <= logging.INFO:
-                misc.printProgress(i + 1, out.nspec, barLength=50)
+            out_spec[:, i] = spectra._gaussian_filter1d(out.spec[:, i], sigma)
 
         out.spec = out_spec
 
@@ -598,6 +351,7 @@ class spectra:
         lsf_wave=None,
         lsf=None,
     ):
+        # This wrapper should be defined at the flask application layer
         """
         Returns the a tuned to desired input parameters
 
@@ -628,29 +382,34 @@ class spectra:
 
         """
 
-        logger.info("# Tuning spectra ----------------------")
+        logger.debug("Tuning spectra ----------------------")
 
         out = copy(self)
         if lsf_wave is None:
             lsf_wave = out.wave
 
         # Resampling the spectra if necessary
+        # to be done with specutils
         if (
             (wave_lims[0] != out.wave_init)
             or (wave_lims[1] != out.wave_last)
             or (dwave != self.dwave)
         ):
-            out = self.resample_spectra(wave_lims=wave_lims, dwave=dwave)
+            pass
+        #    out = self.resample_spectra(wave_lims=wave_lims, dwave=dwave)
 
         # Redshift spectra if necessary
+        # to be done with specutils
         if redshift != out.redshift:
-            out = out.redshift_spectra(redshift=redshift)
+            pass
+        #    out = out.redshift_spectra(redshift=redshift)
 
         # Convolving spectra is necessary
         if lsf is not None:
-            out = out.convolve_spectra(lsf_wave=lsf_wave, lsf=lsf, mode="FWHM")
+            out = out.convolve(lsf_wave=lsf_wave, lsf=lsf, mode="FWHM")
 
         # Log-rebinning spectra if necessary
+        # is this really needed?
         if sampling == "ln":
             out = out.logrebin_spectra()
 
@@ -680,15 +439,21 @@ class spectra:
         logger.info("Computing absolute magnitudes...")
 
         outmags = Magnitude((f.name, np.full(self.nspec, np.nan)) for f in filters)
-        for i in range(self.nspec):
-            mags = compute_mags(self.wave, self.spec[:, i], filters, zeropoint)
-            for f in filters:
-                outmags[f.name][i] = mags[f.name]
+        if self.nspec > 1:
+            for i in range(self.nspec):
+                mags = compute_mags(
+                    self.spectral_axis, self.flux[i, :], filters, zeropoint
+                )
+                for f in filters:
+                    outmags[f.name][i] = mags[f.name]
+        else:
+            outmags = compute_mags(self.spectral_axis, self.flux, filters, zeropoint)
 
         return outmags
 
     # -----------------------------------------------------------------------------
     def compute_ls_indices(self) -> LineStrengthIndeces:
+        # Possibly done by specutils as well
         """
         Returns the LS indices of the input spectra given a list of index definitions
 
@@ -706,8 +471,8 @@ class spectra:
 
         # Getting the dimensions
         names, indices, dummy = lsindex(
-            self.wave,
-            self.spec[:, 0],
+            self.spectral_axis,
+            self.flux,
             0.0,
             self.redshift,
             0.0,
@@ -721,9 +486,9 @@ class spectra:
 
         for i in range(self.nspec):
             names, indices[:, i], dummy = lsindex(
-                self.wave,
-                self.spec[:, i],
-                self.spec[:, i] * 0.1,
+                self.spectral_axis,
+                self.flux,
+                self.flux * 0.1,
                 self.redshift,
                 0.0,
                 self.lsfile,
@@ -734,93 +499,102 @@ class spectra:
 
         return outls
 
-    # -----------------------------------------------------------------------------
-    def save_object(self, filename):
-        """
-        Saves the contents of class instance into a HDF5 file
-
-        Parameters
-        ----------
-        filename:
-            Output filename (with full path)
-
-        Returns
-        -------
-        None
-
-        """
-
-        logger.info("# Saving object to " + filename)
-
-        # Converting object to dictionary
-        obj = self.__dict__
-
-        # Saving contents in HDF5 file
-        if os.path.exists(filename):
-            os.remove(filename)
-
-        f = h5py.File(filename, "w")
-        # ------------------------------
-        for key, value in obj.items():
-            value = np.array(value)
-            logger.debug(" - " + key)
-            if value.dtype.str[1] == "O":
-                continue
-            if np.ndim(obj[key]) == 1:
-                if value.dtype.str[1] == "U":
-                    value = str(value).encode("ascii", "ignore")
-                f.create_dataset(key, data=value)
-            elif np.ndim(obj[key]) > 1:
-                if value.dtype.str[1] == "U":
-                    value = [n.encode("ascii", "ignore") for n in value]
-                f.create_dataset(key, data=value, compression="gzip")
-        f.close()
-
-        return
-
-    # -----------------------------------------------------------------------------
     @staticmethod
-    def vacuum2air(wave_vac):
+    def _gaussian_filter1d(spec, sig):
         """
-        Converts wavelength from vacuum to air
+        Convolve a spectrum by a Gaussian with different sigma for every pixel.
+        If all sigma are the same this routine produces the same output as
+        scipy.ndimage.gaussian_filter1d, except for the border treatment.
+        Here the first/last p pixels are filled with zeros.
+        When creating a template library for SDSS data, this implementation
+        is 60x faster than a naive for loop over pixels.
+
+        :param spec: vector with the spectrum to convolve
+        :param sig: vector of sigma values (in pixels) for every pixel
+        :return: spec convolved with a Gaussian with dispersion sig
+
+        """
+        sig = sig.clip(0.01)  # forces zero sigmas to have 0.01 pixels
+        p = int(np.ceil(np.max(3 * sig)))
+        m = 2 * p + 1  # kernel size
+        x2 = np.linspace(-p, p, m) ** 2
+
+        n = spec.size
+        a = np.zeros((m, n))
+        for j in range(m):  # Loop over the small size of the kernel
+            a[j, p:-p] = spec[j : n - m + j + 1]
+
+        gau = np.exp(-x2[:, None] / (2 * sig**2))
+        gau /= np.sum(gau, 0)[None, :]  # Normalize kernel
+
+        conv_spectrum = np.sum(a * gau, 0)
+
+        return conv_spectrum
+
+    def mass_to_light(
+        self, filters: list[Filter], mass_in: typing.Union[str, list[str]] = "star+remn"
+    ) -> dict:
+        """
+        Computes the mass-to-light ratios of models in the desired filters
 
         Parameters
         ----------
-        None
+        filters: list[Filter]
+            Filters as provided by the method 'get_filters"
+        mass_in: str | list[str]
+            What mass to take into account for the ML. It can be given as a list,
+            so that it returns a dictionary for each type.
+            Valid values are: total, star, remn, star+remn, gas
 
         Returns
         -------
-        array
-            Vector with wavelength in air system
+        dict
+            Dictionary with mass-to-light ratios for each SSP model and filter.
+            If mass_in is a list, the first key is the type of ML.
 
         """
+        logger.info("Computing mass-to-light ratios")
 
-        wave_air = wave_vac / (
-            1.0 + 2.735182e-4 + 131.4182 / wave_vac**2 + 2.76249e8 / wave_vac**4
-        )
+        if type(mass_in) is str:
+            mass_in = [mass_in]
 
-        return wave_air
+        #  We need to choose a system. For M/Ls this is irrelevant
+        zeropoint = "AB"
+        mags = self.magnitudes(filters=filters, zeropoint=zeropoint)
+        msun = sun_magnitude(filters=filters, zeropoint=zeropoint)
 
-    # -----------------------------------------------------------------------------
-    def load_solar_spectrum(self):
-        """
-        Loads the references solar spectrum
+        outmls = {}
+        logger.debug(f"{self.meta.keys()}")
+        for m in mass_in:
+            if m == "total":
+                mass = self.meta["Mass_total"]
+            elif m == "remn":
+                mass = self.meta["Mass_remn"]
+            elif m == "star":
+                mass = self.meta["Mass_star"]
+            elif m == "star+remn":
+                mass = self.meta["Mass_star_remn"]
+            elif m == "gas":
+                mass = self.meta["Mass_gas"]
+            else:
+                raise ValueError(
+                    "Mass type not allowed. "
+                    "Valid options are total, star, remn, star+remn, gas"
+                )
 
-        Parameters
-        ----------
-        None
+            outmls[m] = self._single_type_mass_to_light(filters, mass, mags, msun)
 
-        Returns
-        -------
-        array
-            Vector with wavelength in air system and flux
+        # If only a single mass is requested we omit the information in the
+        # returned dictionary
+        if len(mass_in) == 1:
+            return outmls[mass_in[0]]
+        else:
+            return outmls
 
-        """
-
-        hdu = fits.open(self.solar_ref_spec)
-        tab = hdu[1].data
-
-        wave_air = self.vacuum2air(tab["WAVELENGTH"])
-        flux = tab["FLUX"]
-
-        return wave_air, flux
+    def _single_type_mass_to_light(self, filters: list[Filter], mass, mags, msun):
+        outmls = {}
+        for f in filters:
+            outmls[f.name] = (mass / 1.0) * 10 ** (
+                -0.40 * (msun[f.name] - mags[f.name])
+            )
+        return outmls

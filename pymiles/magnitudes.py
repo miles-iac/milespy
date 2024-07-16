@@ -3,8 +3,10 @@ import logging
 import sys
 
 import numpy as np
+from astropy import units as u
 from astropy.io import ascii
 from astropy.io import fits
+from astropy.units import Quantity
 from scipy.interpolate import interp1d
 
 from pymiles import get_config_file
@@ -39,31 +41,28 @@ class Magnitude(dict):
 def _load_zerofile(zeropoint):
     file = get_config_file("vega.sed")
     data = ascii.read(file, comment=r"\s*#")
-    npt = len(data["col1"])
 
-    zerosed = np.recarray((npt,), dtype=[("wave", float), ("flux", float)])
-    zerosed.wave = data["col1"]
-    zerosed.flux = data["col2"]
+    sed = {"wave": np.array(data["col1"]), "flux": np.array(data["col2"])}
 
     # If AB mags only need wavelength vector
     if zeropoint == "AB":
-        zerosed.flux = 1.0 / np.power(zerosed.wave, 2)
-        return zerosed
-
+        sed["flux"] = 1.0 / np.power(sed["wave"], 2)
     elif zeropoint == "VEGA":
         # Normalizing the SED@ 5556.0\AA
         zp5556 = 3.44e-9  # erg cm^-2 s^-1 A^-1, Hayes 1985
-        interp = interp1d(zerosed.wave, zerosed.flux)
-        zerosed.flux *= zp5556 / interp(5556.0)
+        interp = interp1d(sed["wave"], sed["flux"])
+        sed["flux"] *= zp5556 / interp(5556.0)
 
-    return zerosed
+    return sed
 
 
 # Pre-load the sed for the different zero points
 zerosed = {"AB": _load_zerofile("AB"), "VEGA": _load_zerofile("VEGA")}
 
 
-def compute_mags(wave, flux, filters: [Filter], zeropoint, sun=False) -> Magnitude:
+def compute_mags(
+    wave: Quantity, flux: Quantity, filters: [Filter], zeropoint, sun=False
+) -> Magnitude:
     """
     Compute the magnitudes given a spectra and a set of fluxes
 
@@ -88,6 +87,9 @@ def compute_mags(wave, flux, filters: [Filter], zeropoint, sun=False) -> Magnitu
     -------
     Magnitude
     """
+    # TODO: take into account the units
+    flux = flux.to_value()
+    wave = wave.to_value()
     # Defining some variables
     cvel = 2.99792458e18  # Speed of light in Angstron/sec
     dl = 1e-5  # 10 pc in Mpc, z=0; for absolute magnitudes
@@ -98,7 +100,6 @@ def compute_mags(wave, flux, filters: [Filter], zeropoint, sun=False) -> Magnitu
 
     # Default is nan to mark an invalid range/filter
     outmag = Magnitude((f.name, np.nan) for f in filters)
-    interp_zp = interp1d(zerosed[zeropoint].wave, zerosed[zeropoint].flux)
 
     # Computing the magnitude for each filter
     for filt in filters:
@@ -149,7 +150,9 @@ def compute_mags(wave, flux, filters: [Filter], zeropoint, sun=False) -> Magnitu
         response = interp(tmp_wave)
 
         # Calculating the magnitude in the desired system
-        vega = interp_zp(tmp_wave)
+        vega = np.interp(
+            tmp_wave, zerosed[zeropoint]["wave"], zerosed[zeropoint]["flux"]
+        )
         f = np.trapz(tmp_flux * response, x=tmp_wave)
         vega_f = np.trapz(vega * response, x=tmp_wave)
         mag = -2.5 * np.log10(f / vega_f)
@@ -203,8 +206,8 @@ def _load_solar_spectrum():
     hdu = fits.open(solar_ref_spec)
     tab = hdu[1].data
 
-    wave_air = vacuum2air(tab["WAVELENGTH"])
-    flux = tab["FLUX"]
+    wave_air = Quantity(vacuum2air(tab["WAVELENGTH"]), unit=u.AA)
+    flux = Quantity(tab["FLUX"], unit=u.erg / (u.cm**2 * u.s * u.AA))
 
     return wave_air, flux
 

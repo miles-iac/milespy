@@ -1,26 +1,22 @@
 # -*- coding: utf-8 -*-
 import logging
-import sys
-import typing
 import warnings
-from copy import copy
-from itertools import compress
 
 import h5py
 import numpy as np
+from astropy import units as u
+from astropy.units import Quantity
 from scipy.spatial import Delaunay
 from typing_extensions import Self
 
 import pymiles.misc as misc
-from pymiles.filter import Filter
-from pymiles.magnitudes import sun_magnitude
 from pymiles.repository import repository
 from pymiles.spectra import spectra
 
 logger = logging.getLogger("pymiles.ssp")
 
 
-class ssp_models(spectra, repository):
+class ssp_models(repository):
     warnings.filterwarnings("ignore")
 
     # -----------------------------------------------------------------------------
@@ -30,7 +26,6 @@ class ssp_models(spectra, repository):
         version="9.1",
         isochrone="P",
         imf_type="ch",
-        show_tree=False,
     ):
         """
         Creates an instance of the class
@@ -47,8 +42,6 @@ class ssp_models(spectra, repository):
                    and BaSTI isochrones respectively (Default: T)
         imf_type:
             Type of IMF shape. Valid inputs are ch/ku/kb/un/bi (Default: ch)
-        show_tree:
-            Bool that shows the variables available with the instance
 
         Notes
         -----
@@ -68,13 +61,14 @@ class ssp_models(spectra, repository):
         # Opening the relevant file in the repository and selecting the desired
         # models at init
         f = h5py.File(repo_filename, "r")
-        nspec = len(f["age"])
+        total_nspec = len(f["age"])
 
         idx = np.logical_and(
             np.equal(f["imf_type"][...], imf_type.encode()),
             np.equal(f["isochrone"][...], isochrone.encode()),
         )
-        if np.sum(idx) == 0:
+        self.nspec = np.sum(idx)
+        if self.nspec == 0:
             logger.error("No cases found with those specs. Returning NoneType object")
             return
 
@@ -85,108 +79,47 @@ class ssp_models(spectra, repository):
         avail_imfs = np.unique(f["imf_slope"][idx])
         self.avail_imfs = avail_imfs[~np.isnan(avail_imfs)]
 
-        logger.debug(str(np.sum(idx)) + "/" + str(nspec) + " cases found")
+        logger.debug(f"{self.nspec} / {total_nspec} cases found")
         logger.debug(f"Fixed_alpha: {self.fixed_alpha}")
 
         if self.fixed_alpha:
             logger.debug(f"Available alphas: {self.avail_alphas}")
 
-        # If requested, list instance attributes
-        if show_tree:
-            logger.info("Showing instance attributes...")
-            for item in list(f.keys()):
-                logger.info(" - ", item)
-            sys.exit
+        wave = np.array(f["wave"])
+        spec = np.array(f["spec/" + isochrone + "/" + imf_type + "/data"])[...]
 
-        # Extracting relevant info
-        # ------------------------------
-        for key, val in f.items():
-            if (
-                (key != "spec")
-                and (key != "wave")
-                and (key != "isochrone")
-                and (key != "imf_type")
-                and (key != "alpha")
-                and (key != "filename")
-            ):
-                setattr(self, key, np.array(val)[idx])
-
-        self.wave = np.array(f["wave"])
-        self.spec = np.array(f["spec/" + isochrone + "/" + imf_type + "/data"])
-
-        for key, val in vars(self).items():
-            if (key != "spec") and (key != "wave"):
-                setattr(self, key, np.array(val))
-
-        self.spec = self.spec[:]
-        self.nspec = self.spec.shape[1]
-        self.index = np.arange(self.nspec)
         self.source = source
         self.version = version
 
         fullpath = np.array(np.array(f["filename"][idx]), dtype="str")[0]
-        self.route = "/".join(fullpath.split("/")[:-1]) + "/"
-        self.filename = []
+        filename = []
         for fullpath in np.array(np.array(f["filename"][idx]), dtype="str"):
-            self.filename.append((fullpath.split("/"))[-1].split(".fits")[0])
+            filename.append((fullpath.split("/"))[-1].split(".fits")[0])
 
-        self.isochrone = np.array(np.array(f["isochrone"][idx]), dtype="str")
-        self.imf_type = np.array(np.array(f["imf_type"][idx]), dtype="str")
-        self.alpha = np.array(f["alpha"][idx])
-        # ------------------------------
+        meta = {
+            "index": np.arange(self.nspec),
+            "isochrone": np.array(np.array(f["isochrone"][idx]), dtype="str"),
+            "imf_type": np.array(np.array(f["imf_type"][idx]), dtype="str"),
+            "alpha": np.array(f["alpha"][idx]),
+            "filename": np.array(filename),
+        }
+        # Standard set of keys available in the repository that are taken
+        # care of manually
+        base_keys = ["spec", "wave", "isochrone", "imf_type", "alpha", "filename"]
+        # Other information in the repository, store them as arrays
+        for k in f.keys():
+            if k not in base_keys:
+                meta[k] = np.array(f[k])[idx]
+
         f.close()
 
-        self.main_keys = list(self.__dict__.keys())
-
-        # Inheriting the spectra class
-        spectra.__init__(self, source=self.source, wave=self.wave, spec=self.spec)
-        #        sfh.__init__(self)
-
-        #        super().__init__(source=self.source,wave=self.wave,spec=self.spec)
+        self.models = spectra(
+            spectral_axis=Quantity(wave, unit=u.AA),
+            flux=Quantity(spec.T, unit=None),
+            meta=meta,
+        )
 
         logger.info(source + " models loaded")
-
-    # -----------------------------------------------------------------------------
-
-    def set_item(self, idx):
-        """
-        Creates a copy of input instance and slices the arrays for input indices
-
-        Parameters
-        ----------
-        idx:
-            integer or boolean array indicating the elements to be extracted
-
-        Returns
-        -------
-        ssp_models
-            Object instance for selected items
-        """
-
-        nspec_in = self.nspec
-        if len(idx) == nspec_in:
-            # Mask array
-            nspec_out = np.sum(idx)
-        else:
-            # Array of indices
-            nspec_out = len(idx)
-        out = copy(self)
-        keys = list(out.main_keys)
-        out.wave = np.array(self.wave)
-        out.spec = np.array(self.spec[:, idx], ndmin=2)
-        out.nspec = nspec_out
-        out.filename = list(compress(self.filename, idx))
-
-        for i in range(len(keys)):
-            if (keys[i] == "wave") or (keys[i] == "spec") or (keys[i] == "nspec"):
-                continue
-            val = np.array(getattr(out, keys[i]))
-            if np.ndim(val) == 0:
-                continue
-            if val.shape[0] == nspec_in:
-                setattr(out, keys[i], val[idx])
-
-        return out
 
     def in_range(
         self,
@@ -220,23 +153,23 @@ class ssp_models(spectra, repository):
 
         if self.fixed_alpha or alpha_lims is None:
             idx = (
-                (self.age >= age_lims[0])
-                & (self.age <= age_lims[1])
-                & (self.met >= met_lims[0])
-                & (self.met <= met_lims[1])
-                & (self.imf_slope >= imf_slope_lims[0])
-                & (self.imf_slope <= imf_slope_lims[1])
+                (self.models.meta["age"] >= age_lims[0])
+                & (self.models.meta["age"] <= age_lims[1])
+                & (self.models.meta["met"] >= met_lims[0])
+                & (self.models.meta["met"] <= met_lims[1])
+                & (self.models.meta["imf_slope"] >= imf_slope_lims[0])
+                & (self.models.meta["imf_slope"] <= imf_slope_lims[1])
             )
         else:
             idx = (
-                (self.age >= age_lims[0])
-                & (self.age <= age_lims[1])
-                & (self.met >= met_lims[0])
-                & (self.met <= met_lims[1])
-                & (self.alpha >= alpha_lims[0])
-                & (self.alpha <= alpha_lims[1])
-                & (self.imf_slope >= imf_slope_lims[0])
-                & (self.imf_slope <= imf_slope_lims[1])
+                (self.models.meta["age"] >= age_lims[0])
+                & (self.models.meta["age"] <= age_lims[1])
+                & (self.models.meta["met"] >= met_lims[0])
+                & (self.models.meta["met"] <= met_lims[1])
+                & (self.models.meta["alpha"] >= alpha_lims[0])
+                & (self.models.meta["alpha"] <= alpha_lims[1])
+                & (self.models.meta["imf_slope"] >= imf_slope_lims[0])
+                & (self.models.meta["imf_slope"] <= imf_slope_lims[1])
             )
 
         ncases = np.sum(idx)
@@ -246,7 +179,7 @@ class ssp_models(spectra, repository):
             logger.warning("No matching SSPs: returning NoneType object")
             return
 
-        out = self.set_item(idx)
+        out = spectra.__getitem__(self.models, idx)
 
         return out
 
@@ -289,9 +222,9 @@ class ssp_models(spectra, repository):
                 + "Source: "
                 + self.source
                 + "Isochrone: "
-                + self.isochrone[0]
+                + self.models.meta["isochrone"][0]
                 + "IMF: "
-                + self.imf_type[0]
+                + self.models.meta["imf_type"][0]
             )
 
         # Treating the input list
@@ -315,20 +248,20 @@ class ssp_models(spectra, repository):
         for i in range(ncases):
             if self.fixed_alpha or alpha_list is None:
                 idx = (
-                    (np.array(self.age) == age[i])
-                    & (np.array(self.met) == met[i])
-                    & (np.array(self.imf_slope) == imf_slope[i])
+                    (np.array(self.models.meta["age"]) == age[i])
+                    & (np.array(self.models.meta["met"]) == met[i])
+                    & (np.array(self.models.meta["imf_slope"]) == imf_slope[i])
                 )
             else:
                 idx = (
-                    (np.array(self.age) == age[i])
-                    & (np.array(self.met) == met[i])
-                    & (np.array(self.alpha) == alpha[i])
-                    & (np.array(self.imf_slope) == imf_slope[i])
+                    (np.array(self.models.meta["age"]) == age[i])
+                    & (np.array(self.models.meta["met"]) == met[i])
+                    & (np.array(self.models.meta["alpha"]) == alpha[i])
+                    & (np.array(self.models.meta["imf_slope"]) == imf_slope[i])
                 )
 
             if np.any(idx):
-                id = np.append(id, self.index[idx])
+                id = np.append(id, self.models.meta["index"][idx])
 
         good = np.array(id, dtype=int)
         ngood = len(good)
@@ -338,9 +271,9 @@ class ssp_models(spectra, repository):
             if ngood == 0:
                 raise ValueError(
                     "Check those values exist for isochrone: "
-                    + self.isochrone[0]
+                    + self.models.meta["isochrone"][0]
                     + " and IMF_Type: "
-                    + self.imf_type[0]
+                    + self.models.meta["imf_type"][0]
                     + ". Please check this agrees with init instance."
                 )
             else:
@@ -348,7 +281,7 @@ class ssp_models(spectra, repository):
                     f"Asked for {ncases} SSPs, but found only {ngood} matching ones"
                 )
 
-        out = self.set_item(good)
+        out = spectra.__getitem__(self.models, good)
 
         return out
 
@@ -393,10 +326,14 @@ class ssp_models(spectra, repository):
         It raises a RuntimeError if the values are out of the grid.
         """
         # Checking input point is within the grid
-        in_age_lim = (age >= np.amin(self.age)) & (age <= np.amax(self.age))
-        in_met_lim = (met >= np.amin(self.met)) & (met <= np.amax(self.met))
-        in_imf_lim = (imf_slope >= np.amin(self.imf_slope)) & (
-            imf_slope <= np.amax(self.imf_slope)
+        in_age_lim = (age >= np.amin(self.models.meta["age"])) & (
+            age <= np.amax(self.models.meta["age"])
+        )
+        in_met_lim = (met >= np.amin(self.models.meta["met"])) & (
+            met <= np.amax(self.models.meta["met"])
+        )
+        in_imf_lim = (imf_slope >= np.amin(self.models.meta["imf_slope"])) & (
+            imf_slope <= np.amax(self.models.meta["imf_slope"])
         )
 
         good = in_age_lim & in_met_lim & in_imf_lim
@@ -422,9 +359,9 @@ class ssp_models(spectra, repository):
             if imf_slope is None:
                 imf_slope = self.avail_imfs[0]
 
-            imf_mask = np.equal(self.imf_slope, imf_slope)
+            imf_mask = np.equal(self.models.meta["imf_slope"], imf_slope)
         else:
-            imf_mask = np.full(self.imf_slope.shape, True)
+            imf_mask = np.full(self.models.meta["imf_slope"].shape, True)
             ndims += 1
 
         logger.debug(f"Fixed imf during the interpolation? {interp_fix_imf_slope}")
@@ -439,15 +376,15 @@ class ssp_models(spectra, repository):
         interp_fix_alpha &= not ("alpha" in force_interp)
         if interp_fix_alpha:
             if alpha is None:
-                alpha_mask = np.isnan(self.alpha)
+                alpha_mask = np.isnan(self.models.meta["alpha"])
             elif alpha in self.avail_alphas:
-                alpha_mask = np.equal(self.alpha, alpha)
+                alpha_mask = np.equal(self.models.meta["alpha"], alpha)
             else:
                 # There is a single alpha in all the repository, so no need to mask
-                alpha_mask = np.full(self.alpha.shape, True)
+                alpha_mask = np.full(self.models.meta["alpha"].shape, True)
         else:
             # Remove the base alpha (i.e., nans) from the interpolation
-            alpha_mask = ~np.isnan(self.alpha)
+            alpha_mask = ~np.isnan(self.models.meta["alpha"])
             ndims += 1
 
         logger.debug(f"Fixed alpha during the interpolation? {interp_fix_alpha}")
@@ -459,15 +396,15 @@ class ssp_models(spectra, repository):
         logger.debug(f"Creating {ndims}-D Delaunay triangulation")
 
         self.params = np.empty((n_avail, ndims))
-        self.params[:, 0] = self.age[idx]
-        self.params[:, 1] = self.met[idx]
+        self.params[:, 0] = self.models.meta["age"][idx]
+        self.params[:, 1] = self.models.meta["met"][idx]
 
         if not interp_fix_imf_slope:
-            self.params[:, 2 + extra_dim] = self.imf_slope[idx]
+            self.params[:, 2 + extra_dim] = self.models.meta["imf_slope"][idx]
             extra_dim += 1
 
         if not interp_fix_alpha:
-            self.params[:, 2 + extra_dim] = self.alpha[idx]
+            self.params[:, 2 + extra_dim] = self.models.meta["alpha"][idx]
 
         self.tri = Delaunay(self.params, qhull_options="QJ")
 
@@ -485,9 +422,13 @@ class ssp_models(spectra, repository):
             self.params, np.array(input_pt, ndmin=2), self.tri
         )
         vtx, wts = vtx.ravel(), wts.ravel()
-        logger.debug(f"Simplex formed by the ids: {self.index[idx][vtx]}")
-        logger.debug(f"Age of simplex vertices: {self.age[idx][vtx]}")
-        logger.debug(f"Metallicity of simplex vertices: {self.met[idx][vtx]}")
+        logger.debug(
+            f"Simplex formed by the ids: {self.models.meta['index'][idx][vtx]}"
+        )
+        logger.debug(f"Age of simplex vertices: {self.models.meta['age'][idx][vtx]}")
+        logger.debug(
+            f"Metallicity of simplex vertices: {self.models.meta['met'][idx][vtx]}"
+        )
         logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
 
         # Save which spectra has been used for building the tesselation
@@ -495,187 +436,29 @@ class ssp_models(spectra, repository):
 
         if closest:
             logger.info("Getting closest spectra")
-            out = self.set_item(self.index[idx][vtx])
+            out = spectra.__getitem__(self.models, self.models.meta["index"][idx][vtx])
             return out
         else:
             logger.info("Interpolating spectra")
-            wave = self.wave
-            spec = np.dot(self.spec[:, idx][:, vtx], wts)
-            # Saving all the new info into an object
-            out = self._create_new_object(
-                age, met, alpha, imf_slope, wave, spec, self.index[idx][vtx], wts
-            )
+            wave = self.models.spectral_axis
+            spec = np.dot(self.models.flux[idx, :][vtx].T, wts)
+            new_meta = {
+                "imf_type": np.array([self.models.meta["imf_type"]]),
+                "imf_slope": np.array([imf_slope]),
+                "met": np.array([met]),
+                "age": np.array([age]),
+                "alpha": np.array([alpha]),
+            }
+
+            # Interpolate the rest of the meta if possible
+            for k in self.models.meta.keys():
+                if k not in new_meta.keys():
+                    if len(self.models.meta[k]) > 1:
+                        # Skip the interpolation of string data, e.g., filenames
+                        if "U" not in self.models.meta[k].dtype.kind:
+                            new_meta[k] = np.dot(self.models.meta[k][idx][vtx], wts)
+
+            # Copying basic info
+            out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)
+
             return out
-
-    def mass_to_light(
-        self, filters: list[Filter], mass_in: typing.Union[str, list[str]] = "star+remn"
-    ) -> dict:
-        """
-        Computes the mass-to-light ratios of models in the desired filters
-
-        Parameters
-        ----------
-        filters: list[Filter]
-            Filters as provided by the method 'get_filters"
-        mass_in: str | list[str]
-            What mass to take into account for the ML. It can be given as a list,
-            so that it returns a dictionary for each type.
-            Valid values are: total, star, remn, star+remn, gas
-
-        Returns
-        -------
-        dict
-            Dictionary with mass-to-light ratios for each SSP model and filter.
-            If mass_in is a list, the first key is the type of ML.
-
-        """
-        logger.info("Computing mass-to-light ratios")
-
-        if type(mass_in) is str:
-            mass_in = [mass_in]
-
-        #  We need to choose a system. For M/Ls this is irrelevant
-        zeropoint = "AB"
-        mags = self.magnitudes(filters=filters, zeropoint=zeropoint)
-        msun = sun_magnitude(filters=filters, zeropoint=zeropoint)
-
-        outmls = {}
-        for m in mass_in:
-            if m == "total":
-                mass = self.Mass_total
-            elif m == "remn":
-                mass = self.Mass_remn
-            elif m == "star":
-                mass = self.Mass_star
-            elif m == "star+remn":
-                mass = self.Mass_star_remn
-            elif m == "gas":
-                mass = self.Mass_gas
-            else:
-                raise ValueError(
-                    "Mass type not allowed. "
-                    "Valid options are total, star, remn, star+remn, gas"
-                )
-
-            outmls[m] = self._single_type_mass_to_light(filters, mass, mags, msun)
-
-        # If only a single mass is requested we omit the information in the
-        # returned dictionary
-        if len(mass_in) == 1:
-            return outmls[mass_in[0]]
-        else:
-            return outmls
-
-    def _single_type_mass_to_light(self, filters: list[Filter], mass, mags, msun):
-        outmls = {}
-        for f in filters:
-            outmls[f.name] = (mass / 1.0) * 10 ** (
-                -0.40 * (msun[f.name] - mags[f.name])
-            )
-        return outmls
-
-    def _create_new_object(
-        self, age, met, alpha, imf_slope, wave, spec, indices, weights
-    ):
-        """
-        Creates a new object using the info from the self.by_params method
-
-        Parameters
-        ----------
-        age:
-            Interpolated age
-        met:
-            Interpolated metallicity
-        alpha:
-            Interpolates alpha
-        imf_slope:
-            Interpolated imf slope
-        wave:
-            Input wavelength
-        spec:
-            Interpolated spectrum
-        indices:
-            Elements of the original object to do the interpolation
-        weights:
-            Weights for each of the elements
-
-        Returns
-        -------
-        dict
-            Dictionary with mass-to-light ratios for each SSP model and filter
-
-        """
-
-        # Copying basic info
-        out = copy(self)
-        nspec_in = self.nspec
-        out.wave = wave
-        out.spec = np.array(spec, ndmin=2).T
-        out.imf_type = [self.imf_type[0]]
-        out.imf_slope = [imf_slope]
-        out.met = [met]
-        out.age = [age]
-        out.alpha = [alpha]
-        out.nspec = 1
-        out.isochrone = [self.isochrone[0]]
-        out.imf_type = [self.imf_type[0]]
-        out.imf_slope = [imf_slope]
-        out.index = np.nan
-        # Creating filenames
-        # Filename's string with the source and IMF
-        filename_imf = out.source[0] + out.imf_type[0] + "%.2f" % out.imf_slope[0]
-
-        # Filename's string with the metallicity
-        if met < 0:
-            met_sign = "m"
-            abs_met = abs(met)
-        if met >= 0:
-            met_sign = "p"
-            abs_met = met
-        filename_met = "Z" + met_sign + "%.2f" % abs_met
-
-        # Filename's string with the age
-        if age < 10.0:
-            filename_age = "T0%.4f" % age
-        if age >= 10.0:
-            filename_age = "T%.4f" % age
-
-        # Filename's string with the isochrone and alpha enhancement
-        filename_iso = "_i" + out.isochrone[0] + "p0.00_baseFe"
-        #       filename_iso = '_i'+out.isochrone[0]+'p0.00_'+alpha
-
-        # Joining all filename string parts
-        out.filename = [
-            filename_imf + filename_met + filename_age + filename_iso
-        ]  # + linear? + FWHM? se ponen en la web de miles
-        ###
-
-        # Interpolating other parameters
-        # NOTE: The problem with this is that we are hard-coding a few attributes
-        #       but it is probably not too bad. We hard code only minimum necessary
-        keys = list(out.main_keys)
-        for i in range(len(out.main_keys)):
-            if (
-                (keys[i] == "wave")
-                or (keys[i] == "spec")
-                or (keys[i] == "nspec")
-                or (keys[i] == "age")
-                or (keys[i] == "met")
-                or (keys[i] == "alpha")
-                or (keys[i] == "imf_slope")
-                or (keys[i] == "filename")
-                or (keys[i] == "<")
-                or (keys[i] == "imf_type")
-                or (keys[i] == "index")
-            ):
-                continue
-            val = np.array(getattr(out, keys[i]))
-
-            if np.ndim(val) == 0:
-                continue
-            if val.shape[0] == nspec_in:
-                setattr(out, keys[i], np.dot(val[indices], weights))
-
-        # Instaitiating the spectra class
-        #     super().__init__(source=out.source,wave=out.wave,spec=out.spec)
-        return out
