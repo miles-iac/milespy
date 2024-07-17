@@ -7,7 +7,6 @@ import numpy as np
 from astropy import units as u
 from astropy.units import Quantity
 from scipy.spatial import Delaunay
-from typing_extensions import Self
 
 import pymiles.misc as misc
 from pymiles.repository import repository
@@ -17,6 +16,21 @@ logger = logging.getLogger("pymiles.ssp")
 
 
 class ssp_models(repository):
+    """
+    Single stellar population (SSP) model library.
+
+    This class is used to generate SSP spectra from the repository files.
+
+    Attributes
+    ----------
+    models: spectra
+        Spectra of all the SSP that form the loaded library
+    avail_alphas: list
+        Available alpha/Fe values in the loaded library
+    avail_imfs: list
+        Available initial mass function (IMF) slopes in the loaded library
+    """
+
     warnings.filterwarnings("ignore")
 
     # -----------------------------------------------------------------------------
@@ -32,16 +46,16 @@ class ssp_models(repository):
 
         Parameters
         ----------
-        source:
+        source: str, default: "MILES_SSP"
             Name of input models to use. Valid inputs are
-                   MILES_SSP/CaT_SSP/EMILES_SSP
-        version:
+            MILES_SSP/CaT_SSP/EMILES_SSP
+        version: str, default: "9.1"
             version number of the models
-        isochrone:
+        isochrone: str, default: "P"
             Type of isochrone to use. Valid inputs are P/T for Padova+00
-                   and BaSTI isochrones respectively (Default: T)
-        imf_type:
-            Type of IMF shape. Valid inputs are ch/ku/kb/un/bi (Default: ch)
+            and BaSTI isochrones respectively
+        imf_type: str, default: "ch"
+            Type of IMF shape. Valid inputs are ch/ku/kb/un/bi
 
         Notes
         -----
@@ -52,7 +66,6 @@ class ssp_models(repository):
         Returns
         -------
         ssp_models
-            Object instance
 
         """
         repo_filename = self._get_repository(source, version)
@@ -69,8 +82,7 @@ class ssp_models(repository):
         )
         self.nspec = np.sum(idx)
         if self.nspec == 0:
-            logger.error("No cases found with those specs. Returning NoneType object")
-            return
+            raise ValueError("No cases found with those specs.")
 
         avail_alphas = np.unique(f["alpha"][idx])
         self.fixed_alpha = len(avail_alphas) == 1
@@ -127,9 +139,9 @@ class ssp_models(repository):
         met_lims=[-5.0, 1.0],
         alpha_lims=None,
         imf_slope_lims=[0.0, 5.0],
-    ) -> Self | None:
+    ) -> spectra | None:
         """
-        Extracts SSP models within selected limits
+        Extracts all SSP models within selected limits
 
         Parameters
         ----------
@@ -142,10 +154,15 @@ class ssp_models(repository):
         imf_slope_lims:
             tuple with IMF slope limits
 
+        Raises
+        ------
+        ValueError
+            If there is no matching SSP.
+
         Returns
         -------
-        ssp_models
-            Object instance for items in selected ranges
+        spectra
+            Spectra in the selected ranges
 
         """
 
@@ -176,8 +193,7 @@ class ssp_models(repository):
         logger.debug(f"{ncases} cases found")
 
         if ncases == 0:
-            logger.warning("No matching SSPs: returning NoneType object")
-            return
+            raise ValueError("No matching SSPs")
 
         out = spectra.__getitem__(self.models, idx)
 
@@ -189,31 +205,40 @@ class ssp_models(repository):
         met_list=None,
         alpha_list=None,
         imf_slope_list=None,
-    ) -> Self:
+    ) -> spectra:
         """
-        Extracts a selected set of models from init instance.
+        Extracts a selected set of models avaiable from the library.
 
         Parameters
         ----------
-        age_list (length N):
+        age_list :
             list of ages to extract
-        met_list (length N):
+        met_list :
             list of metallicities to extract
-        alpha_list (length N):
+        alpha_list :
             list of alphas to extract
-        imf_slope_list (length N):
+        imf_slope_list :
             list of IMF slopes to extract
 
         Notes
         -----
         All lists must have the same length.
-        Numbers in the list have to be valid ages, mets, alpha, and imf_slopes
-        for the input isochrone and imf_type
+        This function does not perform any interpolation.
+        Values in the inputs have to be valid ages, mets, alpha, and imf_slopes
+        for the input isochrone and imf_type.
+
+        Raises
+        ------
+        ValueError
+            If inputs do not have the same shape or there is no resulting SSP.
+
+        Warns
+        -----
+        If the number of output spectra is different that the input values.
 
         Returns
         -------
-        ssp_models
-            Object instance with selected list items
+        spectra
 
         """
         if alpha_list is not None and self.fixed_alpha:
@@ -293,9 +318,9 @@ class ssp_models(repository):
         imf_slope=None,
         closest=False,
         force_interp=[],
-    ) -> Self:
+    ) -> spectra:
         """
-        Interpolates SSP models for certain params using Delaunay triangulation
+        Interpolates SSP models for certain parameters using Delaunay triangulation
 
         Parameters
         ----------
@@ -316,14 +341,15 @@ class ssp_models(repository):
 
         Returns
         -------
-        ssp_models
-            Wavelength and interpolated spectrum.
+        spectra
+            Interpolated spectrum.
             If closest == True, return the closest spectra from the repository,
             rather than doing the interpolation.
 
-        Note
-        ----
-        It raises a RuntimeError if the values are out of the grid.
+        Raises
+        ------
+        RuntimeError
+            If the values are out of the grid.
         """
         # Checking input point is within the grid
         in_age_lim = (age >= np.amin(self.models.meta["age"])) & (

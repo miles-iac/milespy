@@ -24,6 +24,20 @@ logger = logging.getLogger("pymiles.spectra")
 
 
 class spectra(Spectrum1D):
+    """
+    Class for storing spectra in pymiles.
+
+    This class inherits `Spectrum1D` from specutils, and can use
+    all the methods of that class.
+
+    The main difference is how we use the `meta` dictionary.
+    We assume that all the values stored in meta have the same lengths as the
+    number of spectra.  Thus, each value of each key univoquely refers to some
+    information of a given spectra.  The exact keys in this dictionary will
+    depend on the model creating this object.
+
+    """
+
     warnings.filterwarnings("ignore")
 
     solar_ref_spec = get_config_file("sun_mod_001.fits")
@@ -502,15 +516,24 @@ class spectra(Spectrum1D):
     def _gaussian_filter1d(spec, sig):
         """
         Convolve a spectrum by a Gaussian with different sigma for every pixel.
+
         If all sigma are the same this routine produces the same output as
         scipy.ndimage.gaussian_filter1d, except for the border treatment.
         Here the first/last p pixels are filled with zeros.
         When creating a template library for SDSS data, this implementation
         is 60x faster than a naive for loop over pixels.
 
-        :param spec: vector with the spectrum to convolve
-        :param sig: vector of sigma values (in pixels) for every pixel
-        :return: spec convolved with a Gaussian with dispersion sig
+        Parameters
+        ----------
+        spec:
+            vector with the spectrum to convolve
+        sig:
+            vector of sigma values (in pixels) for every pixel
+
+        Returns
+        -------
+        spec: ndarray
+            Spectrum convolved with a Gaussian with dispersion sig
 
         """
         sig = sig.clip(0.01)  # forces zero sigmas to have 0.01 pixels

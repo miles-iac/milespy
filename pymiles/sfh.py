@@ -15,27 +15,45 @@ logger = logging.getLogger("pymiles.sfh")
 
 
 class sfh(ssp_models):
-    # -----------------------------------------------------------------------------
+    """
+    Class for manipulating star formation histories (SFH) and create derived spectra
+
+    Attributes
+    ----------
+    time: array
+        Sampled times of the SFH. They depend on the loaded library
+    sfr: array
+        Values of the star formation rate (SFR) at each time
+    alpha_evol: array
+        Values of alpha/Fe at each time
+    imf_evol: array
+        Values of the IMF slope
+    met_evol: array
+        Values of the metallicity at each time
+    """
+
     def __init__(
         self,
         source="MILES_SSP",
         version="9.1",
         isochrone="T",
         imf_type="ch",
-        show_tree=False,
     ):
         """
         Creates an instance of the class
 
         Parameters
         ----------
-        source:    Name of input models to use.
-                   Valid inputs are MILES_SSP/CaT_SSP/EMILES_SSP
-        version:   version number of the models
-        isochrone: Type of isochrone to use. Valid inputs are P/T for Padova+00
-                   and BaSTI isochrones respectively (Default: T)
-        imf_type:  Type of IMF shape. Valid inputs are ch/ku/kb/un/bi (Default: ch)
-        show_tree: Bool that shows the variables available with the instance
+        source: str
+            Name of input models to use.
+            Valid inputs are MILES_SSP/CaT_SSP/EMILES_SSP
+        version: str
+            version number of the models
+        isochrone: str
+            Type of isochrone to use. Valid inputs are P/T for Padova+00
+            and BaSTI isochrones respectively (Default: T)
+        imf_type:
+            Type of IMF shape. Valid inputs are ch/ku/kb/un/bi (Default: ch)
 
         Notes
         -----
@@ -45,7 +63,7 @@ class sfh(ssp_models):
 
         Returns
         -------
-        None
+        sfh
             Object instance
 
         """
@@ -92,7 +110,7 @@ class sfh(ssp_models):
             raise ValueError(f"{argname} is out of range")
 
     def _validate_sfh(self):
-        if not self.sfh_check_ssp_range():
+        if not self._sfh_check_ssp_range():
             raise ValueError(
                 "Input SFH params are outside the MILES model grid you loaded"
             )
@@ -872,27 +890,16 @@ class sfh(ssp_models):
         # Make sure everything is within the allowed range of models
         self._validate_sfh()
 
-    # This method (get_sfh_predictions) is the core of the SFH class. It takes the
-    # normalized input of the SFH instance (namely ages, weights, metallicities,
-    # [alpha/Fe] and IMF and calculates the MILES predictions. Since this class
-    # inherits the ssp_models_class, this method also gives photometric prediction
-    # and mean (mass-weighted) stellar population parameters.
-    def get_sfh_predictions(self):
-        """Derives the MILES predictions for the desired SFH
+    def generate_spectra(self):
+        """
+        Compute the spectra derived from the stored SFH information.
 
         The spectrum associated to the SFH is calculated using the
-        (normalized) mass weights. This spectrum is then used to
-        calculate the photometric predictions that are also given.
-        Mass-weighted stellar population parameter are also calculated
-
-        Parameters
-        ----------
-        self : SFH instance call
+        (normalized) mass weights.
 
         Returns
         -------
-        ssp_models
-            MILES predictions
+        spectra
         """
 
         # We make an initial call to interpolate (ssp_model_class) to
@@ -965,7 +972,7 @@ class sfh(ssp_models):
             spectral_axis=self.models.spectral_axis, flux=ospec, meta=new_meta
         )
 
-    def sfh_check_ssp_range(self):
+    def _sfh_check_ssp_range(self):
         """Checks if expected SSPs are within the model grid
 
         When calculating the parameters of the SFH this method
