@@ -34,7 +34,12 @@ class Magnitude(dict):
         """
         from astropy.table import Table
 
-        tab = Table(data=dict(self))
+        to_save = dict(self)
+        for k in to_save:
+            if np.isscalar(to_save[k]):
+                to_save[k] = np.array([to_save[k]])
+
+        tab = Table(data=to_save)
         ascii.write(tab, output, format=format, **kwargs)
 
 
