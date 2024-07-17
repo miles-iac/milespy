@@ -23,15 +23,13 @@ def test_get_starname_multiple(lib):
 
 def test_search_by_id(lib):
     tmp = lib.search_by_id(id=100)
-    assert tmp.starname == ["HD017382"]
-    assert tmp.wave_init == 3500.0
-    assert tmp.wave_last == 7429.4
+    assert tmp.meta["starname"] == ["HD017382"]
 
 
 def test_search_by_id_multiple(lib):
     tmp = lib.search_by_id(id=[100, 101])
-    assert tmp.starname[0] == "HD017382"
-    assert tmp.starname[1] == "HD017548"
+    assert tmp.meta["starname"][0] == "HD017382"
+    assert tmp.meta["starname"][1] == "HD017548"
     assert tmp.nspec == 2
 
 
@@ -39,8 +37,8 @@ def test_search_by_id_multiple(lib):
 def test_search_by_id_img(lib):
     tmp = lib.search_by_id(id=100)
     fig, ax = plt.subplots()
-    ax.plot(tmp.wave, tmp.spec)
-    ax.set_title(tmp.starname[0])
+    ax.plot(tmp.spectral_axis, tmp.flux[0])
+    ax.set_title(tmp.meta["starname"][0])
     return fig
 
 
@@ -48,31 +46,31 @@ def test_stars_in_range(lib):
     tmp = lib.in_range(
         teff_lims=[4500.0, 5000.0], logg_lims=[2.0, 2.5], FeH_lims=[0.0, 0.2]
     )
-    assert tmp.spec.shape == (4367, 14)
-    assert tmp.teff.min() >= 4500.0
-    assert tmp.teff.max() <= 5000.0
-    assert tmp.logg.min() >= 2.0
-    assert tmp.logg.max() <= 2.5
-    assert tmp.FeH.min() >= 0.0
-    assert tmp.FeH.max() <= 0.2
+    assert tmp.data.shape == (14, 4367)
+    assert tmp.meta["teff"].min() >= 4500.0
+    assert tmp.meta["teff"].max() <= 5000.0
+    assert tmp.meta["logg"].min() >= 2.0
+    assert tmp.meta["logg"].max() <= 2.5
+    assert tmp.meta["FeH"].min() >= 0.0
+    assert tmp.meta["FeH"].max() <= 0.2
 
 
 def test_search_closest(lib):
     # Search by params (Gets the closest spectra to those params)
     tmp = lib.search_by_params(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
-    assert tmp.id == 743
-    assert tmp.teff == 5041.0
-    assert tmp.logg == 3.04
-    assert tmp.FeH == -0.04
-    assert np.isnan(tmp.MgFe)  # is this ok?
+    assert tmp.meta["id"] == 743
+    assert tmp.meta["teff"] == 5041.0
+    assert tmp.meta["logg"] == 3.04
+    assert tmp.meta["FeH"] == -0.04
+    assert np.isnan(tmp.meta["MgFe"])  # is this ok?
 
 
 @pytest.mark.mpl_image_compare
 def test_search_closest_img(lib):
     fig, ax = plt.subplots()
     tmp = lib.search_by_params(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
-    ax.plot(tmp.wave, tmp.spec)
-    ax.set_title(tmp.starname)
+    ax.plot(tmp.spectral_axis, tmp.flux)
+    ax.set_title(tmp.meta["starname"])
     return fig
 
 
@@ -83,7 +81,7 @@ def test_interpolated_spectrum(lib):
     tmp1 = lib.search_by_params(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
     tmp2 = lib.interpolate(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
     fig, ax = plt.subplots()
-    ax.plot(tmp1.wave, tmp1.spec, label="Closest star")
-    ax.plot(tmp2.wave, tmp2.spec, label="Interpolated star")
+    ax.plot(tmp1.spectral_axis, tmp1.flux, label="Closest star")
+    ax.plot(tmp2.spectral_axis, tmp2.flux, label="Interpolated star")
     ax.legend()
     return fig

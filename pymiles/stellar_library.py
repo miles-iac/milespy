@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
-from copy import copy
 
 import h5py
 import numpy as np
 import numpy.typing as npt
+from astropy import units as u
+from astropy.units import Quantity
 from scipy.spatial import Delaunay
 
 import pymiles.misc as misc
@@ -16,7 +17,7 @@ from pymiles.spectra import spectra
 logger = logging.getLogger("pymiles.lib")
 
 
-class stellar_library(spectra, repository):
+class stellar_library(repository):
     # -----------------------------------------------------------------------------
     def __init__(self, source="MILES_STARS", version="9.1"):
         """
@@ -37,17 +38,18 @@ class stellar_library(spectra, repository):
         # Opening the relevant file in the repository
         f = h5py.File(repo_filename, "r")
         # ------------------------------
-        self.index = np.array(f["index"])
-        self.teff = np.array(f["teff"])
-        self.logg = np.array(f["logg"])
-        self.FeH = np.array(f["FeH"])
-        self.MgFe = np.array(f["MgFe"])
-        self.starname = [n.decode() for n in f["starname"]]
-        self.filename = [n.decode() for n in f["filename"]]
-        self.id = [np.int32(n.decode()) for n in f["id"]]
-        self.nspec = np.amax(self.index + 1)
-        self.wave = np.array(f["wave"])
-        self.spec = np.array(f["spec"])
+        meta = {
+            "index": np.array(f["index"]),
+            "teff": np.array(f["teff"]),
+            "logg": np.array(f["logg"]),
+            "FeH": np.array(f["FeH"]),
+            "MgFe": np.array(f["MgFe"]),
+            "starname": np.array([n.decode() for n in f["starname"]]),
+            "filename": np.array([n.decode() for n in f["filename"]]),
+            "id": np.array([np.int32(n.decode()) for n in f["id"]]),
+        }
+        wave = np.array(f["wave"])
+        spec = np.array(f["spec"])
         self.source = source
         self.version = version
         # ------------------------------
@@ -55,74 +57,45 @@ class stellar_library(spectra, repository):
 
         # Flagging if all elements of MgFe are NaNs
         self.MgFe_flag = 0
-        if np.nansum(self.MgFe) == 0:
+        if np.nansum(meta["MgFe"]) == 0:
             self.MgFe_flag = 1
 
         # Creating Delaunay triangulation of parameters for future searches and
         # interpolations
         if self.MgFe_flag == 1:
             idx = (
-                np.isfinite(self.teff) & np.isfinite(self.logg) & np.isfinite(self.FeH)
+                np.isfinite(meta["teff"])
+                & np.isfinite(meta["logg"])
+                & np.isfinite(meta["FeH"])
             )
             ngood = np.sum(idx)
             self.params = np.empty((ngood, 3))
-            self.params[:, 0] = np.log10(self.teff)[idx]
-            self.params[:, 1] = self.logg[idx]
-            self.params[:, 2] = self.FeH[idx]
+            self.params[:, 0] = np.log10(meta["teff"])[idx]
+            self.params[:, 1] = meta["logg"][idx]
+            self.params[:, 2] = meta["FeH"][idx]
         else:
             idx = (
-                np.isfinite(self.teff)
-                & np.isfinite(self.logg)
-                & np.isfinite(self.FeH)
-                & np.isfinite(self.MgFe)
+                np.isfinite(meta["teff"])
+                & np.isfinite(meta["logg"])
+                & np.isfinite(meta["FeH"])
+                & np.isfinite(meta["MgFe"])
             )
             ngood = np.sum(idx)
             self.params = np.empty((ngood, 4))
-            self.params[:, 0] = np.log10(self.teff)[idx]
-            self.params[:, 1] = self.logg[idx]
-            self.params[:, 2] = self.FeH[idx]
-            self.params[:, 3] = self.MgFe[idx]
+            self.params[:, 0] = np.log10(meta["teff"])[idx]
+            self.params[:, 1] = meta["logg"][idx]
+            self.params[:, 2] = meta["FeH"][idx]
+            self.params[:, 3] = meta["MgFe"][idx]
 
         self.tri = Delaunay(self.params)
-        self.new_index = self.index[idx]
+        self.index = meta["index"][idx]
         self.main_keys = list(self.__dict__.keys())
 
-        # Inheriting the spectra class
-        super().__init__(source=self.source, wave=self.wave, spec=self.spec)
-
-    # -----------------------------------------------------------------------------
-    def set_item(self, idx):
-        """
-        Creates a copy of input instance and slices the arrays for input indices
-
-        Parameters
-        ----------
-        idx:
-            integer or boolean array indicating the elements to be extracted
-
-        Returns
-        -------
-        Object instance for selected items
-
-        """
-
-        out = copy(self)
-        out.index = np.array(self.index)[idx]
-        out.teff = np.array(self.teff)[idx]
-        out.logg = np.array(self.logg)[idx]
-        out.FeH = np.array(self.FeH)[idx]
-        out.MgFe = np.array(self.MgFe)[idx]
-        out.starname = np.array(self.starname)[idx]
-        out.filename = np.array(self.filename)[idx]
-        out.id = np.array(self.id)[idx]
-        if hasattr(idx, "__len__"):
-            out.nspec = len(idx)
-        else:
-            out.nspec = 1
-        out.wave = np.array(self.wave)
-        out.spec = np.array(self.spec)[:, idx]
-
-        return out
+        self.models = spectra(
+            spectral_axis=Quantity(wave, unit=u.AA),
+            flux=Quantity(spec.T, unit=None),
+            meta=meta,
+        )
 
     # -----------------------------------------------------------------------------
     def search_by_id(self, id=None):
@@ -142,14 +115,14 @@ class stellar_library(spectra, repository):
 
         idx = self._id_to_idx(id)
 
-        out = self.set_item(idx)
+        out = spectra.__getitem__(self.models, idx)
 
         return out
 
     def _id_to_idx(self, lib_id: npt.ArrayLike) -> np.ndarray:
         id_arr = np.array(lib_id, ndmin=1)
         common, _, idx = np.intersect1d(
-            id_arr, self.id, assume_unique=True, return_indices=True
+            id_arr, self.models.meta["id"], assume_unique=True, return_indices=True
         )
         if len(common) != len(id_arr):
             raise ValueError("No star with that ID")
@@ -173,10 +146,9 @@ class stellar_library(spectra, repository):
         """
 
         idx = self._id_to_idx(id)
+        logger.debug(f"{type(idx[0])}")
 
-        out = self.set_item(idx)
-
-        return out.starname
+        return self.models.meta["starname"][idx]
 
     # -----------------------------------------------------------------------------
 
@@ -204,26 +176,26 @@ class stellar_library(spectra, repository):
 
         if self.MgFe_flag == 1:
             idx = (
-                (self.teff >= teff_lims[0])
-                & (self.teff <= teff_lims[1])
-                & (self.logg >= logg_lims[0])
-                & (self.logg <= logg_lims[1])
-                & (self.FeH >= FeH_lims[0])
-                & (self.FeH <= FeH_lims[1])
+                (self.models.meta["teff"] >= teff_lims[0])
+                & (self.models.meta["teff"] <= teff_lims[1])
+                & (self.models.meta["logg"] >= logg_lims[0])
+                & (self.models.meta["logg"] <= logg_lims[1])
+                & (self.models.meta["FeH"] >= FeH_lims[0])
+                & (self.models.meta["FeH"] <= FeH_lims[1])
             )
         else:
             idx = (
-                (self.teff >= teff_lims[0])
-                & (self.teff <= teff_lims[1])
-                & (self.logg >= logg_lims[0])
-                & (self.logg <= logg_lims[1])
-                & (self.FeH >= FeH_lims[0])
-                & (self.FeH <= FeH_lims[1])
-                & (self.MgFe >= MgFe_lims[0])
-                & (self.MgFe <= MgFe_lims[1])
+                (self.models.meta["teff"] >= teff_lims[0])
+                & (self.models.meta["teff"] <= teff_lims[1])
+                & (self.models.meta["logg"] >= logg_lims[0])
+                & (self.models.meta["logg"] <= logg_lims[1])
+                & (self.models.meta["FeH"] >= FeH_lims[0])
+                & (self.models.meta["FeH"] <= FeH_lims[1])
+                & (self.models.meta["MgFe"] >= MgFe_lims[0])
+                & (self.models.meta["MgFe"] <= MgFe_lims[1])
             )
 
-        out = self.set_item(idx)
+        out = spectra.__getitem__(self.models, idx)
 
         return out
 
@@ -261,8 +233,8 @@ class stellar_library(spectra, repository):
 
         # Deciding on the closest vertex and extracting info
         idx = np.argmax(wts)
-        new_idx = self.new_index[vtx[idx]]
-        out = self.set_item(new_idx)
+        new_idx = self.index[vtx[idx]]
+        out = spectra.__getitem__(self.models, new_idx)
 
         return out
 
@@ -301,96 +273,26 @@ class stellar_library(spectra, repository):
         vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
         vtx, wts = vtx.ravel(), wts.ravel()
 
-        new_idx = self.new_index[vtx]
+        idx = self.index[vtx]
 
-        wave = self.wave
-        spec = np.dot(self.spec[:, new_idx], wts)
-        #        print(wts)
+        wave = self.models.spectral_axis
+        spec = np.dot(self.models.flux[idx, :].T, wts)
 
-        # Saving all the new info into an object
-        out = self._create_new_object(teff, logg, FeH, MgFe, wave, spec, vtx, wts)
+        new_meta = {
+            "teff": np.array([teff]),
+            "logg": np.array([logg]),
+            "FeH": np.array([FeH]),
+            "MgFe": np.array([MgFe]),
+        }
 
-        return out
+        # Interpolate the rest of the meta if possible
+        for k in self.models.meta.keys():
+            if k not in new_meta.keys():
+                if len(self.models.meta[k]) > 1:
+                    # Skip the interpolation of string data, e.g., filenames
+                    if "U" not in self.models.meta[k].dtype.kind:
+                        new_meta[k] = np.dot(self.models.meta[k][idx], wts)
 
-    def _create_new_object(self, teff, logg, FeH, MgFe, wave, spec, indices, weights):
-        """
-        Creates a new object using the info from the
-        :meth:`pymiles.stellar_library.interpolate` method
-
-        Parameters
-        ----------
-        teff:
-            Desired Teff
-        logg:
-            Desired Log(g)
-        FeH:
-            Desired [Fe/H]
-        MgFe:
-            Desired [Mg/Fe]
-        wave:
-            Input wavelength
-        spec:
-            Interpolated spectrum
-        indices:
-            Elements of the original object to do the interpolation
-        weights:
-            Weights for each of the elements
-
-        Returns
-        -------
-        dict
-            Dictionary with mass-to-light ratios for each SSP model and filter
-
-        """
-
-        # Copying basic info
-        out = copy(self)
-        nspec_in = self.nspec
-        out.wave = wave
-        out.spec = np.array(spec, ndmin=2).T
-        out.teff = [teff]
-        out.logg = [logg]
-        out.FeH = [FeH]
-        out.MgFe = [MgFe]
-        out.nspec = 1
-        out.index = np.nan
-
-        # Creating filenames
-        if teff < 10000.0:
-            teff_str = "T0%.1f" % teff
-        if teff >= 10000.0:
-            teff_str = "T%.1f" % teff
-        out.filename = (
-            out.source
-            + "_Teff"
-            + teff_str
-            + "_Logg%.2f_FeH%.2f_MgFe%.2f" % (logg, FeH, MgFe)
-        )
-        # Interpolating other parameters
-        # NOTE: The problem with this is that we are hard-coding a few attributes
-        #       but it is probably not too bad. We hard code only minimum necessary
-        keys = list(out.main_keys)
-        for i in range(len(out.main_keys)):
-            if (
-                (keys[i] == "wave")
-                or (keys[i] == "spec")
-                or (keys[i] == "nspec")
-                or (keys[i] == "teff")
-                or (keys[i] == "logg")
-                or (keys[i] == "FeH")
-                or (keys[i] == "MgFe")
-            ):
-                continue
-            val = np.array(getattr(out, keys[i]))
-
-            if np.ndim(val) == 0:
-                continue
-            if val.shape[0] == nspec_in:
-                pass
-                # print("VER ESTA PARTE")
-        #             setattr(out, keys[i], np.dot(val[indices],weights))
-
-        # Instaitiating the spectra class
-        #       super().__init__(source=out.source,wave=out.wave,spec=out.spec) ???
+        out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)
 
         return out
