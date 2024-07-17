@@ -915,7 +915,7 @@ class sfh(ssp_models):
                 # Skip the interpolation of string data, e.g., filenames
                 kind = self.models.meta[k].dtype.kind
                 if "f" in kind:
-                    new_meta[k] = np.zeros_like(self.models.meta[k])
+                    new_meta[k] = np.zeros(1)
 
         # We iterate now over all the age bins in the SFH
         for t, date in enumerate(self.time):
@@ -947,7 +947,7 @@ class sfh(ssp_models):
             vtx, wts = vtx.ravel(), wts.ravel()
 
             # Update quantities
-            for k in new_meta:
+            for k in new_meta.keys():
                 if len(self.models.meta[k]) > 1:
                     new_meta[k] += (
                         np.dot(self.models.meta[k][self.idx][vtx], wts)
