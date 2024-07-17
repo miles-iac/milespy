@@ -15,7 +15,6 @@ def sfh():
         version="9.1",
         imf_type="bi",
         isochrone="T",
-        show_tree=False,
     )
 
     # Let's play with the methods
@@ -47,7 +46,7 @@ def test_sfh_img(sfh):
 @pytest.fixture
 def pred(sfh):
     # And finally some predictions
-    return sfh.get_sfh_predictions()
+    return sfh.generate_spectra()
 
 
 def test_predictions(pred):

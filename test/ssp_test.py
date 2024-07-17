@@ -81,8 +81,8 @@ def test_ssp_interp_img(miles_ssp):
 
 
 def test_ssp_out_of_range(miles_ssp):
-    out = miles_ssp.in_range(age_lims=[25.0, 30.0], met_lims=[4, 5])
-    assert out is None
+    with pytest.raises(ValueError):
+        miles_ssp.in_range(age_lims=[25.0, 30.0], met_lims=[4, 5])
 
 
 def test_ssp_in_range(miles_ssp):
