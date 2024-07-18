@@ -329,18 +329,20 @@ class ssp_models(repository):
 
         Parameters
         ----------
-        age: float
+        age: array_like
             Desired age
-        met: float
+        met: array_like
             Desired metallicity
-        alpha: float
+        alpha: array_like
             Desired alpha
-        img_slope: float
+        img_slope: array_like
             Desired IMF slope
         mass: Quantity
             Mass of the SSP
         closest: bool
             Return the closest spectra, rather than performing the interpolation.
+            If only one interpolation is performed, all the spectra in the simplex
+            vertices are returned.
         force_interp: list
             Force the interpolation over the indicated variables, even if the
             asked alpha/imf_slope is sampled in the repository. Valid values
@@ -357,42 +359,68 @@ class ssp_models(repository):
         ------
         RuntimeError
             If the values are out of the grid.
+        ValueError
+            If the provided parameters do not have the same shape.
         """
+        # Preprocess the input
+        single_alpha = alpha is not None and np.ndim(alpha) == 0
+        nan_alpha = alpha is None
+        single_imf_slope = imf_slope is not None and np.ndim(imf_slope) == 0
+        nan_imf = imf_slope is None
+
+        age = np.array(age, copy=False, ndmin=1)
+        met = np.array(met, copy=False, ndmin=1)
+        alpha = np.array(alpha, copy=False, ndmin=1)
+        imf_slope = np.array(imf_slope, copy=False, ndmin=1)
+
+        wrong_shape = np.ndim(age) != np.ndim(met)
+        if not nan_alpha:
+            wrong_shape |= np.ndim(age) != np.ndim(alpha)
+        if not nan_imf:
+            wrong_shape |= np.ndim(age) != np.ndim(imf_slope)
+        if wrong_shape:
+            raise ValueError("The input parameters should all have the same shape")
+
+        ninterp = len(age)
+
         # Checking input point is within the grid
-        in_age_lim = (age >= np.amin(self.models.meta["age"])) & (
-            age <= np.amax(self.models.meta["age"])
-        )
-        in_met_lim = (met >= np.amin(self.models.meta["met"])) & (
-            met <= np.amax(self.models.meta["met"])
-        )
-        in_imf_lim = (imf_slope >= np.amin(self.models.meta["imf_slope"])) & (
-            imf_slope <= np.amax(self.models.meta["imf_slope"])
-        )
+        def _compute_bounds(val, model):
+            min_model = np.amin(model)
+            max_model = np.amax(model)
+            if np.any(val < min_model) or np.any(val > max_model):
+                raise RuntimeError(
+                    f"Input parameters {val} is outside of model grid: "
+                    f"({min_model},{max_model})"
+                )
 
-        good = in_age_lim & in_met_lim & in_imf_lim
-        if not self.fixed_alpha and alpha is not None:
-            in_alpha_lim = (alpha >= np.amin(self.avail_alphas)) & (
-                alpha <= np.amax(self.avail_alphas)
-            )
-            good &= in_alpha_lim
+        _compute_bounds(age, self.models.meta["age"])
+        _compute_bounds(met, self.models.meta["met"])
 
-        if not good:
-            raise RuntimeError("Desired point outside model grid")
+        if not nan_imf:
+            _compute_bounds(imf_slope, self.models.meta["imf_slope"])
+
+        if not self.fixed_alpha and not nan_alpha:
+            _compute_bounds(alpha, self.models.meta["alpha"])
 
         ndims = 2
         extra_dim = 0
 
+        if nan_imf and len(self.avail_imfs) > 1:
+            raise ValueError(f"An IMF slope should be provided from: {self.avail_imfs}")
+
         # If there is a single available imf slope, there is no need to interpolate
         # over it. Also, if the users gives an imf_slope that **exactly** matches
         # one of the database, we fix the imf_slope for the interpolation
-        interp_fix_imf_slope = len(self.avail_imfs) == 1 or imf_slope in self.avail_imfs
+        interp_fix_imf_slope = len(self.avail_imfs) == 1 or (
+            single_imf_slope and imf_slope in self.avail_imfs
+        )
         # But this can be overruled
         interp_fix_imf_slope &= not ("imf_slope" in force_interp)
         if interp_fix_imf_slope:
-            if imf_slope is None:
+            if nan_imf:
                 imf_slope = self.avail_imfs[0]
 
-            imf_mask = np.equal(self.models.meta["imf_slope"], imf_slope)
+            imf_mask = np.equal(self.models.meta["imf_slope"], imf_slope[0])
         else:
             imf_mask = np.full(self.models.meta["imf_slope"].shape, True)
             ndims += 1
@@ -402,16 +430,18 @@ class ssp_models(repository):
         # Same as above for the imf_slope, however, now we can have nan values in
         # the repository in the case of "base" models.
         interp_fix_alpha = (
-            self.fixed_alpha or alpha is None or alpha in self.avail_alphas
+            self.fixed_alpha
+            or nan_alpha
+            or (single_alpha and alpha in self.avail_alphas)
         )
         if self.fixed_alpha and alpha is not None:
             logger.warning("There is no alpha-enhanced SSPs with this model choice")
         interp_fix_alpha &= not ("alpha" in force_interp)
         if interp_fix_alpha:
-            if alpha is None:
+            if nan_alpha:
                 alpha_mask = np.isnan(self.models.meta["alpha"])
             elif alpha in self.avail_alphas:
-                alpha_mask = np.equal(self.models.meta["alpha"], alpha)
+                alpha_mask = np.equal(self.models.meta["alpha"], alpha[0])
             else:
                 # There is a single alpha in all the repository, so no need to mask
                 alpha_mask = np.full(self.models.meta["alpha"].shape, True)
@@ -423,6 +453,9 @@ class ssp_models(repository):
         logger.debug(f"Fixed alpha during the interpolation? {interp_fix_alpha}")
 
         idx = alpha_mask & imf_mask
+        # This is required for future extrapolation, e.g., in the SFH module
+        self.idx = idx
+
         n_avail = np.sum(idx)
 
         logger.debug(f"Interpolating over a grid of {n_avail} spectra")
@@ -441,60 +474,77 @@ class ssp_models(repository):
 
         self.tri = Delaunay(self.params, qhull_options="QJ")
 
-        input_pt = [age, met]
-        if not interp_fix_imf_slope:
-            input_pt.append(imf_slope)
-        if not interp_fix_alpha:
-            input_pt.append(alpha)
-
-        logger.info(
-            f"Searching for the simplex that surrounds the desired point: {input_pt}"
+        wave = self.models.spectral_axis
+        spec = Quantity(
+            value=np.empty((ninterp, self.models.data.shape[1])),
+            unit=self.models.flux.unit,
         )
 
-        vtx, wts = misc.interp_weights(
-            self.params, np.array(input_pt, ndmin=2), self.tri
-        )
-        vtx, wts = vtx.ravel(), wts.ravel()
-        logger.debug(
-            f"Simplex formed by the ids: {self.models.meta['index'][idx][vtx]}"
-        )
-        logger.debug(f"Age of simplex vertices: {self.models.meta['age'][idx][vtx]}")
-        logger.debug(
-            f"Metallicity of simplex vertices: {self.models.meta['met'][idx][vtx]}"
-        )
-        logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
+        new_meta = {
+            "imf_type": np.full(ninterp, self.models.meta["imf_type"][0]),
+            "met": met,
+            "age": age,
+        }
+        if interp_fix_alpha:
+            new_meta["alpha"] = np.full(ninterp, alpha)
+        if interp_fix_imf_slope:
+            new_meta["imf_slope"] = np.full(ninterp, imf_slope)
 
-        # Save which spectra has been used for building the tesselation
-        self.idx = idx
+        base_keys = list(new_meta.keys())
+        for k in self.models.meta.keys():
+            if k not in new_meta.keys():
+                if len(self.models.meta[k]) > 1:
+                    if "U" not in self.models.meta[k].dtype.kind:
+                        new_meta[k] = np.empty(ninterp, dtype=self.models.meta[k].dtype)
 
-        if closest:
-            logger.info("Getting closest spectra")
-            out = spectra.__getitem__(
-                self.models, self.models.meta["index"][idx][vtx]
-            )._assign_mass(mass)
-            return out
-        else:
-            logger.info("Interpolating spectra")
-            wave = self.models.spectral_axis
-            spec = np.dot(self.models.flux[idx, :][vtx].T, wts)
-            new_meta = {
-                "imf_type": np.array([self.models.meta["imf_type"]]),
-                "imf_slope": np.array([imf_slope]),
-                "met": np.array([met]),
-                "age": np.array([age]),
-                "alpha": np.array([alpha]),
-            }
+        for i in range(ninterp):
+            input_pt = [age[i], met[i]]
+            if not interp_fix_imf_slope:
+                input_pt.append(imf_slope[i])
+            if not interp_fix_alpha:
+                input_pt.append(alpha[i])
 
-            # Interpolate the rest of the meta if possible
-            for k in self.models.meta.keys():
-                if k not in new_meta.keys():
-                    if len(self.models.meta[k]) > 1:
-                        # Skip the interpolation of string data, e.g., filenames
-                        if "U" not in self.models.meta[k].dtype.kind:
-                            new_meta[k] = np.dot(self.models.meta[k][idx][vtx], wts)
+            logger.info(f"Searching for the simplex around: {input_pt}")
 
-            out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)._assign_mass(
-                mass
+            vtx, wts = misc.interp_weights(
+                self.params, np.array(input_pt, ndmin=2), self.tri
             )
+            vtx, wts = vtx.ravel(), wts.ravel()
+            logger.debug(f"Simplex ids: {self.models.meta['index'][idx][vtx]}")
+            logger.debug(f"Simple ages: {self.models.meta['age'][idx][vtx]}")
+            logger.debug(f"Simplex met: {self.models.meta['met'][idx][vtx]}")
+            logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
 
+            if closest:
+                if ninterp == 1:
+                    logger.info("Getting simplex spectra")
+                    out = spectra.__getitem__(
+                        self.models, self.models.meta["index"][idx][vtx]
+                    )._assign_mass(mass)
+                    return out
+                else:
+                    logger.info("Getting closest spectra")
+                    closest_idx = vtx[np.argmax(wts)]
+                    spec[i, :] = self.models.flux[idx, :][closest_idx]
+                    for k in new_meta:
+                        if k not in base_keys:
+                            new_meta[k][i] = self.models.meta[k][idx][closest_idx]
+
+            else:
+                logger.info("Interpolating spectra")
+                spec[i, :] = np.dot(self.models.flux[idx, :][vtx].T, wts)
+
+                # Interpolate the rest of the meta if possible
+                for k in new_meta:
+                    if len(self.models.meta[k]) > 1:
+                        if k not in base_keys:
+                            new_meta[k][i] = np.dot(self.models.meta[k][idx][vtx], wts)
+
+        out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)._assign_mass(mass)
+
+        # Select the first and only spectra so that the users does not need to
+        # do this all the time, manually
+        if ninterp == 1:
+            return out[0]
+        else:
             return out
