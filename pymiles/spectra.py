@@ -44,56 +44,19 @@ class spectra(Spectrum1D):
     emiles_lsf = get_config_file("EMILES.lsf")
     lsfile = get_config_file("ls_indices_full.def")
 
-    def __init__(self, **kwargs):
-        """
-        Creates an instance of the class
-
-        Parameters
-        ----------
-        wave_init:
-            Starting wavelength in Angstroms. If not defined, taken from WAVE
-        wave_last:
-            End wavelength in Angstroms. If not defined, taken from WAVE
-        dwave:
-            Wavelength step in Angstroms. If not defined, taken from WAVE
-        source:
-            Name of input source to use. Valid inputs are
-                    MILES_STARS/CaT_STARS/MILES_SSP/CaT_SSP/EMILES_SSP.
-                    Default: MILES_SSP
-        redshift:
-            Redshift of the input spectra. Default=0.0
-        sampling:
-            Type of sampling of the spectra. Valid inputs are lin/ln.
-                    Default: lin
-        wave:
-            Vector with input wavelengths in Angstroms
-        spec:
-            [N,M] array with input spectra
-
-        Returns
-        -------
-        spectra
-
-        """
-        super().__init__(**kwargs)
-
-        # We keep them now for convenience
+    @property
+    def npix(self):
         if len(self.data.shape) > 1:
-            self.npix = self.data.shape[1]
-            self.nspec = self.data.shape[0]
+            return self.data.shape[1]
         else:
-            self.npix = self.data.shape[0]
-            self.nspec = 1
+            return self.data.shape[0]
 
-        # Computing the LSF
-        #       if source != None:
-        #          self.compute_lsf()
-
-        # sampling_list = ["lin", "ln"]
-        # if sampling not in sampling_list:
-        #     raise ValueError("SAMPLING has to be lin/ln")
-
-        return
+    @property
+    def nspec(self):
+        if len(self.data.shape) > 1:
+            return self.data.shape[0]
+        else:
+            return 1
 
     def __getitem__(self, item):
         out = super().__getitem__(item)
@@ -620,3 +583,13 @@ class spectra(Spectrum1D):
                 -0.40 * (msun[f.name] - mags[f.name])
             )
         return outmls
+
+    def _assign_mass(self, mass):
+        if np.ndim(mass) == 0:
+            m = mass
+        else:
+            m = mass[:, np.newaxis]
+
+        out = self.multiply(m, handle_meta="first_found")
+        out.meta["mass"] = mass
+        return out

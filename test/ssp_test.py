@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from astropy import units as u
 
 import pymiles.filter as flib
 from pymiles.ssp_models import ssp_models as ssp
@@ -97,31 +98,33 @@ def test_ssp_in_range(miles_ssp):
 def test_assert_alpha_in_fix(miles_ssp):
     with pytest.raises(ValueError):
         miles_ssp.in_list(
-            age_list=[0.2512, 0.0708, 1.4125],
-            met_list=[0.22, 0.0, -1.71],
-            imf_slope_list=[1.3, 1.3, 1.3],
-            alpha_list=[0.0, 0.4, 0.0],
+            age=[0.2512, 0.0708, 1.4125],
+            met=[0.22, 0.0, -1.71],
+            imf_slope=[1.3, 1.3, 1.3],
+            alpha=[0.0, 0.4, 0.0],
         )
 
 
 def test_ssp_in_list(miles_ssp):
     miles_1 = miles_ssp.in_list(
-        age_list=[0.2512, 0.0708, 1.4125],
-        met_list=[0.22, 0.0, -1.71],
-        imf_slope_list=[1.3, 1.3, 1.3],
+        age=[0.2512, 0.0708, 1.4125],
+        met=[0.22, 0.0, -1.71],
+        imf_slope=[1.3, 1.3, 1.3],
+        mass=u.Quantity(value=[0.5, 2.0, 10.0], unit=u.Msun),
     )
     assert miles_1.meta["age"].shape == (3,)
     assert np.array_equal(miles_1.meta["age"], np.array([0.2512, 0.0708, 1.4125]))
     assert np.array_equal(miles_1.meta["met"], np.array([0.22, 0.0, -1.71]))
     assert np.array_equal(miles_1.meta["imf_slope"], np.array([1.3, 1.3, 1.3]))
+    assert np.array_equal(miles_1.meta["mass"].value, np.array([0.5, 2.0, 10.0]))
 
 
 def test_ssp_not_in_list(miles_ssp):
     with pytest.raises(ValueError):
         _ = miles_ssp.in_list(
-            age_list=[1e6, 1e6, 1e6],
-            met_list=[1e6, 1e6, 1e6],
-            imf_slope_list=[1e6, 1e6, 1e6],
+            age=[1e6, 1e6, 1e6],
+            met=[1e6, 1e6, 1e6],
+            imf_slope=[1e6, 1e6, 1e6],
         )
 
 
@@ -165,6 +168,18 @@ def test_ssp_spectra(miles_single):
     ax.set_xlim(3500, 7500)
     ax.set_ylim(0, 6e-5)
     return fig
+
+
+def test_ssp_mass(miles_ssp):
+    light = miles_ssp.interpolate(age=5.7, met=-0.45, imf_slope=1.3, mass=1.0 * u.Msun)
+    heavy = miles_ssp.interpolate(age=5.7, met=-0.45, imf_slope=1.3, mass=2.0 * u.Msun)
+    ratio = light / heavy
+
+    assert np.allclose(ratio.data, 0.5)
+    assert light.meta["mass"].value == 1
+    assert light.meta["mass"].unit == u.Msun
+    assert heavy.meta["mass"].value == 2
+    assert heavy.meta["mass"].unit == u.Msun
 
 
 def test_mags(miles_single):

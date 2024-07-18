@@ -127,7 +127,7 @@ class ssp_models(repository):
 
         self.models = spectra(
             spectral_axis=Quantity(wave, unit=u.AA),
-            flux=Quantity(spec.T, unit=None),
+            flux=Quantity(spec.T, unit=u.L_sun / u.M_sun / u.AA),
             meta=meta,
         )
 
@@ -139,7 +139,8 @@ class ssp_models(repository):
         met_lims=[-5.0, 1.0],
         alpha_lims=None,
         imf_slope_lims=[0.0, 5.0],
-    ) -> spectra | None:
+        mass=Quantity(value=1.0, unit=u.Msun),
+    ) -> spectra:
         """
         Extracts all SSP models within selected limits
 
@@ -153,6 +154,8 @@ class ssp_models(repository):
             tuple with alpha limits
         imf_slope_lims:
             tuple with IMF slope limits
+        mass: Quantity, default: 1 solar mass
+            mass of each SSP
 
         Raises
         ------
@@ -195,30 +198,28 @@ class ssp_models(repository):
         if ncases == 0:
             raise ValueError("No matching SSPs")
 
-        out = spectra.__getitem__(self.models, idx)
+        out = spectra.__getitem__(self.models, idx)._assign_mass(mass)
 
         return out
 
     def in_list(
-        self,
-        age_list=None,
-        met_list=None,
-        alpha_list=None,
-        imf_slope_list=None,
+        self, age=None, met=None, alpha=None, imf_slope=None, mass=None
     ) -> spectra:
         """
-        Extracts a selected set of models avaiable from the library.
+        Extracts a selected set of models available from the library.
 
         Parameters
         ----------
-        age_list :
+        age :
             list of ages to extract
-        met_list :
+        met :
             list of metallicities to extract
-        alpha_list :
+        alpha :
             list of alphas to extract
-        imf_slope_list :
+        imf_slope :
             list of IMF slopes to extract
+        mass : default 1 solar mass
+            mass of each SSP
 
         Notes
         -----
@@ -241,7 +242,7 @@ class ssp_models(repository):
         spectra
 
         """
-        if alpha_list is not None and self.fixed_alpha:
+        if alpha is not None and self.fixed_alpha:
             raise ValueError(
                 "This repository does not provide variable alpha:\n"
                 + "Source: "
@@ -253,13 +254,13 @@ class ssp_models(repository):
             )
 
         # Treating the input list
-        age = np.array(age_list).ravel()
-        met = np.array(met_list).ravel()
-        alpha = np.array(alpha_list).ravel()
-        imf_slope = np.array(imf_slope_list).ravel()
+        age = np.array(age).ravel()
+        met = np.array(met).ravel()
+        alpha = np.array(alpha).ravel()
+        imf_slope = np.array(imf_slope).ravel()
 
         # Checking they have the same number of elements
-        if self.fixed_alpha or alpha_list is None:
+        if self.fixed_alpha or alpha is None:
             if len(set(map(len, (age, met, imf_slope)))) != 1:
                 raise ValueError("Input list values do not have the same length.")
         else:
@@ -269,9 +270,12 @@ class ssp_models(repository):
         ncases = len(age)
         logger.debug("Searching for {ncases} SSPs")
 
+        if mass is None:
+            mass = Quantity(value=np.ones(ncases), unit=u.Msun)
+
         id = []
         for i in range(ncases):
-            if self.fixed_alpha or alpha_list is None:
+            if self.fixed_alpha or alpha is None:
                 idx = (
                     (np.array(self.models.meta["age"]) == age[i])
                     & (np.array(self.models.meta["met"]) == met[i])
@@ -306,7 +310,7 @@ class ssp_models(repository):
                     f"Asked for {ncases} SSPs, but found only {ngood} matching ones"
                 )
 
-        out = spectra.__getitem__(self.models, good)
+        out = spectra.__getitem__(self.models, good)._assign_mass(mass)
 
         return out
 
@@ -316,6 +320,7 @@ class ssp_models(repository):
         met=None,
         alpha=None,
         imf_slope=None,
+        mass=Quantity(value=1.0, unit=u.Msun),
         closest=False,
         force_interp=[],
     ) -> spectra:
@@ -324,14 +329,16 @@ class ssp_models(repository):
 
         Parameters
         ----------
-        age:
+        age: float
             Desired age
-        met:
+        met: float
             Desired metallicity
-        alpha:
+        alpha: float
             Desired alpha
-        img_slope:
+        img_slope: float
             Desired IMF slope
+        mass: Quantity
+            Mass of the SSP
         closest: bool
             Return the closest spectra, rather than performing the interpolation.
         force_interp: list
@@ -462,7 +469,9 @@ class ssp_models(repository):
 
         if closest:
             logger.info("Getting closest spectra")
-            out = spectra.__getitem__(self.models, self.models.meta["index"][idx][vtx])
+            out = spectra.__getitem__(
+                self.models, self.models.meta["index"][idx][vtx]
+            )._assign_mass(mass)
             return out
         else:
             logger.info("Interpolating spectra")
@@ -484,6 +493,8 @@ class ssp_models(repository):
                         if "U" not in self.models.meta[k].dtype.kind:
                             new_meta[k] = np.dot(self.models.meta[k][idx][vtx], wts)
 
-            out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)
+            out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)._assign_mass(
+                mass
+            )
 
             return out
