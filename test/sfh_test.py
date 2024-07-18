@@ -15,7 +15,6 @@ def sfh():
         version="9.1",
         imf_type="bi",
         isochrone="T",
-        show_tree=False,
     )
 
     # Let's play with the methods
@@ -47,7 +46,7 @@ def test_sfh_img(sfh):
 @pytest.fixture
 def pred(sfh):
     # And finally some predictions
-    return sfh.get_sfh_predictions()
+    return sfh.generate_spectra()
 
 
 def test_predictions(pred):
@@ -55,16 +54,16 @@ def test_predictions(pred):
     filts = flib.get(fnames)
     outmls = pred.mass_to_light(filters=filts, mass_in="star+remn")
 
-    np.testing.assert_equal(pred.age, 9.747229444806024)
-    np.testing.assert_almost_equal(pred.met, -0.9777525480919624)
-    np.testing.assert_almost_equal(outmls["SLOAN_SDSS.g"], 3.01242965)
+    np.testing.assert_almost_equal(pred.meta["age"], np.array([9.747229444806024]))
+    np.testing.assert_almost_equal(pred.meta["met"], np.array([-0.9777525480919624]))
+    np.testing.assert_almost_equal(outmls["SLOAN_SDSS.g"], np.array([3.01242965]))
 
 
 @pytest.mark.mpl_image_compare
 def test_spectra_img(pred):
     # And finally the spectra
     fig, ax = plt.subplots()
-    ax.plot(pred.wave, pred.spec)
+    ax.plot(pred.spectral_axis, pred.flux)
     ax.set_xlabel("Wavelength")
     ax.set_ylabel("Flux")
     ax.legend()

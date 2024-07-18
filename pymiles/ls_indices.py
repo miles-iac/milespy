@@ -130,8 +130,12 @@ def lsindex(ll, flux, noise, z, z_err, lickfile, plot=False, sims=100):
     index_error :
         error values
     """
+    # TODO: take into account the units
+    ll = ll.to_value()
+    z = z.to_value()
+
     # Deredshift spectrum to rest wavelength
-    dll = (ll) / (z + 1.0)
+    dll = ll / (z + 1.0)
 
     # Read index definition table
     tab = ascii.read(lickfile, comment=r"\s*#")
