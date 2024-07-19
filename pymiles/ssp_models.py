@@ -7,6 +7,7 @@ import numpy as np
 from astropy import units as u
 from astropy.units import Quantity
 from scipy.spatial import Delaunay
+from tqdm import tqdm
 
 import pymiles.misc as misc
 from pymiles.repository import repository
@@ -547,23 +548,24 @@ class ssp_models(repository):
                                 ninterp, dtype=self.models.meta[k].dtype
                             )
 
-        for i in range(ninterp):
+        for i in tqdm(range(ninterp), delay=3.0):
             input_pt = [age[i], met[i]]
             if not interp_fix_imf_slope:
                 input_pt.append(imf_slope[i])
             if not interp_fix_alpha:
                 input_pt.append(alpha[i])
 
-            logger.info(f"Searching for the simplex around: {input_pt}")
-
             vtx, wts = misc.interp_weights(
                 self.params, np.array(input_pt, ndmin=2), self.tri
             )
             vtx, wts = vtx.ravel(), wts.ravel()
-            logger.debug(f"Simplex ids: {self.models.meta['index'][idx][vtx]}")
-            logger.debug(f"Simple ages: {self.models.meta['age'][idx][vtx]}")
-            logger.debug(f"Simplex met: {self.models.meta['met'][idx][vtx]}")
-            logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
+
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Searching for the simplex around: {input_pt}")
+                logger.debug(f"Simplex ids: {self.models.meta['index'][idx][vtx]}")
+                logger.debug(f"Simple ages: {self.models.meta['age'][idx][vtx]}")
+                logger.debug(f"Simplex met: {self.models.meta['met'][idx][vtx]}")
+                logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
 
             if closest:
                 if simplex and ninterp == 1:
@@ -575,7 +577,6 @@ class ssp_models(repository):
                     closest_idx[i] = vtx[np.argmax(wts)]
 
             else:
-                logger.info("Interpolating spectra")
                 spec[i, :] = np.dot(self.models.flux[idx, :][vtx].T, wts)
 
                 # Interpolate the rest of the meta if possible

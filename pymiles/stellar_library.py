@@ -7,6 +7,7 @@ import numpy.typing as npt
 from astropy import units as u
 from astropy.units import Quantity
 from scipy.spatial import Delaunay
+from tqdm import tqdm
 
 import pymiles.misc as misc
 from pymiles.repository import repository
@@ -317,7 +318,7 @@ class stellar_library(repository):
                                 ninterp, dtype=self.models.meta[k].dtype
                             )
 
-        for i in range(ninterp):
+        for i in tqdm(range(ninterp), delay=3.0):
             if self.MgFe_nan:
                 input_pt = np.array([np.log10(teff[i]), logg[i], FeH[i]], ndmin=2)
             else:
@@ -327,11 +328,13 @@ class stellar_library(repository):
 
             vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
             vtx, wts = vtx.ravel(), wts.ravel()
-            logger.debug(f"Simplex ids: {self.models.meta['index'][vtx]}")
-            logger.debug(f"Simple ages: {self.models.meta['teff'][vtx]}")
-            logger.debug(f"Simplex met: {self.models.meta['logg'][vtx]}")
-            logger.debug(f"Simplex met: {self.models.meta['FeH'][vtx]}")
-            logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
+
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Simplex ids: {self.models.meta['index'][vtx]}")
+                logger.debug(f"Simple ages: {self.models.meta['teff'][vtx]}")
+                logger.debug(f"Simplex met: {self.models.meta['logg'][vtx]}")
+                logger.debug(f"Simplex met: {self.models.meta['FeH'][vtx]}")
+                logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
 
             idx = self.index[vtx]
 
