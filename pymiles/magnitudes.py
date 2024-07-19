@@ -104,7 +104,7 @@ def compute_mags(
         cfact = 5.0 * np.log10(1.7684e8 * dl)  # from lum[erg/s/A] to flux [erg/s/A/cm2]
 
     # Default is nan to mark an invalid range/filter
-    outmag = Magnitude((f.name, np.nan) for f in filters)
+    outmags = Magnitude((f.name, np.full(flux.shape[:-1], np.nan)) for f in filters)
 
     # Computing the magnitude for each filter
     for filt in filters:
@@ -116,34 +116,11 @@ def compute_mags(
         # Selecting the relevant pixels in the input spectrum
         w = (wave >= wlow) & (wave <= whi)
         tmp_wave = wave[w]
-        tmp_flux = flux[w]
+        tmp_flux = flux[..., w]
         if (np.amin(wave) > wlow) or (np.amax(wave) < whi):
             logger.warning(
-                "Filter "
-                + filt.name
-                + " ["
-                + str(wlow)
-                + ","
-                + str(whi)
-                + "] is outside of spectral range ["
-                + str(np.amin(wave))
-                + ","
-                + str(np.amax(wave))
-                + "]\t Returning nan"
-            )
-            continue
-
-        # Identifying pixels with no flux
-        bad = tmp_flux == 0.0
-        if np.sum(bad) > 0:
-            logger.warning(
-                "Filter "
-                + filt.name
-                + " ["
-                + str(wlow)
-                + ","
-                + str(whi)
-                + "] has zero flux\t Returning nan"
+                f"Filter {filt.name} [{wlow},{whi}] is outside of"
+                f"the spectral range [{np.amin(wave)}, {np.amax(wave)}]"
             )
             continue
 
@@ -158,16 +135,17 @@ def compute_mags(
         vega = np.interp(
             tmp_wave, zerosed[zeropoint]["wave"], zerosed[zeropoint]["flux"]
         )
-        f = np.trapz(tmp_flux * response, x=tmp_wave)
         vega_f = np.trapz(vega * response, x=tmp_wave)
+
+        f = np.trapz(tmp_flux * response, x=tmp_wave, axis=-1)
         mag = -2.5 * np.log10(f / vega_f)
         fmag = mag + cfact
         if zeropoint == "AB":
             fmag = fmag + 2.5 * np.log10(cvel) - 48.6  # oke & gunn 83
 
-        outmag[filt.name] = fmag
+        outmags[filt.name] = fmag
 
-    return outmag
+    return outmags
 
 
 def vacuum2air(wave_vac):

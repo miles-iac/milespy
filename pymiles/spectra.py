@@ -52,9 +52,13 @@ class spectra(Spectrum1D):
             return self.data.shape[0]
 
     @property
+    def dim(self):
+        return self.data.shape[:-1]
+
+    @property
     def nspec(self):
         if len(self.data.shape) > 1:
-            return self.data.shape[0]
+            return np.prod(self.data.shape[:-1])
         else:
             return 1
 
@@ -412,18 +416,9 @@ class spectra(Spectrum1D):
             Dictionary with output magnitudes for each spectra for each filter
 
         """
-        logger.info("Computing absolute magnitudes...")
+        logger.info("Computing absolute magnitudes")
 
-        outmags = Magnitude((f.name, np.full(self.nspec, np.nan)) for f in filters)
-        if self.nspec > 1:
-            for i in range(self.nspec):
-                mags = compute_mags(
-                    self.spectral_axis, self.flux[i, :], filters, zeropoint
-                )
-                for f in filters:
-                    outmags[f.name][i] = mags[f.name]
-        else:
-            outmags = compute_mags(self.spectral_axis, self.flux, filters, zeropoint)
+        outmags = compute_mags(self.spectral_axis, self.flux, filters, zeropoint)
 
         return outmags
 
