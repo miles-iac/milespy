@@ -57,7 +57,7 @@ def test_stars_in_range(lib):
 
 def test_search_closest(lib):
     # Search by params (Gets the closest spectra to those params)
-    tmp = lib.search_by_params(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
+    tmp = lib.closest(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
     assert tmp.meta["id"] == 743
     assert tmp.meta["teff"] == 5041.0
     assert tmp.meta["logg"] == 3.04
@@ -68,20 +68,24 @@ def test_search_closest(lib):
 @pytest.mark.mpl_image_compare
 def test_search_closest_img(lib):
     fig, ax = plt.subplots()
-    tmp = lib.search_by_params(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
+    tmp = lib.closest(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
     ax.plot(tmp.spectral_axis, tmp.flux)
-    ax.set_title(tmp.meta["starname"])
+    ax.set_title(tmp.meta["starname"][0])
     return fig
 
 
 @pytest.mark.mpl_image_compare
 def test_interpolated_spectrum(lib):
     # Get spectrum by params (gets interpolated spectrum for those params)
-    # Pablo had some prints inside this functions?..
-    tmp1 = lib.search_by_params(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
+    tmp1 = lib.closest(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
     tmp2 = lib.interpolate(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
     fig, ax = plt.subplots()
     ax.plot(tmp1.spectral_axis, tmp1.flux, label="Closest star")
     ax.plot(tmp2.spectral_axis, tmp2.flux, label="Interpolated star")
     ax.legend()
     return fig
+
+
+def test_interp_array_wrong_shape(lib):
+    with pytest.raises(ValueError):
+        lib.interpolate(teff=[10.0, 12.0], logg=[-0.3, 0.0], FeH=[0.0])

@@ -53,17 +53,15 @@ def test_ssp_interp_alpha():
 
 @pytest.mark.mpl_image_compare
 def test_ssp_interp_closest_img(miles_ssp):
-    close = miles_ssp.interpolate(
+    close = miles_ssp.closest(
         age=[2.57, 3.8, 11.3],
         met=[0.193, 0.042, -0.412],
         imf_slope=[1.124, 1.104, 1.206],
-        closest=True,
     )
     interp = miles_ssp.interpolate(
         age=[2.57, 3.8, 11.3],
         met=[0.193, 0.042, -0.412],
         imf_slope=[1.124, 1.104, 1.206],
-        closest=False,
     )
 
     fig, ax = plt.subplots()
@@ -80,7 +78,7 @@ def test_ssp_interp_img(miles_ssp):
     miles_1 = miles_ssp.interpolate(age=5.7, met=-0.45, imf_slope=1.3)
     # Also get the closest ones, which should be the base for the interpolation
     miles_vertices = miles_ssp.interpolate(
-        age=5.7, met=-0.45, imf_slope=1.3, closest=True
+        age=5.7, met=-0.45, imf_slope=1.3, closest=True, simplex=True
     )
     fig, ax = plt.subplots()
     for i in range(miles_vertices.nspec):

@@ -314,6 +314,46 @@ class ssp_models(repository):
 
         return out
 
+    def closest(
+        self,
+        age=None,
+        met=None,
+        alpha=None,
+        imf_slope=None,
+        mass=Quantity(value=1.0, unit=u.Msun),
+    ) -> spectra:
+        """
+        Retrieve the closest SSP avaiable in the library
+
+        Parameters
+        ----------
+        age: array_like
+            Desired age
+        met: array_like
+            Desired metallicity
+        alpha: array_like
+            Desired alpha
+        img_slope: array_like
+            Desired IMF slope
+        mass: Quantity
+            Mass of the SSP
+
+        Returns
+        -------
+        spectra
+            Closest spectra from the repository.
+
+        Raises
+        ------
+        RuntimeError
+            If the values are out of the grid.
+        ValueError
+            If the provided parameters do not have the same shape.
+        """
+        return self.interpolate(
+            age=age, met=met, alpha=alpha, imf_slope=imf_slope, mass=mass, closest=True
+        )
+
     def interpolate(
         self,
         age=None,
@@ -322,6 +362,7 @@ class ssp_models(repository):
         imf_slope=None,
         mass=Quantity(value=1.0, unit=u.Msun),
         closest=False,
+        simplex=False,
         force_interp=[],
     ) -> spectra:
         """
@@ -343,6 +384,10 @@ class ssp_models(repository):
             Return the closest spectra, rather than performing the interpolation.
             If only one interpolation is performed, all the spectra in the simplex
             vertices are returned.
+        simplex: bool
+            If only one set of input parameters is given, return all the spectra
+            that form part of the simplex used for the interpolation. These spectra
+            have the weights information in their `meta` dictionary.
         force_interp: list
             Force the interpolation over the indicated variables, even if the
             asked alpha/imf_slope is sampled in the repository. Valid values
@@ -373,11 +418,11 @@ class ssp_models(repository):
         alpha = np.array(alpha, copy=False, ndmin=1)
         imf_slope = np.array(imf_slope, copy=False, ndmin=1)
 
-        wrong_shape = np.ndim(age) != np.ndim(met)
+        wrong_shape = age.shape != met.shape
         if not nan_alpha:
-            wrong_shape |= np.ndim(age) != np.ndim(alpha)
+            wrong_shape |= age.shape != alpha.shape
         if not nan_imf:
-            wrong_shape |= np.ndim(age) != np.ndim(imf_slope)
+            wrong_shape |= age.shape != imf_slope.shape
         if wrong_shape:
             raise ValueError("The input parameters should all have the same shape")
 
@@ -474,28 +519,33 @@ class ssp_models(repository):
 
         self.tri = Delaunay(self.params, qhull_options="QJ")
 
-        wave = self.models.spectral_axis
-        spec = Quantity(
-            value=np.empty((ninterp, self.models.data.shape[1])),
-            unit=self.models.flux.unit,
-        )
+        if closest:
+            closest_idx = np.empty(ninterp, dtype=int)
+        else:
+            wave = self.models.spectral_axis
+            spec = Quantity(
+                value=np.empty((ninterp, self.models.data.shape[1])),
+                unit=self.models.flux.unit,
+            )
 
-        new_meta = {
-            "imf_type": np.full(ninterp, self.models.meta["imf_type"][0]),
-            "met": met,
-            "age": age,
-        }
-        if interp_fix_alpha:
-            new_meta["alpha"] = np.full(ninterp, alpha)
-        if interp_fix_imf_slope:
-            new_meta["imf_slope"] = np.full(ninterp, imf_slope)
+            new_meta = {
+                "imf_type": np.full(ninterp, self.models.meta["imf_type"][0]),
+                "met": met,
+                "age": age,
+            }
+            if interp_fix_alpha:
+                new_meta["alpha"] = np.full(ninterp, alpha)
+            if interp_fix_imf_slope:
+                new_meta["imf_slope"] = np.full(ninterp, imf_slope)
 
-        base_keys = list(new_meta.keys())
-        for k in self.models.meta.keys():
-            if k not in new_meta.keys():
-                if len(self.models.meta[k]) > 1:
-                    if "U" not in self.models.meta[k].dtype.kind:
-                        new_meta[k] = np.empty(ninterp, dtype=self.models.meta[k].dtype)
+            base_keys = list(new_meta.keys())
+            for k in self.models.meta.keys():
+                if k not in new_meta.keys():
+                    if len(self.models.meta[k]) > 1:
+                        if "U" not in self.models.meta[k].dtype.kind:
+                            new_meta[k] = np.empty(
+                                ninterp, dtype=self.models.meta[k].dtype
+                            )
 
         for i in range(ninterp):
             input_pt = [age[i], met[i]]
@@ -516,19 +566,13 @@ class ssp_models(repository):
             logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
 
             if closest:
-                if ninterp == 1:
-                    logger.info("Getting simplex spectra")
+                if simplex and ninterp == 1:
                     out = spectra.__getitem__(
                         self.models, self.models.meta["index"][idx][vtx]
                     )._assign_mass(mass)
                     return out
                 else:
-                    logger.info("Getting closest spectra")
-                    closest_idx = vtx[np.argmax(wts)]
-                    spec[i, :] = self.models.flux[idx, :][closest_idx]
-                    for k in new_meta:
-                        if k not in base_keys:
-                            new_meta[k][i] = self.models.meta[k][idx][closest_idx]
+                    closest_idx[i] = vtx[np.argmax(wts)]
 
             else:
                 logger.info("Interpolating spectra")
@@ -540,7 +584,12 @@ class ssp_models(repository):
                         if k not in base_keys:
                             new_meta[k][i] = np.dot(self.models.meta[k][idx][vtx], wts)
 
-        out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)._assign_mass(mass)
+        if closest:
+            out = spectra.__getitem__(self.models, closest_idx)
+        else:
+            out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)._assign_mass(
+                mass
+            )
 
         # Select the first and only spectra so that the users does not need to
         # do this all the time, manually

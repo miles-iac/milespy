@@ -56,13 +56,13 @@ class stellar_library(repository):
         f.close()
 
         # Flagging if all elements of MgFe are NaNs
-        self.MgFe_flag = 0
+        self.MgFe_nan = False
         if np.nansum(meta["MgFe"]) == 0:
-            self.MgFe_flag = 1
+            self.MgFe_nan = True
 
         # Creating Delaunay triangulation of parameters for future searches and
         # interpolations
-        if self.MgFe_flag == 1:
+        if self.MgFe_nan:
             idx = (
                 np.isfinite(meta["teff"])
                 & np.isfinite(meta["logg"])
@@ -174,7 +174,7 @@ class stellar_library(repository):
 
         """
 
-        if self.MgFe_flag == 1:
+        if self.MgFe_nan:
             idx = (
                 (self.models.meta["teff"] >= teff_lims[0])
                 & (self.models.meta["teff"] <= teff_lims[1])
@@ -200,99 +200,164 @@ class stellar_library(repository):
         return out
 
     # -----------------------------------------------------------------------------
-    def search_by_params(self, teff=None, logg=None, FeH=None, MgFe=None):
+    def closest(self, teff=None, logg=None, FeH=None, MgFe=None):
         """
         Gets closest star in database for given set of parameters
 
         Parameters
         ----------
-        teff:
+        teff: array_like
             Desired Teff
-        logg:
+        logg: array_like
             Desired Log(g)
-        FeH:
+        FeH: array_like
             Desired [Fe/H]
-        MgFe:
+        MgFe: array_like
             Desired [Mg/Fe]
 
         Returns
         -------
-        stellar_library
-            Object instance for closest star
+        spectra
+            Spectrum from the closest star in the library.
 
         """
+        return self.interpolate(teff, logg, FeH, MgFe, closest=True)
 
-        # Searching for the simplex that surrounds the desired point in parameter space
-        if self.MgFe_flag == 1:
-            input_pt = np.array([np.log10(teff), logg, FeH], ndmin=2)
-        else:
-            input_pt = np.array([np.log10(teff), logg, FeH, MgFe], ndmin=2)
-
-        vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
-        vtx, wts = vtx.ravel(), wts.ravel()
-
-        # Deciding on the closest vertex and extracting info
-        idx = np.argmax(wts)
-        new_idx = self.index[vtx[idx]]
-        out = spectra.__getitem__(self.models, new_idx)
-
-        return out
-
-    # -----------------------------------------------------------------------------
-    def interpolate(self, teff=None, logg=None, FeH=None, MgFe=None):
+    def interpolate(
+        self, teff=None, logg=None, FeH=None, MgFe=None, closest=False, simplex=False
+    ):
         """
         Interpolates a star spectrum for given set of parameters using Delaunay
         triangulation
 
         Parameters
         ----------
-        teff:
+        teff: array_like
             Desired Teff
-        logg:
+        logg: array_like
             Desired Log(g)
-        FeH:
+        FeH: array_like
             Desired [Fe/H]
-        MgFe:
+        MgFe: array_like
             Desired [Mg/Fe]
+        closest: bool
+            Return the closest spectra, rather than performing the interpolation.
+            If only one interpolation is performed, all the spectra in the simplex
+            vertices are returned.
+        simplex: bool
+            If only one set of input parameters is given, return all the spectra
+            that form part of the simplex used for the interpolation. These spectra
+            have the weights information in their `meta` dictionary.
 
         Returns
         -------
-        wave:
-            wavelength of output spectrum
-        spec:
-            interpolated spectrum
+        spectra
+            Interpolated spectrum.
+            If closest == True, return the closest spectra from the repository,
+            rather than doing the interpolation.
 
+        Raises
+        ------
+        RuntimeError
+            If the values are out of the grid.
+        ValueError
+            If the provided parameters do not have the same shape.
         """
 
-        # Searching for the simplex that surrounds the desired point in parameter space
-        if self.MgFe_flag == 1:
-            input_pt = np.array([np.log10(teff), logg, FeH], ndmin=2)
+        teff = np.array(teff, copy=False, ndmin=1)
+        logg = np.array(logg, copy=False, ndmin=1)
+        FeH = np.array(FeH, copy=False, ndmin=1)
+        MgFe = np.array(MgFe, copy=False, ndmin=1)
+
+        wrong_shape = teff.shape != logg.shape
+        wrong_shape |= teff.shape != FeH.shape
+        if not self.MgFe_nan:
+            wrong_shape |= teff.shape != MgFe.shape
+        if wrong_shape:
+            raise ValueError("The input parameters should all have the same shape")
+
+        ninterp = len(teff)
+
+        # Checking input point is within the grid
+        def _compute_bounds(val, model):
+            min_model = np.amin(model)
+            max_model = np.amax(model)
+            if np.any(val < min_model) or np.any(val > max_model):
+                raise RuntimeError(
+                    f"Input parameters {val} is outside of model grid: "
+                    f"({min_model},{max_model})"
+                )
+
+        _compute_bounds(teff, self.models.meta["teff"])
+        _compute_bounds(logg, self.models.meta["logg"])
+        _compute_bounds(FeH, self.models.meta["FeH"])
+        if not self.MgFe_nan:
+            _compute_bounds(MgFe, self.models.meta["MgFe"])
+
+        if closest:
+            closest_idx = np.empty(ninterp, dtype=int)
         else:
-            input_pt = np.array([np.log10(teff), logg, FeH, MgFe], ndmin=2)
+            wave = self.models.spectral_axis
+            spec = Quantity(
+                value=np.empty((ninterp, self.models.data.shape[1])),
+                unit=self.models.flux.unit,
+            )
+            new_meta = {
+                "teff": teff,
+                "logg": logg,
+                "FeH": FeH,
+                "MgFe": MgFe,
+            }
+            base_keys = list(new_meta.keys())
+            for k in self.models.meta.keys():
+                if k not in new_meta.keys():
+                    if len(self.models.meta[k]) > 1:
+                        if "U" not in self.models.meta[k].dtype.kind:
+                            new_meta[k] = np.empty(
+                                ninterp, dtype=self.models.meta[k].dtype
+                            )
 
-        vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
-        vtx, wts = vtx.ravel(), wts.ravel()
+        for i in range(ninterp):
+            if self.MgFe_nan:
+                input_pt = np.array([np.log10(teff[i]), logg[i], FeH[i]], ndmin=2)
+            else:
+                input_pt = np.array(
+                    [np.log10(teff[i]), logg[i], FeH[i], MgFe[i]], ndmin=2
+                )
 
-        idx = self.index[vtx]
+            vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
+            vtx, wts = vtx.ravel(), wts.ravel()
+            logger.debug(f"Simplex ids: {self.models.meta['index'][vtx]}")
+            logger.debug(f"Simple ages: {self.models.meta['teff'][vtx]}")
+            logger.debug(f"Simplex met: {self.models.meta['logg'][vtx]}")
+            logger.debug(f"Simplex met: {self.models.meta['FeH'][vtx]}")
+            logger.debug(f"Simplex weights: {wts}, norm: {np.sum(wts)}")
 
-        wave = self.models.spectral_axis
-        spec = np.dot(self.models.flux[idx, :].T, wts)
+            idx = self.index[vtx]
 
-        new_meta = {
-            "teff": np.array([teff]),
-            "logg": np.array([logg]),
-            "FeH": np.array([FeH]),
-            "MgFe": np.array([MgFe]),
-        }
+            if closest:
+                if simplex and ninterp == 1:
+                    out = spectra.__getitem__(
+                        self.models, self.models.meta["index"][idx]
+                    )
+                    return out
+                else:
+                    closest_idx[i] = idx[np.argmax(wts)]
+            else:
+                spec[i, :] = np.dot(self.models.flux[idx, :].T, wts)
 
-        # Interpolate the rest of the meta if possible
-        for k in self.models.meta.keys():
-            if k not in new_meta.keys():
-                if len(self.models.meta[k]) > 1:
-                    # Skip the interpolation of string data, e.g., filenames
-                    if "U" not in self.models.meta[k].dtype.kind:
-                        new_meta[k] = np.dot(self.models.meta[k][idx], wts)
-
-        out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)
-
-        return out
+                # Interpolate the rest of the meta if possible
+                for k in new_meta:
+                    if len(self.models.meta[k]) > 1:
+                        if k not in base_keys:
+                            new_meta[k] = np.dot(self.models.meta[k][idx], wts)
+        if closest:
+            out = spectra.__getitem__(self.models, closest_idx)
+        else:
+            out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)
+        # Select the first and only spectra so that the users does not need to
+        # do this all the time, manually
+        if ninterp == 1:
+            return out[0]
+        else:
+            return out
