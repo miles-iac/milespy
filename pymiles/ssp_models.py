@@ -586,7 +586,7 @@ class ssp_models(repository):
                             new_meta[k][i] = np.dot(self.models.meta[k][idx][vtx], wts)
 
         if closest:
-            out = spectra.__getitem__(self.models, closest_idx)
+            out = spectra.__getitem__(self.models, closest_idx)._assign_mass(mass)
         else:
             out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)._assign_mass(
                 mass
