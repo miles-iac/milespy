@@ -68,7 +68,6 @@ class repository:
                     if opt == "y":
                         self._download_repository(base_name, repo_filename)
             else:
-                logger.error(f"No known URL for ${base_name}")
-                exit(1)
+                raise ValueError(f"No known URL for {base_name}")
 
         return repo_filename
