@@ -1,15 +1,118 @@
 # -*- coding: utf-8 -*-
 import logging
+import re
 import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import ascii
 
+from pymiles import get_config_file
+
 logger = logging.getLogger("pymiles.ls_indices")
 
+lsfile = get_config_file("ls_indices_full.def")
+lsindex_names = ascii.read(lsfile, comment=r"\s*#")["names"]
+logging.debug(f"Initialized line strength with {len(lsindex_names)} indeces.")
 
-class LineStrengthIndeces(dict):
+
+class LineStrengthIndex:
+    """
+    Line strenght index information
+
+    Attributes
+    ----------
+    name: str
+        Name of the index
+    """
+
+    def __init__(self, name):
+        """
+        Create an index from the name in the database.
+
+        This reads the information from the configuration files, so the
+        name should match with a given existing index. This can be easily
+        accomplished with :meth:`pymiles.index.search`.
+
+        Parameters
+        ----------
+        name : str
+            Name of the index to be loaded
+        """
+        tab = ascii.read(lsfile, comment=r"\s*#")
+        names = tab["names"]
+        if name in names:
+            idx = np.argwhere(names == name)
+            if len(idx) > 1:
+                raise RuntimeError("Multiple matching filters")
+
+            self.name = name
+            self.bands = np.zeros(7)
+            self.bands[0] = tab["b1"][idx]
+            self.bands[1] = tab["b2"][idx]
+            self.bands[2] = tab["b3"][idx]
+            self.bands[3] = tab["b4"][idx]
+            self.bands[4] = tab["b5"][idx]
+            self.bands[5] = tab["b6"][idx]
+            self.bands[6] = tab["b7"][idx]
+        else:
+            raise ValueError(f"The index {name} is not on the database")
+
+
+def search(name) -> list[str]:
+    """
+    Searches for an index in database.
+
+    Notes
+    -----
+    Search is case insensitive
+    The filter seach does not have to be precise. Substrings within filter
+    names are ok.  It uses the python package 're' for regular expressions
+    matching
+
+    Parameters
+    ----------
+    name:
+        The search string to match index names
+
+    Returns
+    -------
+    list[str]
+        List of index names available matching the search string
+
+    """
+
+    reg = re.compile(name, re.IGNORECASE)
+    filtered_filters = list(filter(reg.search, lsindex_names))
+
+    if len(filtered_filters) == 0:
+        logger.warning(
+            "Cannot find filter in our database\n Available filters are:\n\n"
+            + str(lsindex_names)
+        )
+
+    return filtered_filters
+
+
+def get(lsindex_names: list[str]) -> list[LineStrengthIndex]:
+    """
+    Retrieves index from database
+
+    Parameters
+    ----------
+    lsindex_names: list[str]
+        The index names as given by :meth:`pymiles.ls_indeces.search`
+
+    Returns
+    -------
+    list[Filter]
+    """
+    indeces = [LineStrengthIndex(name) for name in lsindex_names]
+
+    return indeces
+
+
+class LineStrengthDict(dict):
     def write(self, output=sys.stdout, format="basic", **kwargs):
         """
         Save the line strength indices in the requested format
@@ -34,19 +137,19 @@ def _sum_counts(ll, c, b1, b2):
     # Central full pixel range
     dw = ll[1] - ll[0]  # linear step size
     w = (ll >= b1 + dw / 2.0) & (ll <= b2 - dw / 2.0)
-    s = np.sum(c[w])
+    s = np.sum(c[..., w], axis=-1)
 
     # First fractional pixel
     pixb = (ll < b1 + dw / 2.0) & (ll > b1 - dw / 2.0)
     if np.any(pixb):
         fracb = ((ll[pixb] + dw / 2.0) - b1) / dw
-        s = s + c[pixb] * fracb
+        s = s + c[..., pixb][..., 0] * fracb
 
     # Last fractional pixel
     pixr = (ll < b2 + dw / 2.0) & (ll > b2 - dw / 2.0)
     if np.any(pixr):
         fracr = (b2 - (ll[pixr] - dw / 2.0)) / dw
-        s = s + c[pixr] * fracr
+        s = s + c[..., pixr][..., 0] * fracr
 
     return s
 
@@ -96,7 +199,16 @@ def _calc_index(bands, name, ll, counts, plot=False):
     return ind
 
 
-def lsindex(ll, flux, noise, z, z_err, lickfile, plot=False, sims=100):
+def lsindex(
+    indeces: [LineStrengthIndex],
+    ll,
+    flux,
+    z,
+    plot=False,
+    noise=None,
+    z_err=None,
+    sims=0,
+):
     """
     Measure line-strength indices
 
@@ -104,68 +216,57 @@ def lsindex(ll, flux, noise, z, z_err, lickfile, plot=False, sims=100):
 
     Parameters
     ----------
+    indeces : [LineStrengthIndex]
+        indeces to be computed
     ll : np.ndarray
         wavelength vector; assumed to be in *linear steps*
     flux : np.ndarray
         counts as a function of wavelength
-    noise :
-        noise spectrum
     z : float
         redshift (in km/s)
-    z_err : float
-        redshift error (in km/s)
-    lickfile : str
-        file listing the index definitions
     plot : bool
         plot spectra
+    noise :
+        noise spectrum
+    z_err : float
+        redshift error (in km/s)
     sims : int
         number of simulations for the errors (default: 100)
 
     Returns
     -------
-    names : [str]
-        index names
-    index :
-        index values
-    index_error :
-        error values
+    LineStrengthDict
     """
     # TODO: take into account the units
     ll = ll.to_value()
     z = z.to_value()
+    flux = flux.to_value()
 
     # Deredshift spectrum to rest wavelength
     dll = ll / (z + 1.0)
 
-    # Read index definition table
-    tab = ascii.read(lickfile, comment=r"\s*#")
-    names = tab["names"]
-    bands = np.zeros((7, len(names)))
-    bands[0, :] = tab["b1"]
-    bands[1, :] = tab["b2"]
-    bands[2, :] = tab["b3"]
-    bands[3, :] = tab["b4"]
-    bands[4, :] = tab["b5"]
-    bands[5, :] = tab["b6"]
-    bands[6, :] = tab["b7"]
+    outindex = LineStrengthDict(
+        (ind.name, np.full(flux.shape[:-1], np.nan)) for ind in indeces
+    )
 
-    good = (bands[0, :] >= dll[0]) & (bands[5, :] <= dll[-1])
-    num_ind = np.sum(good)
-    names = names[good]
-    bands = bands[:, good]
-
-    # Measure line indices
-    num_ind = len(bands[0, :])
-    index = np.zeros(num_ind) * np.nan
-    for i in range(num_ind):  # loop through all indices
+    for ind in indeces:
+        good = (ind.bands[0] >= dll[0]) & (ind.bands[5] <= dll[-1])
+        if not good:
+            logger.warning(
+                f"Index {ind.name} [{ind.bands[0]}, {ind.bands[5]}] "
+                f"is outside of the spectral range [{dll[0]}, {dll[-1]}]"
+            )
+            continue
         # calculate index value
-        index0 = _calc_index(bands[:, i], names[i], dll, flux, plot)
-        index[i] = index0[0]
+        outindex[ind.name] = _calc_index(ind.bands, ind.name, dll, flux, plot)
 
-    # Calculate errors
-    index_error = np.zeros(num_ind, dtype="D") * np.nan
-    index_noise = np.zeros([num_ind, sims], dtype="D")
     if sims > 0:
+        raise NotImplementedError
+        """
+        # Calculate errors
+        index_error = np.zeros(num_ind, dtype="D") * np.nan
+        index_noise = np.zeros([num_ind, sims], dtype="D")
+
         # Create redshift and sigma errors
         dz = np.random.randn(sims) * z_err
 
@@ -176,13 +277,13 @@ def lsindex(ll, flux, noise, z, z_err, lickfile, plot=False, sims=100):
             flux_n = flux + ran * noise
 
             # loop through all indices
-            for k in range(num_ind):
+            for k, ind in enumerate(indeces):
                 # shift bands according to redshift error
                 sz = z + dz[i]
                 dll = ll / (sz + 1.0)
-                bands2 = bands[:, k]
+                bands2 = ind.bands
                 if (dll[0] <= bands2[0]) and (dll[len(dll) - 1] >= bands2[5]):
-                    tmp = _calc_index(bands2, names[k], dll, flux_n, 0)
+                    tmp = _calc_index(bands2, ind.name, dll, flux_n, 0)
                     index_noise[k, i] = tmp
                 else:
                     # index outside wavelength range
@@ -190,5 +291,6 @@ def lsindex(ll, flux, noise, z, z_err, lickfile, plot=False, sims=100):
 
         # Get STD of distribution (index error)
         index_error = np.std(index_noise, axis=1)
+        """
 
-    return names, index, index_error
+    return outindex

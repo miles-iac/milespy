@@ -5,6 +5,7 @@ import pytest
 from astropy import units as u
 
 import pymiles.filter as flib
+import pymiles.ls_indices as lslib
 from pymiles.ssp_models import ssp_models as ssp
 
 
@@ -281,7 +282,9 @@ def test_mags(miles_single):
 
 
 def test_ls_indices(miles_single):
-    outls = miles_single.compute_ls_indices()
+    lsnames = lslib.search(".*")
+    indeces = lslib.get(lsnames)
+    outls = miles_single.line_strength(indeces)
     ref = {
         "Fe3619": np.array([4.2427661]),
         "Fe3631": np.array([2.09959643]),

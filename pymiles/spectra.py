@@ -9,10 +9,10 @@ from astropy.io import ascii
 from scipy import interpolate
 from specutils import Spectrum1D
 
-import pymiles.misc as misc
 from pymiles import get_config_file
 from pymiles.filter import Filter
-from pymiles.ls_indices import LineStrengthIndeces
+from pymiles.ls_indices import LineStrengthDict
+from pymiles.ls_indices import LineStrengthIndex
 from pymiles.ls_indices import lsindex
 from pymiles.magnitudes import compute_mags
 from pymiles.magnitudes import Magnitude
@@ -42,7 +42,6 @@ class spectra(Spectrum1D):
 
     solar_ref_spec = get_config_file("sun_mod_001.fits")
     emiles_lsf = get_config_file("EMILES.lsf")
-    lsfile = get_config_file("ls_indices_full.def")
 
     @property
     def npix(self):
@@ -423,39 +422,34 @@ class spectra(Spectrum1D):
         return outmags
 
     # -----------------------------------------------------------------------------
-    def compute_ls_indices(self) -> LineStrengthIndeces:
-        # Possibly done by specutils as well
+    def line_strength(self, indeces: list[LineStrengthIndex]) -> LineStrengthDict:
         """
         Returns the LS indices of the input spectra given a list of index definitions
 
         Parameters
         ----------
+        indeces: list[LineStrenghtIndex]
+            Indeces as provided by :meth:`pymiles.ls_indices.get`
 
         Returns
         -------
-        dict
+        LineStrengthDict
             Dictionary with output LS indices for each spectra for each index
-            If option saveCSV=True, writes a .csv file with the LS indices
 
         """
-        logger.info("Computing Line-Strength indices ...")
-
-        # Getting the dimensions
-        names, indices, dummy = lsindex(
+        logger.info("Computing Line-Strength indices")
+        outls = lsindex(
+            indeces,
             self.spectral_axis,
             self.flux,
-            0.0,
             self.redshift,
-            0.0,
-            self.lsfile,
-            plot=False,
-            sims=0,
         )
 
+        """
         nls = len(indices)
         indices = np.zeros((nls, self.nspec))
 
-        for i in range(self.nspec):
+        for i in tqdm(range(self.nspec), delay=3.):
             names, indices[:, i], dummy = lsindex(
                 self.spectral_axis,
                 self.flux,
@@ -464,9 +458,9 @@ class spectra(Spectrum1D):
                 0.0,
                 self.lsfile,
             )
-            misc.printProgress(i + 1, self.nspec)
 
-        outls = LineStrengthIndeces((names[i], indices[i, :]) for i in range(nls))
+        outls = LineStrengthDict((names[i], indices[i, :]) for i in range(nls))
+        """
 
         return outls
 
