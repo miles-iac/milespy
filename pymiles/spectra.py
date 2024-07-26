@@ -7,6 +7,7 @@ import warnings
 from copy import copy
 
 import numpy as np
+from astropy import units as u
 from astropy.io import ascii
 from scipy import interpolate
 from specutils import Spectrum1D
@@ -19,6 +20,8 @@ from .ls_indices import lsindex
 from .magnitudes import compute_mags
 from .magnitudes import Magnitude
 from .magnitudes import sun_magnitude
+from .misc import log_rebin
+from .misc import log_unbinning
 
 # ==============================================================================
 
@@ -123,37 +126,6 @@ class Spectra(Spectrum1D):
 
         return
 
-    # -----------------------------------------------------------------------------
-    # def trim_spectra(self, wave_lims=None):
-    #    """
-    #    Trims spectra to desired wavelength limits
-
-    #    Parameters
-    #    ----------
-    #    wave_lims:
-    #        Wavelength limits in Angtroms
-
-    #    Returns
-    #    -------
-    #    spectra
-    #        Object instance with spectra trimmed and updated info
-
-    #    """
-    #    logger.info("# Trimming spectra in wavelength ...")
-
-    #    out = copy(self)
-    #    idx = (out.wave >= wave_lims[0]) & (out.wave <= wave_lims[1])
-    #    wave = out.wave[idx]
-    #    spec = out.spec[idx, :]
-    #    #out.update_basic_pars(wave, spec)
-    #    out.compute_lsf()
-
-    #    return out
-
-    # -----------------------------------------------------------------------------
-
-    # -----------------------------------------------------------------------------
-
     def redshift_spectra(self, redshift=None):
         # This may still be required because it also changes the LSF
         """
@@ -184,9 +156,7 @@ class Spectra(Spectrum1D):
 
         return out
 
-    # -----------------------------------------------------------------------------
-    def logrebin_spectra(self, velscale=None):
-        # Is this really needed?
+    def log_rebin(self, velscale=None):
         """
         Returns a logrebinned version of the spectra
 
@@ -198,42 +168,38 @@ class Spectra(Spectrum1D):
         Returns
         -------
         Spectra
-            Object instance with ln-rebinned spectra and updated info
-
         """
-        # logger.info("# Ln-rebining the spectra ...")
+        logger.info("Ln-rebining the spectra")
 
-        # if self.sampling == "ln":
-        #     logger.warning("Spectra already in ln-lambda.")
-        #     return copy(self)
+        lamRange = [self.spectral_axis[0].value, self.spectral_axis[-1].value]
+        outshape = self.flux.shape
 
-        # out = copy(self)
-        # lamRange = [out.wave_init, out.wave_last]
-        # lspec, lwave, velscale = cap.log_rebin(
-        #     lamRange, out.spec[:, 0], velscale=velscale
-        # )
-        # out_spec = np.zeros((len(lspec), out.nspec))
-        # for i in range(out.nspec):
-        #     out_spec[:, i], lwave, velscale = cap.log_rebin(
-        #         lamRange, self.spec[:, i], velscale=velscale
-        #     )
-        #     if logger.getEffectiveLevel() <= logging.INFO:
-        #         misc.printProgress(i + 1, out.nspec)
+        # Call once just to know the correct output size
+        if velscale is not None:
+            lspec, lwave, velscale = log_rebin(
+                lamRange, np.empty(self.flux.shape[-1]), velscale=velscale, flux=False
+            )
+            outshape = self.flux.shape[:-1] + (len(lwave),)
 
-        # out.sampling = "ln"
-        # # out.update_basic_pars(lwave, out_spec)
+        outflux = np.empty(outshape)
+        for index in np.ndindex(outshape[:-1]):
+            lspec, lwave, velscale = log_rebin(
+                lamRange, self.flux[index].value, velscale=velscale, flux=False
+            )
+            s = slice(None)
+            outflux[index + (s,)] = lspec
 
-        # return out
+        # TODO: What about the LSF?
 
-    # -----------------------------------------------------------------------------
-    def log_unbin_spectra(self, flux=True):
+        return Spectra(
+            spectral_axis=u.Quantity(np.exp(lwave), unit=self.spectral_axis.unit),
+            flux=u.Quantity(outflux, unit=self.flux.unit),
+            meta=self.meta,
+        )
+
+    def log_unbin(self):
         """
         Returns a un-logbinned version of the spectra
-
-        Parameters
-        ----------
-        flux:
-            Flag to conserve flux or not. Default: True
 
         Returns
         -------
@@ -241,28 +207,22 @@ class Spectra(Spectrum1D):
             Object instance with linearly binned spectra and updated info
 
         """
+        logger.info("Unbin ln spectra")
 
-        # logger.info("# Unbin ln spectra ...")
+        lamRange = np.log([self.spectral_axis[0].value, self.spectral_axis[-1].value])
+        outflux = np.empty(self.flux.shape)
+        for index in np.ndindex(outflux.shape[:-1]):
+            lspec, lwave = log_unbinning(lamRange, self.flux[index].value, flux=True)
+            s = slice(None)
+            outflux[index + (s,)] = lspec
 
-        # if self.sampling == "lin":
-        #     logger.warning("Spectra already in linear lambda.")
-        #     return copy(self)
+        # TODO: What about the LSF?
 
-        # out = copy(self)
-        # lamRange = [out.wave_init, out.wave_last]
-        # spec, wave = cap.log_unbinning(lamRange, out.spec[:, 0])
-        # out_spec = np.zeros((len(spec), out.nspec))
-        # for i in range(out.nspec):
-        #     out_spec[:, i], wave = cap.log_unbinning(lamRange, self.spec[:, i])
-        #     if logger.getEffectiveLevel() <= logging.INFO:
-        #         misc.printProgress(i + 1, out.nspec)
-
-        # out.spec = out_spec
-        # out.wave = wave
-        # out.sampling = "lin"
-        # # out.update_basic_pars()
-
-        # return out
+        return Spectra(
+            spectral_axis=u.Quantity(lwave, unit=self.spectral_axis.unit),
+            flux=u.Quantity(outflux, unit=self.flux.unit),
+            meta=self.meta,
+        )
 
     # -----------------------------------------------------------------------------
     def convolve(self, lsf_wave=None, lsf=None, mode="FWHM"):
