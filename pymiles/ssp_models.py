@@ -486,7 +486,7 @@ class ssp_models(repository):
         if interp_fix_alpha:
             if nan_alpha:
                 alpha_mask = np.isnan(self.models.meta["alpha"])
-            elif alpha in self.avail_alphas:
+            elif alpha[0] in self.avail_alphas:
                 alpha_mask = np.equal(self.models.meta["alpha"], alpha[0])
             else:
                 # There is a single alpha in all the repository, so no need to mask
