@@ -7,6 +7,7 @@ import numpy as np
 from astropy import units as u
 from astropy.units import Quantity
 from scipy.spatial import Delaunay
+from specutils.manipulation import spectral_slab
 from tqdm import tqdm
 
 import pymiles.misc as misc
@@ -137,6 +138,11 @@ class ssp_models(repository):
     @property
     def models(self):
         return self._models
+
+    def trim(self, lower, upper):
+        trimmed = spectral_slab(self.models, lower, upper)
+        trimmed.meta = self.models.meta
+        self._models = trimmed
 
     def in_range(
         self,

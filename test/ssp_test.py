@@ -87,6 +87,12 @@ def test_ssp_interp_img(miles_ssp):
     return fig
 
 
+def test_ssp_trim(miles_ssp):
+    miles_ssp.trim(4000 * u.AA, 5000 * u.AA)
+    assert miles_ssp.models.spectral_axis.min() > 4000 * u.AA
+    assert miles_ssp.models.spectral_axis.max() < 5000 * u.AA
+
+
 def test_ssp_out_of_range(miles_ssp):
     with pytest.raises(ValueError):
         miles_ssp.in_range(age_lims=[25.0, 30.0], met_lims=[4, 5])
