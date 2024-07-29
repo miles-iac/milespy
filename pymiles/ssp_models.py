@@ -490,7 +490,7 @@ class ssp_models(repository):
             or nan_alpha
             or (single_alpha and alpha in self.avail_alphas)
         )
-        if self.fixed_alpha and alpha is not None:
+        if self.fixed_alpha and not nan_alpha:
             logger.warning("There is no alpha-enhanced SSPs with this model choice")
         interp_fix_alpha &= not ("alpha" in force_interp)
         if interp_fix_alpha:
