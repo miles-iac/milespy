@@ -126,13 +126,17 @@ class ssp_models(repository):
 
         f.close()
 
-        self.models = spectra(
+        self._models = spectra(
             spectral_axis=Quantity(wave, unit=u.AA),
             flux=Quantity(spec.T, unit=u.L_sun / u.M_sun / u.AA),
             meta=meta,
         )
 
         logger.info(source + " models loaded")
+
+    @property
+    def models(self):
+        return self._models
 
     def in_range(
         self,
