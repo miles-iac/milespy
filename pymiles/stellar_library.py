@@ -7,6 +7,7 @@ import numpy.typing as npt
 from astropy import units as u
 from astropy.units import Quantity
 from scipy.spatial import Delaunay
+from specutils.manipulation import spectral_slab
 from tqdm import tqdm
 
 import pymiles.misc as misc
@@ -19,7 +20,19 @@ logger = logging.getLogger("pymiles.lib")
 
 
 class stellar_library(repository):
-    # -----------------------------------------------------------------------------
+    """
+    Single stars library.
+
+    Attributes
+    ----------
+    models: spectra
+        Spectra of all the stars that form the loaded library
+    source: str
+        Name of input library being used
+    version: str
+        Version number of the library
+    """
+
     def __init__(self, source="MILES_STARS", version="9.1"):
         """
         Creates an instance of the class
@@ -92,13 +105,21 @@ class stellar_library(repository):
         self.index = meta["index"][idx]
         self.main_keys = list(self.__dict__.keys())
 
-        self.models = spectra(
+        self._models = spectra(
             spectral_axis=Quantity(wave, unit=u.AA),
             flux=Quantity(spec.T, unit=None),
             meta=meta,
         )
 
-    # -----------------------------------------------------------------------------
+    @property
+    def models(self):
+        return self._models
+
+    def trim(self, lower, upper):
+        trimmed = spectral_slab(self.models, lower, upper)
+        trimmed.meta = self.models.meta
+        self._models = trimmed
+
     def search_by_id(self, id=None):
         """
         Searches a star in database for a given ID

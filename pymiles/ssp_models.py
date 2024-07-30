@@ -31,6 +31,10 @@ class ssp_models(repository):
         Available alpha/Fe values in the loaded library
     avail_imfs: list
         Available initial mass function (IMF) slopes in the loaded library
+    source: str
+        Name of input models being used
+    version: str
+        Version number of the models
     """
 
     warnings.filterwarnings("ignore")
