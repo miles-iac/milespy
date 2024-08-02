@@ -93,6 +93,7 @@ tests:  ## Run tests
 	PYMILES_LOG=DEBUG poetry run pytest --html=test_results/report.html --self-contained-html --mpl --mpl-generate-summary=basic-html --mpl-results-path=test_results
 
 doc:
+	rm -rf _build
 	poetry run sphinx-build -W --keep-going -b html docs/ _build/
 
 release:

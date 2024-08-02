@@ -6,7 +6,7 @@
 Pymiles documentation
 ===================================
 
-Welcome to the documentation for pymiles - an python interface to the MILES
+Welcome to the documentation for pymiles - a python interface to the MILES
 stellar library and SSP models. [#f]_
 This package aims to provide users an easy interface to generate single stellar
 population (SSP) models, navigate the stellar library or generate a spectra given

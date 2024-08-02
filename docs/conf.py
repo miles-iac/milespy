@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "numpydoc",
     "nbsphinx",
+    "sphinx_gallery.load_style",
 ]
 
 autosummary_generate = True
