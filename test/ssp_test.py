@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 from astropy import units as u
 
-from pymiles.ssp_models import ssp_models as ssp
+from pymiles import SSPLibrary
 
 
 @pytest.mark.mpl_image_compare
 def test_ssp_interp_alpha():
     # This test reproduces Fig 10 of Vazdekis et al. 2015
-    miles_ssp = ssp(
+    miles_ssp = SSPLibrary(
         source="MILES_SSP",
         version="9.1",
         imf_type="bi",

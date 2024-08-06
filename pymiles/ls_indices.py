@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import ascii
 
-from pymiles import get_config_file
+from .configuration import get_config_file
 
 logger = logging.getLogger("pymiles.ls_indices")
 

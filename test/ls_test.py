@@ -3,7 +3,7 @@ import astropy.units as u
 import numpy as np
 
 import pymiles.ls_indices as lslib
-from pymiles.spectra import spectra
+from pymiles.spectra import Spectra
 
 
 def test_cube_ls(miles_single):
@@ -12,7 +12,7 @@ def test_cube_ls(miles_single):
     flux = u.Quantity(np.random.random((30, 30, 4300)), unit=u.L_sun / u.AA)
     flux[...] = miles_single.flux
 
-    cube = spectra(flux=flux, spectral_axis=wave)
+    cube = Spectra(flux=flux, spectral_axis=wave)
 
     names = lslib.search("Fe.*")
     indeces = lslib.get(names)

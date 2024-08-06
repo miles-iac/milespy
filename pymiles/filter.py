@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import ascii
 
-from pymiles import config_folder
-from pymiles import get_config_file
+from .configuration import config_folder
+from .configuration import get_config_file
 
 logger = logging.getLogger("pymiles.filter")
 

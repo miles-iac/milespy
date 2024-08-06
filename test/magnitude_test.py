@@ -4,7 +4,7 @@ import numpy as np
 
 import pymiles.filter as flib
 from pymiles.magnitudes import sun_magnitude
-from pymiles.spectra import spectra
+from pymiles.spectra import Spectra
 
 
 def test_solar_mags():
@@ -27,7 +27,7 @@ def test_cube_mags():
     wave = u.Quantity(np.linspace(3000.0, 7000.0, 100), unit=u.AA)
     flux = u.Quantity(np.random.random((30, 30, 100)), unit=u.L_sun / u.AA)
 
-    cube = spectra(flux=flux, spectral_axis=wave)
+    cube = Spectra(flux=flux, spectral_axis=wave)
 
     fnames = flib.search("sdss.r")
     filts = flib.get(fnames)

@@ -10,22 +10,21 @@ from scipy.spatial import Delaunay
 from specutils.manipulation import spectral_slab
 from tqdm import tqdm
 
-import pymiles.misc as misc
-from pymiles.repository import repository
-from pymiles.spectra import spectra
-
-# ==============================================================================
-
-logger = logging.getLogger("pymiles.lib")
+from .misc import interp_weights
+from .repository import Repository
+from .spectra import Spectra
 
 
-class stellar_library(repository):
+logger = logging.getLogger("pymiles.stellarlib")
+
+
+class StellarLibrary(Repository):
     """
     Single stars library.
 
     Attributes
     ----------
-    models: spectra
+    models: Spectra
         Spectra of all the stars that form the loaded library
     source: str
         Name of input library being used
@@ -105,7 +104,7 @@ class stellar_library(repository):
         self.index = meta["index"][idx]
         self.main_keys = list(self.__dict__.keys())
 
-        self._models = spectra(
+        self._models = Spectra(
             spectral_axis=Quantity(wave, unit=u.AA),
             flux=Quantity(spec.T, unit=None),
             meta=meta,
@@ -137,7 +136,7 @@ class stellar_library(repository):
 
         idx = self._id_to_idx(id)
 
-        out = spectra.__getitem__(self.models, idx)
+        out = Spectra.__getitem__(self.models, idx)
 
         return out
 
@@ -191,7 +190,7 @@ class stellar_library(repository):
 
         Returns
         -------
-        stellar_library
+        StellarLibrary
             Object instance for stars within parameters range
 
         """
@@ -217,7 +216,7 @@ class stellar_library(repository):
                 & (self.models.meta["MgFe"] <= MgFe_lims[1])
             )
 
-        out = spectra.__getitem__(self.models, idx)
+        out = Spectra.__getitem__(self.models, idx)
 
         return out
 
@@ -239,7 +238,7 @@ class stellar_library(repository):
 
         Returns
         -------
-        spectra
+        Spectra
             Spectrum from the closest star in the library.
 
         """
@@ -273,7 +272,7 @@ class stellar_library(repository):
 
         Returns
         -------
-        spectra
+        Spectra
             Interpolated spectrum.
             If closest == True, return the closest spectra from the repository,
             rather than doing the interpolation.
@@ -347,7 +346,7 @@ class stellar_library(repository):
                     [np.log10(teff[i]), logg[i], FeH[i], MgFe[i]], ndmin=2
                 )
 
-            vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
+            vtx, wts = interp_weights(self.params, input_pt, self.tri)
             vtx, wts = vtx.ravel(), wts.ravel()
 
             if logger.isEnabledFor(logging.DEBUG):
@@ -361,7 +360,7 @@ class stellar_library(repository):
 
             if closest:
                 if simplex and ninterp == 1:
-                    out = spectra.__getitem__(
+                    out = Spectra.__getitem__(
                         self.models, self.models.meta["index"][idx]
                     )
                     return out
@@ -376,9 +375,9 @@ class stellar_library(repository):
                         if k not in base_keys:
                             new_meta[k] = np.dot(self.models.meta[k][idx], wts)
         if closest:
-            out = spectra.__getitem__(self.models, closest_idx)
+            out = Spectra.__getitem__(self.models, closest_idx)
         else:
-            out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)
+            out = Spectra(spectral_axis=wave, flux=spec, meta=new_meta)
         # Select the first and only spectra so that the users does not need to
         # do this all the time, manually
         if ninterp == 1:

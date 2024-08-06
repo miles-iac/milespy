@@ -9,21 +9,21 @@ from astropy.io import ascii
 from scipy import interpolate
 from specutils import Spectrum1D
 
-from pymiles import get_config_file
-from pymiles.filter import Filter
-from pymiles.ls_indices import LineStrengthDict
-from pymiles.ls_indices import LineStrengthIndex
-from pymiles.ls_indices import lsindex
-from pymiles.magnitudes import compute_mags
-from pymiles.magnitudes import Magnitude
-from pymiles.magnitudes import sun_magnitude
+from .configuration import get_config_file
+from .filter import Filter
+from .ls_indices import LineStrengthDict
+from .ls_indices import LineStrengthIndex
+from .ls_indices import lsindex
+from .magnitudes import compute_mags
+from .magnitudes import Magnitude
+from .magnitudes import sun_magnitude
 
 # ==============================================================================
 
 logger = logging.getLogger("pymiles.spectra")
 
 
-class spectra(Spectrum1D):
+class Spectra(Spectrum1D):
     """
     Class for storing spectra in pymiles.
 
@@ -79,7 +79,7 @@ class spectra(Spectrum1D):
 
         Returns
         -------
-        spectra
+        Spectra
             Object instance with LSF info included
 
         """
@@ -165,11 +165,11 @@ class spectra(Spectrum1D):
 
         Returns
         -------
-        spectra
+        Spectra
             Object instance with spectra redshifted and updated info
 
         """
-        logger.info("# Redshifting spectra ...")
+        logger.info("Redshifting spectra ...")
 
         out = copy(self)
         wave = out.wave * (1.0 + redshift)
@@ -195,7 +195,7 @@ class spectra(Spectrum1D):
 
         Returns
         -------
-        spectra
+        Spectra
             Object instance with ln-rebinned spectra and updated info
 
         """
@@ -235,7 +235,7 @@ class spectra(Spectrum1D):
 
         Returns
         -------
-        spectra
+        Spectra
             Object instance with linearly binned spectra and updated info
 
         """
@@ -283,7 +283,7 @@ class spectra(Spectrum1D):
 
         Returns
         -------
-        spectra
+        Spectra
             Object instance with convolved spectra and updated info
 
         """
@@ -312,7 +312,7 @@ class spectra(Spectrum1D):
 
         out_spec = np.zeros_like(out.spec)
         for i in range(out.nspec):
-            out_spec[:, i] = spectra._gaussian_filter1d(out.spec[:, i], sigma)
+            out_spec[:, i] = Spectra._gaussian_filter1d(out.spec[:, i], sigma)
 
         out.spec = out_spec
 
@@ -356,7 +356,7 @@ class spectra(Spectrum1D):
 
         Returns
         -------
-        spectra
+        Spectra
             Object instance with tuned spectra and updated info
 
         """

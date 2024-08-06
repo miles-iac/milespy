@@ -6,8 +6,8 @@ import h5py
 import requests
 from tqdm import tqdm
 
-from pymiles import config
-from pymiles import def_repo_folder
+from .configuration import config
+from .configuration import def_repo_folder
 
 logger = logging.getLogger("pymiles.repository")
 
@@ -21,7 +21,7 @@ repository_url = {
 }
 
 
-class repository:
+class Repository:
     def _assert_repository_file(self, file_path):
         try:
             with h5py.File(file_path) as f:

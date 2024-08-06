@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from pymiles.stellar_library import stellar_library as stl
+from pymiles import StellarLibrary
 
 
 @pytest.fixture
 def lib():
-    return stl(source="MILES_STARS", version="9.1")
+    return StellarLibrary(source="MILES_STARS", version="9.1")
 
 
 def test_get_starname(lib):

@@ -4,17 +4,15 @@ import logging
 import numpy as np
 from scipy.integrate import simps
 
-import pymiles.misc as misc
-from pymiles.spectra import spectra
-from pymiles.ssp_models import ssp_models
+from . import SSPLibrary
+from .misc import interp_weights
+from .spectra import Spectra
 
-# from ipdb import set_trace as stop
-# ==============================================================================
 
 logger = logging.getLogger("pymiles.sfh")
 
 
-class sfh(ssp_models):
+class SFH(SSPLibrary):
     """
     Class for manipulating star formation histories (SFH) and create derived spectra
 
@@ -63,7 +61,7 @@ class sfh(ssp_models):
 
         Returns
         -------
-        sfh
+        SFH
             Object instance
 
         """
@@ -899,7 +897,7 @@ class sfh(ssp_models):
 
         Returns
         -------
-        spectra
+        Spectra
         """
 
         # We make an initial call to interpolate (ssp_model_class) to
@@ -950,7 +948,7 @@ class sfh(ssp_models):
                         ndmin=2,
                     )
 
-            vtx, wts = misc.interp_weights(self.params, input_pt, self.tri)
+            vtx, wts = interp_weights(self.params, input_pt, self.tri)
             vtx, wts = vtx.ravel(), wts.ravel()
 
             # Update quantities
@@ -968,7 +966,7 @@ class sfh(ssp_models):
                 * self.time_weights[t]
             )
 
-        return spectra(
+        return Spectra(
             spectral_axis=self.models.spectral_axis, flux=ospec, meta=new_meta
         )
 

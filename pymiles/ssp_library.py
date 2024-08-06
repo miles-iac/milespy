@@ -10,14 +10,14 @@ from scipy.spatial import Delaunay
 from specutils.manipulation import spectral_slab
 from tqdm import tqdm
 
-import pymiles.misc as misc
-from pymiles.repository import repository
-from pymiles.spectra import spectra
+from .misc import interp_weights
+from .repository import Repository
+from .spectra import Spectra
 
 logger = logging.getLogger("pymiles.ssp")
 
 
-class ssp_models(repository):
+class SSPLibrary(Repository):
     """
     Single stellar population (SSP) model library.
 
@@ -25,7 +25,7 @@ class ssp_models(repository):
 
     Attributes
     ----------
-    models: spectra
+    models: Spectra
         Spectra of all the SSP that form the loaded library
     avail_alphas: list
         Available alpha/Fe values in the loaded library
@@ -71,7 +71,7 @@ class ssp_models(repository):
 
         Returns
         -------
-        ssp_models
+        SSPLibrary
 
         """
         repo_filename = self._get_repository(source, version)
@@ -131,7 +131,7 @@ class ssp_models(repository):
 
         f.close()
 
-        self._models = spectra(
+        self._models = Spectra(
             spectral_axis=Quantity(wave, unit=u.AA),
             flux=Quantity(spec.T, unit=u.L_sun / u.M_sun / u.AA),
             meta=meta,
@@ -155,7 +155,7 @@ class ssp_models(repository):
         alpha_lims=None,
         imf_slope_lims=[0.0, 5.0],
         mass=Quantity(value=1.0, unit=u.Msun),
-    ) -> spectra:
+    ) -> Spectra:
         """
         Extracts all SSP models within selected limits
 
@@ -179,7 +179,7 @@ class ssp_models(repository):
 
         Returns
         -------
-        spectra
+        Spectra
             Spectra in the selected ranges
 
         """
@@ -213,13 +213,13 @@ class ssp_models(repository):
         if ncases == 0:
             raise ValueError("No matching SSPs")
 
-        out = spectra.__getitem__(self.models, idx)._assign_mass(mass)
+        out = Spectra.__getitem__(self.models, idx)._assign_mass(mass)
 
         return out
 
     def in_list(
         self, age=None, met=None, alpha=None, imf_slope=None, mass=None
-    ) -> spectra:
+    ) -> Spectra:
         """
         Extracts a selected set of models available from the library.
 
@@ -254,7 +254,7 @@ class ssp_models(repository):
 
         Returns
         -------
-        spectra
+        Spectra
 
         """
         if alpha is not None and self.fixed_alpha:
@@ -325,7 +325,7 @@ class ssp_models(repository):
                     f"Asked for {ncases} SSPs, but found only {ngood} matching ones"
                 )
 
-        out = spectra.__getitem__(self.models, good)._assign_mass(mass)
+        out = Spectra.__getitem__(self.models, good)._assign_mass(mass)
 
         return out
 
@@ -336,7 +336,7 @@ class ssp_models(repository):
         alpha=None,
         imf_slope=None,
         mass=Quantity(value=1.0, unit=u.Msun),
-    ) -> spectra:
+    ) -> Spectra:
         """
         Retrieve the closest SSP avaiable in the library
 
@@ -355,7 +355,7 @@ class ssp_models(repository):
 
         Returns
         -------
-        spectra
+        Spectra
             Closest spectra from the repository.
 
         Raises
@@ -379,7 +379,7 @@ class ssp_models(repository):
         closest=False,
         simplex=False,
         force_interp=[],
-    ) -> spectra:
+    ) -> Spectra:
         """
         Interpolates SSP models for certain parameters using Delaunay triangulation
 
@@ -410,7 +410,7 @@ class ssp_models(repository):
 
         Returns
         -------
-        spectra
+        Spectra
             Interpolated spectrum.
             If closest == True, return the closest spectra from the repository,
             rather than doing the interpolation.
@@ -569,7 +569,7 @@ class ssp_models(repository):
             if not interp_fix_alpha:
                 input_pt.append(alpha[i])
 
-            vtx, wts = misc.interp_weights(
+            vtx, wts = interp_weights(
                 self.params, np.array(input_pt, ndmin=2), self.tri
             )
             vtx, wts = vtx.ravel(), wts.ravel()
@@ -583,7 +583,7 @@ class ssp_models(repository):
 
             if closest:
                 if simplex and ninterp == 1:
-                    out = spectra.__getitem__(
+                    out = Spectra.__getitem__(
                         self.models, self.models.meta["index"][idx][vtx]
                     )._assign_mass(mass)
                     return out
@@ -600,9 +600,9 @@ class ssp_models(repository):
                             new_meta[k][i] = np.dot(self.models.meta[k][idx][vtx], wts)
 
         if closest:
-            out = spectra.__getitem__(self.models, closest_idx)._assign_mass(mass)
+            out = Spectra.__getitem__(self.models, closest_idx)._assign_mass(mass)
         else:
-            out = spectra(spectral_axis=wave, flux=spec, meta=new_meta)._assign_mass(
+            out = Spectra(spectral_axis=wave, flux=spec, meta=new_meta)._assign_mass(
                 mass
             )
 

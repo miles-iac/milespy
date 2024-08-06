@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from pymiles.ssp_models import ssp_models as ssp
+from pymiles import SSPLibrary
 
 
 @pytest.fixture
 def miles_ssp():
-    return ssp(
+    return SSPLibrary(
         source="MILES_SSP",
         version="9.1",
         imf_type="bi",

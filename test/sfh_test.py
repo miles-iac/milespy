@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pymiles.filter as flib
-from pymiles.sfh import sfh as SFH
+from pymiles import SFH
 
 
 @pytest.fixture

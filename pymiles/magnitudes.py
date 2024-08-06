@@ -9,8 +9,8 @@ from astropy.io import fits
 from astropy.units import Quantity
 from scipy.interpolate import interp1d
 
-from pymiles import get_config_file
-from pymiles.filter import Filter
+from .configuration import get_config_file
+from .filter import Filter
 
 logger = logging.getLogger("pymiles.magnitudes")
 
