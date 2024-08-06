@@ -19,20 +19,16 @@ the possibilities of the package. Then, navigate to the :doc:`installation` inst
 to start using the code. Lastly, during your development process the :doc:`reference/index`
 may be the best resource.
 
-.. [#f] See [V10]_ and others (TO BE FILLED)
-.. [V10] `Vazdekis et al. 2010; Evolutionary stellar population synthesis with MILES – I. The base models and a new line index system <https://academic.oup.com/mnras/article/404/4/1639/1080511>`_
 
 .. toctree::
    :maxdepth: 2
 
    Installation <installation>
    Tutorials & examples <tutorials/index>
+   Configuration <configuration>
    Reference <reference/index>
 
 
-Indices and tables
-==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. [#f] See [V10]_ and others (TO BE FILLED)
+.. [V10] `Vazdekis et al. 2010; Evolutionary stellar population synthesis with MILES – I. The base models and a new line index system <https://academic.oup.com/mnras/article/404/4/1639/1080511>`_
