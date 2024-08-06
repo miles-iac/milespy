@@ -10,13 +10,6 @@ The reference documentation for pymiles is largely generated automatically
 from the source code. It is split into the following sections:
 
 
-Spectra manipulation
-^^^^^^^^^^^^^^^^^^^^
-.. autosummary::
-   :toctree: _autosummary
-   :recursive:
-
-   pymiles.spectra
 
 Stellar spectra library
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -24,7 +17,7 @@ Stellar spectra library
    :toctree: _autosummary
    :recursive:
 
-   pymiles.stellar_library
+   pymiles.stellar_library.StellarLibrary
 
 SSP models
 ^^^^^^^^^^
@@ -32,7 +25,7 @@ SSP models
    :toctree: _autosummary
    :recursive:
 
-   pymiles.ssp_models
+   pymiles.ssp_library.SSPLibrary
 
 SFH analysis
 ^^^^^^^^^^^^
@@ -40,7 +33,16 @@ SFH analysis
    :toctree: _autosummary
    :recursive:
 
-   pymiles.sfh
+   pymiles.sfh.SFH
+
+
+Spectra manipulation
+^^^^^^^^^^^^^^^^^^^^
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   pymiles.spectra.Spectra
 
 Other tools
 ^^^^^^^^^^^
