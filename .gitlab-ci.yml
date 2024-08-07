@@ -19,7 +19,7 @@ test:
       - test_results/
   parallel:
     matrix:
-      - VERSION: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
+      - VERSION: ['3.8', '3.9', '3.10', '3.11', '3.12']
 
 build-doc:
   image: python:3.10
