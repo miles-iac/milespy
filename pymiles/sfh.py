@@ -2,7 +2,7 @@
 import logging
 
 import numpy as np
-from scipy.integrate import simps
+from scipy.integrate import simpson
 
 from . import SSPLibrary
 from .misc import interp_weights
@@ -228,7 +228,7 @@ class SFH(SSPLibrary):
         self.sfr = np.zeros_like(self.time)
         self.sfr[(self.time <= start) & (self.time >= end)] = 1
         # Normalization to form 1 Msun
-        norm = simps(self.sfr, self.time)
+        norm = simpson(self.sfr, x=self.time)
         self.sfr = self.sfr / norm
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
@@ -282,7 +282,7 @@ class SFH(SSPLibrary):
             -(start - self.time[(self.time <= start)]) / tau
         )
         # Normalization to form 1 Msun
-        norm = simps(self.sfr, self.time)
+        norm = simpson(self.sfr, x=self.time)
         self.sfr = self.sfr / norm
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
@@ -337,7 +337,7 @@ class SFH(SSPLibrary):
             start - self.time[(self.time <= start)]
         ) * np.exp(-(start - self.time[(self.time <= start)]) / tau)
         # Normalization to form 1 Msun
-        norm = simps(self.sfr, self.time)
+        norm = simpson(self.sfr, x=self.time)
         self.sfr = self.sfr / norm
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
@@ -397,7 +397,7 @@ class SFH(SSPLibrary):
         self.sfr = np.zeros_like(self.time)
         self.sfr = (1 / tn) * np.exp(-((np.log(tn) - Tc) ** 2) / (2.0 * tau**2))
         # Normalization to form 1 Msun
-        norm = simps(self.sfr, self.time)
+        norm = simpson(self.sfr, x=self.time)
         self.sfr = self.sfr / norm
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
@@ -455,7 +455,7 @@ class SFH(SSPLibrary):
         self.sfr = np.zeros_like(self.time)
         self.sfr = ((tn / tau) ** a + (tn / tau) ** -b) ** -1
         # Normalization to form 1 Msun
-        norm = simps(self.sfr, self.time)
+        norm = simpson(self.sfr, x=self.time)
         self.sfr = self.sfr / norm
         # Mass-weights
         dt = self.time - np.roll(self.time, 1)
@@ -594,7 +594,7 @@ class SFH(SSPLibrary):
         self.time_weights = self.time_weights / np.sum(self.time_weights)
         self.sfr = self.time_weights / dt
         # Normalization to form 1 Msun
-        norm = simps(self.sfr, self.time)
+        norm = simpson(self.sfr, x=self.time)
         self.sfr = self.sfr / norm
 
         # Make sure everything is within the allowed range of models
@@ -1022,5 +1022,5 @@ class SFH(SSPLibrary):
 
         # Normalization to form 1 Msun
         self.time_weights = self.time_weights / np.sum(self.time_weights)
-        norm = simps(self.sfr, self.time)
+        norm = simpson(self.sfr, x=self.time)
         self.sfr = self.sfr / norm
