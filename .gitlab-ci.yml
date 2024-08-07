@@ -1,10 +1,10 @@
-image: python:3.10
 
 stages:
   - test
   - build
 
 test:
+  image: "python:$VERSION"
   stage: test
   script:
     - apt -y update
@@ -17,8 +17,12 @@ test:
     when: always
     paths:
       - test_results/
+  parallel:
+    matrix:
+      - VERSION: ['3.9', '3.10']
 
 build-doc:
+  image: python:3.10
   stage: build
   script:
     - apt -y update
