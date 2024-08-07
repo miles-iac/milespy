@@ -2,6 +2,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+import scipy
+from packaging.version import Version
 
 import pymiles.filter as flib
 from pymiles import SFH
@@ -33,6 +35,10 @@ def sfh():
 
 
 @pytest.mark.mpl_image_compare
+@pytest.mark.skipif(
+    Version(scipy.__version__) < Version("1.11"),
+    reason="scipy.integrate.simpson results change",
+)
 def test_sfh_img(sfh):
     fig, ax = plt.subplots()
     ax.plot(sfh.time, sfh.imf_evol, label="IMF slope")
