@@ -40,6 +40,8 @@ def test_sfh_img(sfh):
     ax.plot(sfh.time, sfh.sfr * 10, label="SFR (scaled)")
     ax.set_xlabel("Look-back time")
     ax.legend()
+    ax.set_xlim(0, 14)
+    ax.set_ylim(-3, 6)
     return fig
 
 
