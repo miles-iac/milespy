@@ -37,8 +37,8 @@ jobs:
     - uses: actions/cache@v3
       name: Cache for the virtual environment
       with:
-        path: ./.venv
-        key: venv-${{ hashFiles('poetry.lock') }}
+        path: ./.pymiles
+        key: pymiles-${{ hashFiles('poetry.lock') }}
     - run: make install-dev
     - run: PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests
     - uses: actions/upload-artifact@v4.1.0
