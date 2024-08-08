@@ -28,7 +28,7 @@ jobs:
         lfs: true
     - run: pip install poetry && poetry config virtualenvs.create false
     - run: make prepare-dev
-    - run: source .pymiles
+    - run: . .pymiles
     - run: make install-dev
     - run: PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests
     - uses: actions/upload-artifact@v4.1.0
@@ -51,7 +51,7 @@ jobs:
     - uses: actions/download-artifact@v4.1.0
     - run: pip install poetry && poetry config virtualenvs.create false
     - run: make prepare-dev
-    - run: source .pymiles
+    - run: . .pymiles
     - run: make install-dev
     - run: poetry run pip install jupyter
     - run: make doc
