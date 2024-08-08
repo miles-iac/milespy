@@ -20,7 +20,7 @@ jobs:
         - '3.11'
         - '3.12'
     steps:
-    - run: apt -y update && apt-get -y install git-lfs
+    - run: sudo apt -y update && sudo apt-get -y install git-lfs
     - uses: actions/checkout@v4.1.0
       with:
         fetch-depth: 50
