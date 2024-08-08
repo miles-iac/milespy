@@ -1,22 +1,30 @@
 # pymiles
 
-## Configuration
+![Action badge](https://github.com/pymiles/pymiles/actions/workflows/pymiles-dev.yml/badge.svg)
 
-The following configuration options are available in `pymiles`:
+pymiles is a python interface to the [MILES](http://miles.iac.es>) stellar
+library and SSP models.  This package aims to provide users an easy interface
+to generate single stellar population (SSP) models, navigate the stellar
+library or generate a spectra given an input star formation history (SFH),
+among other things.  We try to make this package compatible with previously
+existing tools, namely [astropy](https://www.astropy.org/) and
+[specutils](https://specutils.readthedocs.io).
 
- * `auto_download`: do not ask for user confirmation for downloading missing repositories.
- * `repository_folder`: folder where the repositories will be searched and downloaded.
+## Getting started
 
-You can change them by creating a configuration file in any of the following locations
-(in order increasing priority):
- * /etc/pymiles/config
- * /etc/pymilesrc
- * ~/.config/pymiles/config
- * ~/.config/pymiles
- * ~/.pymiles/config
- * ~/.pymilesrc
- * .pymilesrc
+In a standard python installation using pip as the package manager, just do:
 
-Or by setting the environment variable `PYMILES_VAR`, where `VAR` is the configuration
-option in upper case.
-For example `PYMILES_AUTO_DOWNLOAD=1`.
+```bash
+python3 -m pip install pymiles
+```
+
+If you are installing from source, after cloning this repository, install it with:
+
+```bash
+python3 -m pip install .
+```
+
+## Support
+
+If you find bugs or have feature suggestions, please submit an
+[issue](https://github.com/pymiles/pymiles/issues) to this repository.
