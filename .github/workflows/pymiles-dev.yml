@@ -21,6 +21,10 @@ jobs:
         - '3.12'
     steps:
     - run: sudo apt -y update && sudo apt-get -y install git-lfs
+    - uses: actions/checkout@v4.1.0
+      with:
+        fetch-depth: 50
+        lfs: true
     - name: Setup the environment
       uses: ./.github/actions/setup
       with:
@@ -39,6 +43,10 @@ jobs:
     timeout-minutes: 60
     steps:
     - run: apt -y update && apt-get -y install pandoc git-lfs
+    - uses: actions/checkout@v4.1.0
+      with:
+        fetch-depth: 50
+        lfs: true
     - name: Setup the environment
       uses: ./.github/actions/setup
     - run: poetry run pip install jupyter

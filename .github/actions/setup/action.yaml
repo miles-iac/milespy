@@ -7,10 +7,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4.1.0
-      with:
-        fetch-depth: 50
-        lfs: true
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
