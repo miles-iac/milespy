@@ -1,0 +1,21 @@
+name: 'Setup environment'
+inputs:
+  python-version:
+    required: true
+    default: '3.10'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install poetry
+      uses: abatilo/actions-poetry@v2
+    - name: Setup local environment
+      shell: bash
+      run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+    - run: make install-dev
+      shell: bash
