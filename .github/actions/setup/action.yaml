@@ -13,6 +13,7 @@ runs:
     - name: Install poetry
       uses: abatilo/actions-poetry@v2
     - name: Setup local environment
+      shell: bash
       run: |
           poetry config virtualenvs.create true --local
           poetry config virtualenvs.in-project true --local
@@ -22,3 +23,4 @@ runs:
         path: ./.pymiles
         key: pymiles-${{ hashFiles('poetry.lock') }}
     - run: make install-dev
+      shell: bash
