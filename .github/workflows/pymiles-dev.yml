@@ -6,15 +6,14 @@ on:
 concurrency:
   group: "${{ github.ref }}"
   cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ubuntu-latest
-    container:
-      image: python:${{ matrix.VERSION }}
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
     strategy:
       matrix:
-        VERSION:
+        python-version:
         - '3.8'
         - '3.9'
         - '3.10'
@@ -26,9 +25,20 @@ jobs:
       with:
         fetch-depth: 50
         lfs: true
-    - run: pip install poetry && poetry config virtualenvs.create false
-    - run: make prepare-dev
-    - run: . .pymiles
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install poetry
+      uses: abatilo/actions-poetry@v2
+    - name: Setup local environment
+      run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+    - uses: actions/cache@v3
+      name: Cache for the virtual environment
+      with:
+        path: ./.venv
+        key: venv-${{ hashFiles('poetry.lock') }}
     - run: make install-dev
     - run: PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests
     - uses: actions/upload-artifact@v4.1.0
@@ -38,7 +48,7 @@ jobs:
         path: test_results/
   build-doc:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: python:3.10
     timeout-minutes: 60
