@@ -17,10 +17,5 @@ runs:
       run: |
           poetry config virtualenvs.create true --local
           poetry config virtualenvs.in-project true --local
-    - uses: actions/cache@v4
-      name: Cache for the virtual environment
-      with:
-        path: ./.pymiles
-        key: pymiles-${{ hashFiles('poetry.lock') }}
     - run: make install-dev
       shell: bash
