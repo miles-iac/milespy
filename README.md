@@ -2,7 +2,7 @@
 
 ![Action badge](https://github.com/pymiles/pymiles/actions/workflows/pymiles-dev.yml/badge.svg)
 
-pymiles is a python interface to the [MILES](http://miles.iac.es>) stellar
+pymiles is a python interface to the [MILES](http://miles.iac.es) stellar
 library and SSP models.  This package aims to provide users an easy interface
 to generate single stellar population (SSP) models, navigate the stellar
 library or generate a spectra given an input star formation history (SFH),
