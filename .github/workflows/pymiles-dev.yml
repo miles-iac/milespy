@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
-    - run: apt -y update && apt-get -y install pandoc git-lfs
+    - run: sudo apt -y update && sudo apt-get -y install pandoc git-lfs
     - uses: actions/checkout@v4.1.0
       with:
         fetch-depth: 50
