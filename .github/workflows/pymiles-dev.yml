@@ -9,7 +9,6 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-22.04
-    timeout-minutes: 60
     if: ${{ ! contains(github.event.head_commit.message, '[docs only]') }}
     strategy:
       matrix:
@@ -20,11 +19,8 @@ jobs:
         - '3.11'
         - '3.12'
     steps:
-    - run: sudo apt -y update && sudo apt-get -y install git-lfs
-    - uses: actions/checkout@v4.1.0
-      with:
-        fetch-depth: 50
-        lfs: true
+    - run: sudo apt -y update
+    - uses: actions/checkout@v4
     - name: Setup the environment
       uses: ./.github/actions/setup
       with:
@@ -37,15 +33,13 @@ jobs:
       with:
         name: "${{ github.job }}-python${{ matrix.python-version }}"
         path: test_results/
+
+
   build-doc:
     runs-on: ubuntu-22.04
-    timeout-minutes: 60
     steps:
-    - run: sudo apt -y update && sudo apt-get -y install pandoc git-lfs
-    - uses: actions/checkout@v4.1.0
-      with:
-        fetch-depth: 50
-        lfs: true
+    - run: sudo apt -y update && sudo apt-get -y install pandoc
+    - uses: actions/checkout@v4
     - name: Setup the environment
       uses: ./.github/actions/setup
     - run: poetry run pip install jupyter
