@@ -38,7 +38,6 @@ jobs:
         name: "${{ github.job }}-python${{ matrix.python-version }}"
         path: test_results/
   build-doc:
-    needs: test
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
