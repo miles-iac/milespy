@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pytest
 
 
+@pytest.mark.skip(reason="logrebin is NotImplemented")
 @pytest.mark.mpl_image_compare
 def test_logrebin(miles_single):
     s0 = miles_single
@@ -20,6 +21,8 @@ def test_logrebin(miles_single):
     return f
 
 
+@pytest.mark.skip(reason="logrebin is NotImplemented")
+@pytest.mark.mpl_image_compare
 def test_logrebin_cube(miles_cube):
     cube2 = miles_cube.log_rebin()
     _ = cube2.log_unbin()

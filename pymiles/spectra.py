@@ -160,6 +160,11 @@ class Spectra(Spectrum1D):
         """
         Returns a logrebinned version of the spectra
 
+        Notes
+        -----
+        Currently this functions is not supported and will raise a
+        `NotImplementedError`
+
         Parameters
         ----------
         velscale:
@@ -169,6 +174,7 @@ class Spectra(Spectrum1D):
         -------
         Spectra
         """
+        raise NotImplementedError
         logger.info("Ln-rebining the spectra")
 
         lamRange = [self.spectral_axis[0].value, self.spectral_axis[-1].value]
@@ -201,12 +207,18 @@ class Spectra(Spectrum1D):
         """
         Returns a un-logbinned version of the spectra
 
+        Notes
+        -----
+        Currently this functions is not supported and will raise a
+        `NotImplementedError`
+
         Returns
         -------
         Spectra
             Object instance with linearly binned spectra and updated info
 
         """
+        raise NotImplementedError
         logger.info("Unbin ln spectra")
 
         lamRange = np.log([self.spectral_axis[0].value, self.spectral_axis[-1].value])
