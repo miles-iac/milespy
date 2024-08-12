@@ -50,13 +50,13 @@ class LineStrengthIndex:
 
             self.name = name
             self.bands = np.zeros(7)
-            self.bands[0] = tab["b1"][idx]
-            self.bands[1] = tab["b2"][idx]
-            self.bands[2] = tab["b3"][idx]
-            self.bands[3] = tab["b4"][idx]
-            self.bands[4] = tab["b5"][idx]
-            self.bands[5] = tab["b6"][idx]
-            self.bands[6] = tab["b7"][idx]
+            self.bands[0] = tab["b1"][idx][0][0]
+            self.bands[1] = tab["b2"][idx][0][0]
+            self.bands[2] = tab["b3"][idx][0][0]
+            self.bands[3] = tab["b4"][idx][0][0]
+            self.bands[4] = tab["b5"][idx][0][0]
+            self.bands[5] = tab["b6"][idx][0][0]
+            self.bands[6] = tab["b7"][idx][0][0]
         else:
             raise ValueError(f"The index {name} is not on the database")
 
