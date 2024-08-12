@@ -5,11 +5,13 @@ import warnings
 import h5py
 import numpy as np
 from astropy import units as u
+from astropy.io import ascii
 from astropy.units import Quantity
 from scipy.spatial import Delaunay
 from specutils.manipulation import spectral_slab
 from tqdm import tqdm
 
+from .configuration import get_config_file
 from .misc import interp_weights
 from .repository import Repository
 from .spectra import Spectra
@@ -38,6 +40,8 @@ class SSPLibrary(Repository):
     """
 
     warnings.filterwarnings("ignore")
+
+    emiles_lsf = get_config_file("EMILES.lsf")
 
     # -----------------------------------------------------------------------------
     def __init__(
@@ -136,6 +140,10 @@ class SSPLibrary(Repository):
             flux=Quantity(spec.T, unit=u.L_sun / u.M_sun / u.AA),
             meta=meta,
         )
+
+        lsf_wave, lsf_fhwm = self._compute_lsf(source)
+        self._models.meta["lsf_wave"] = lsf_wave
+        self._models.meta["lsf_fwhm"] = lsf_fhwm
 
         logger.info(source + " models loaded")
 
@@ -547,6 +555,8 @@ class SSPLibrary(Repository):
                 "imf_type": np.full(ninterp, self.models.meta["imf_type"][0]),
                 "met": met,
                 "age": age,
+                "lsf_wave": self.models.meta["lsf_wave"],
+                "lsf_fwhm": self.models.meta["lsf_fwhm"],
             }
             if interp_fix_alpha:
                 new_meta["alpha"] = np.full(ninterp, alpha)
@@ -609,6 +619,48 @@ class SSPLibrary(Repository):
         # Select the first and only spectra so that the users does not need to
         # do this all the time, manually
         if ninterp == 1:
-            return out[0]
+            out = out[0]
+
+        return out
+
+    def _compute_lsf(self, source):
+        # This information could be given in the repository files!
+        """
+        Returns the line-spread function (LSF) given a source
+
+        Returns
+        -------
+        lsf_wave: Quantity
+            Wavelenghts of the LSF
+        lsf_fwhm: Quantity
+            Value of the LSF in terms of full-width half-maximum
+        """
+
+        lsf_wave = self.models.spectral_axis
+        npix = self.models.npix
+        if source == "MILES_SSP":
+            lsf_fwhm = 2.51 * np.ones(npix)
+
+        elif source == "MILES_STARS":
+            lsf_fwhm = 2.50 * np.ones(npix)
+
+        elif source == "CaT_SSP":
+            lsf_fwhm = 1.50 * np.ones(npix)
+
+        elif source == "CaT_STARS":
+            lsf_fwhm = 1.50 * np.ones(npix)
+
+        elif source == "EMILES_SSP":
+            tab = ascii.read(self.emiles_lsf)
+            wave = tab["col1"]
+            fwhm = tab["col2"]
+            lsf_fwhm = np.interp(lsf_wave.to_value(u.AA), wave, fwhm)
+
         else:
-            return out
+            raise ValueError(
+                self.source
+                + " is not a valid entry."
+                + "Allowed values: MILES_SSP/MILES_STARS/CaT_SSP/CaT_STARS/EMILES"
+            )
+
+        return lsf_wave, lsf_fwhm * u.AA

@@ -70,7 +70,7 @@ def test_search_closest_img(lib):
     fig, ax = plt.subplots()
     tmp = lib.closest(teff=5000.0, logg=3.0, FeH=0.0, MgFe=0.0)
     ax.plot(tmp.spectral_axis, tmp.flux)
-    ax.set_title(tmp.meta["starname"][0])
+    ax.set_title(tmp.meta["starname"])
     return fig
 
 

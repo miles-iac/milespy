@@ -914,7 +914,10 @@ class SFH(SSPLibrary):
         uimf_slope = np.unique(self.models.meta["imf_slope"])
         nimf_slope = len(uimf_slope)
         ospec = np.zeros(self.models.npix)
-        new_meta = {}
+        new_meta = {
+            "lsf_wave": self.models.meta["lsf_wave"],
+            "lsf_fwhm": self.models.meta["lsf_fwhm"],
+        }
         for k in self.models.meta.keys():
             if len(self.models.meta[k]) > 1:
                 # Skip the interpolation of string data, e.g., filenames
@@ -953,7 +956,7 @@ class SFH(SSPLibrary):
 
             # Update quantities
             for k in new_meta.keys():
-                if len(self.models.meta[k]) > 1:
+                if len(self.models.meta[k]) == self.models.nspec:
                     new_meta[k] += (
                         np.dot(self.models.meta[k][self.idx][vtx], wts)
                         * self.time_weights[t]

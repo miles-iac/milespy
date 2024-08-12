@@ -78,8 +78,8 @@ def test_ssp_interp_img(miles_ssp):
         miles_1.flux,
         alpha=0.5,
         c="k",
-        label=f"Interpolated (age={miles_1.meta['age'][0]}, "
-        f"met={miles_1.meta['met'][0]})",
+        label=f"Interpolated (age={miles_1.meta['age']}, "
+        f"met={miles_1.meta['met']})",
     )
     ax.legend(loc=0)
     ax.set_xlim(3500, 7500)

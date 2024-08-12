@@ -8,8 +8,6 @@ from copy import copy
 
 import numpy as np
 from astropy import units as u
-from astropy.io import ascii
-from scipy import interpolate
 from specutils import Spectrum1D
 
 from .configuration import get_config_file
@@ -46,7 +44,6 @@ class Spectra(Spectrum1D):
     warnings.filterwarnings("ignore")
 
     solar_ref_spec = get_config_file("sun_mod_001.fits")
-    emiles_lsf = get_config_file("EMILES.lsf")
 
     @property
     def npix(self):
@@ -70,61 +67,13 @@ class Spectra(Spectrum1D):
         out = super().__getitem__(item)
         for k in out.meta.keys():
             try:
-                if len(out.meta[k]) > 1:
+                if len(out.meta[k]) == self.nspec:
                     out.meta[k] = out.meta[k][item]
+                else:
+                    out.meta[k] = self.meta[k]
             except TypeError:
                 pass
         return out
-
-    # -----------------------------------------------------------------------------
-    def compute_lsf(self):
-        # This information could be given in the repository files!
-        """
-        Returns the line-spread function (LSF) given a source and wavelength from self
-
-        Returns
-        -------
-        Spectra
-            Object instance with LSF info included
-
-        """
-
-        cvel = 299792.458
-        self.lsf_wave = self.wave
-        if self.source == "MILES_SSP":
-            self.lsf_fwhm = 2.51 * np.ones(self.npix)
-            self.lsf_vdisp = cvel * (self.lsf_fwhm / 2.355) / self.wave
-
-        elif self.source == "MILES_STARS":
-            self.lsf_fwhm = 2.50 * np.ones(self.npix)
-            self.lsf_vdisp = cvel * (self.lsf_fwhm / 2.355) / self.wave
-
-        elif self.source == "CaT_SSP":
-            self.lsf_fwhm = 1.50 * np.ones(self.npix)
-            self.lsf_vdisp = cvel * (self.lsf_fwhm / 2.355) / self.wave
-
-        elif self.source == "CaT_STARS":
-            self.lsf_fwhm = 1.50 * np.ones(self.npix)
-            self.lsf_vdisp = cvel * (self.lsf_fwhm / 2.355) / self.wave
-
-        elif self.source == "EMILES_SSP":
-            tab = ascii.read(self.emiles_lsf)
-            wave = tab["col1"]
-            fwhm = tab["col2"]
-            sigma = tab["col3"]
-            f_fwhm = interpolate.interp1d(wave, fwhm)
-            f_vdisp = interpolate.interp1d(wave, sigma)
-            self.lsf_fwhm = f_fwhm(self.wave)
-            self.lsf_vdisp = f_vdisp(self.wave)
-
-        else:
-            raise ValueError(
-                self.source
-                + " is not a valid entry."
-                + "Allowed values: MILES_SSP/MILES_STARS/CaT_SSP/CaT_STARS/EMILES"
-            )
-
-        return
 
     def redshift_spectra(self, redshift=None):
         # This may still be required because it also changes the LSF
@@ -146,13 +95,11 @@ class Spectra(Spectrum1D):
         logger.info("Redshifting spectra ...")
 
         out = copy(self)
-        wave = out.wave * (1.0 + redshift)
+        # wave = out.wave * (1.0 + redshift)
         # spec = out.spec / (1.0 + redshift)
         # out.update_basic_pars(wave, spec)
         out.redshift = redshift
-        out.lsf_wave = wave
         out.lsf_fwhm = out.lsf_fwhm / (1.0 + redshift)
-        out.lsf_vdisp = out.lsf_vdisp / (1.0 + redshift)
 
         return out
 
@@ -236,60 +183,71 @@ class Spectra(Spectrum1D):
             meta=self.meta,
         )
 
-    # -----------------------------------------------------------------------------
-    def convolve(self, lsf_wave=None, lsf=None, mode="FWHM"):
+    def convolve(self, lsf: u.Quantity = u.Quantity(1, unit=u.AA), lsf_wave=None):
         """
-        Returns a convolved version of the spectra
+        Returns a convolved version of the spectra. It does the convolution
+        using the FWHM given in the input line spread function (LSF).
 
         Notes
         -----
-        this assumes SAMPLING='lin'
-        If output LSF < input LSF setting bad values to input LSF
+        If output LSF < input LSF the sigma used for the convolution is set to
+        very small values.
 
         Parameters
         ----------
-        lsf_wave:
-            Wavelength vector of output LSF
-        lsf:
-            LSF vector
-        mode:
-            FWHM/VDISP. First one in Angstroms. Second one in km/s
+        lsf: `~astropy.units.Quantity`
+            Line spread function as a function of `lsf_wave`. This is the
+            FWMH to be used in the convolution, thus, should be provide in units
+            of wavelength. It accepts a scalar value, that is assumend constant
+            for all wavelenghts.
+        lsf_wave: `~astropy.units.Quantity`
+            Associated wavelenghts to the values of `lsf`.
 
         Returns
         -------
         Spectra
-            Object instance with convolved spectra and updated info
+            Object instance with convolved spectra
 
         """
 
-        logger.info("# Convolving spectra ...")
+        logger.info("Convolving spectra")
 
-        out = copy(self)
-        if mode == "FWHM":
-            f_fwhm = interpolate.interp1d(lsf_wave, lsf)
-            out_lsf = f_fwhm(out.wave)
-            in_lsf = out.lsf_fwhm / 2.35
-            out.lsf_fwhm = out_lsf
-        elif mode == "VDISP":
-            f_vdisp = interpolate.interp1d(lsf_wave, lsf)
-            out_lsf = f_vdisp(out.wave)
-            in_lsf = out.lsf_vdisp
-            out.lsf_vdisp = out_lsf
+        if np.isscalar(lsf.to_value(u.AA)):
+            out_lsf = np.full(self.npix, lsf) * lsf.unit
         else:
-            raise ValueError(
-                "Mode " + mode + " not a valid entry. Allowed values are FWHM/VDISP"
-            )
+            out_lsf = np.interp(self.spectral_axis, lsf_wave, lsf)
 
-        sigma = np.sqrt(out_lsf**2 - in_lsf**2) / out.dwave
+        # In most cases this interpolation is trivial, but allows the
+        # flexibility to do the convolution after trimming the spectra
+        in_lsf = np.interp(
+            self.spectral_axis, self.meta["lsf_wave"], self.meta["lsf_fwhm"]
+        )
+
+        # NB: there is a factor 2.355 between the FWHM and the \sigma of a gaussian
+        sigma = np.sqrt(out_lsf**2 - in_lsf**2) / 2.355
         bad = np.isnan(sigma)
-        sigma[bad] = 1e-10
+        sigma[bad] = 1e-10 * u.AA
+        out_lsf[bad] = in_lsf[bad]
 
-        out_spec = np.zeros_like(out.spec)
-        for i in range(out.nspec):
-            out_spec[:, i] = Spectra._gaussian_filter1d(out.spec[:, i], sigma)
+        if self.nspec == 1:
+            outflux = Spectra._gaussian_filter1d(
+                self.flux.value, sigma.to_value(self.spectral_axis.unit)
+            )
+        else:
+            outshape = self.flux.shape
+            outflux = np.empty(outshape)
+            for index in np.ndindex(outshape[:-1]):
+                flux = Spectra._gaussian_filter1d(self.flux[index].value, sigma)
+                s = slice(None)
+                outflux[index + (s,)] = flux
 
-        out.spec = out_spec
-
+        out = Spectra(
+            spectral_axis=self.spectral_axis,
+            flux=outflux * self.flux.unit,
+            meta=copy(self.meta),
+        )
+        out.meta["lsf_fwhm"] = out_lsf
+        out.meta["lsf_wave"] = self.spectral_axis
         return out
 
     # -----------------------------------------------------------------------------
