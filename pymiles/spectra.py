@@ -46,6 +46,23 @@ class Spectra(Spectrum1D):
     solar_ref_spec = get_config_file("sun_mod_001.fits")
 
     @property
+    def properties(self):
+        return list(self.meta.keys())
+
+    def __getattr__(self, attr):
+        if attr in self.meta.keys():
+            if (
+                np.ndim(self.meta[attr]) > 0
+                and hasattr(self.meta[attr], "__len__")
+                and len(self.meta[attr]) == 1
+            ):
+                return self.meta[attr][0]
+            else:
+                return self.meta[attr]
+        else:
+            raise AttributeError
+
+    @property
     def npix(self):
         if len(self.data.shape) > 1:
             return self.data.shape[1]

@@ -19,7 +19,7 @@ def plot_lsf(spec):
     f, ax1 = plt.subplots()
     ax2 = ax1.twinx()
     ax1.plot(spec.spectral_axis, spec.flux, "k")
-    ax2.plot(spec.meta["lsf_wave"], spec.meta["lsf_fwhm"], "r")
+    ax2.plot(spec.lsf_wave, spec.lsf_fwhm, "r")
     ax2.yaxis.label.set_color("red")
     ax2.tick_params(axis="y", colors="red")
     ax2.set_ylim(0, 30)
@@ -36,7 +36,7 @@ def test_lsf_basic(emiles_single):
 @pytest.mark.mpl_image_compare
 def test_convolve_constant(emiles_single):
     spec = emiles_single.convolve(10 * u.AA)
-    assert spec.meta["lsf_wave"].min() >= 10.0 * u.AA
+    assert spec.lsf_wave.min() >= 10.0 * u.AA
     return plot_lsf(spec)
 
 
@@ -53,7 +53,7 @@ def test_convolve_array(emiles_single):
 def test_trim_after_convolve(emiles_single):
     spec0 = emiles_single.convolve(10 * u.AA)
     spec = spectral_slab(spec0, 4e3 * u.AA, 6e3 * u.AA)
-    assert spec.meta["lsf_wave"].min() >= 10.0 * u.AA
+    assert spec.lsf_wave.min() >= 10.0 * u.AA
     return plot_lsf(spec)
 
 
@@ -61,7 +61,7 @@ def test_trim_after_convolve(emiles_single):
 def test_convolve_after_trim(emiles_single):
     spec0 = spectral_slab(emiles_single, 4e3 * u.AA, 6e3 * u.AA)
     spec = spec0.convolve(10 * u.AA)
-    assert spec.meta["lsf_wave"].min() >= 10.0 * u.AA
+    assert spec.lsf_wave.min() >= 10.0 * u.AA
     return plot_lsf(spec)
 
 

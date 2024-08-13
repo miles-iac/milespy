@@ -70,16 +70,15 @@ def test_ssp_interp_img(miles_ssp):
             miles_vertices.spectral_axis,
             miles_vertices.flux[i, :],
             alpha=0.3,
-            label=f"Vertex (age={miles_vertices.meta['age'][i]}, "
-            f"met={miles_vertices.meta['met'][i]})",
+            label=f"Vertex (age={miles_vertices.age[i]}, "
+            f"met={miles_vertices.met[i]})",
         )
     ax.plot(
         miles_1.spectral_axis,
         miles_1.flux,
         alpha=0.5,
         c="k",
-        label=f"Interpolated (age={miles_1.meta['age']}, "
-        f"met={miles_1.meta['met']})",
+        label=f"Interpolated (age={miles_1.age}, " f"met={miles_1.met})",
     )
     ax.legend(loc=0)
     ax.set_xlim(3500, 7500)
@@ -101,10 +100,10 @@ def test_ssp_out_of_range(miles_ssp):
 def test_ssp_in_range(miles_ssp):
     miles_1 = miles_ssp.in_range(age_lims=[15.0, 20.0], met_lims=[-0.1, 0.5])
     assert miles_1.nspec == 56
-    assert miles_1.meta["age"].min() > 15.0
-    assert miles_1.meta["age"].max() < 20.0
-    assert miles_1.meta["met"].max() < 0.5
-    assert miles_1.meta["met"].min() > -0.1
+    assert miles_1.age.min() > 15.0
+    assert miles_1.age.max() < 20.0
+    assert miles_1.met.max() < 0.5
+    assert miles_1.met.min() > -0.1
 
 
 def test_assert_alpha_in_fix(miles_ssp):
@@ -124,11 +123,11 @@ def test_ssp_in_list(miles_ssp):
         imf_slope=[1.3, 1.3, 1.3],
         mass=u.Quantity(value=[0.5, 2.0, 10.0], unit=u.Msun),
     )
-    assert miles_1.meta["age"].shape == (3,)
-    assert np.array_equal(miles_1.meta["age"], np.array([0.2512, 0.0708, 1.4125]))
-    assert np.array_equal(miles_1.meta["met"], np.array([0.22, 0.0, -1.71]))
-    assert np.array_equal(miles_1.meta["imf_slope"], np.array([1.3, 1.3, 1.3]))
-    assert np.array_equal(miles_1.meta["mass"].value, np.array([0.5, 2.0, 10.0]))
+    assert miles_1.age.shape == (3,)
+    assert np.array_equal(miles_1.age, np.array([0.2512, 0.0708, 1.4125]))
+    assert np.array_equal(miles_1.met, np.array([0.22, 0.0, -1.71]))
+    assert np.array_equal(miles_1.imf_slope, np.array([1.3, 1.3, 1.3]))
+    assert np.array_equal(miles_1.mass.value, np.array([0.5, 2.0, 10.0]))
 
 
 def test_ssp_not_in_list(miles_ssp):
@@ -141,9 +140,9 @@ def test_ssp_not_in_list(miles_ssp):
 
 
 def test_ssp_interp(miles_single):
-    assert miles_single.meta["age"] == [5.7]
-    assert miles_single.meta["met"] == [-0.45]
-    assert miles_single.meta["imf_slope"] == [1.3]
+    assert miles_single.age == 5.7
+    assert miles_single.met == -0.45
+    assert miles_single.imf_slope == 1.3
 
 
 def test_ssp_interp_wrong_shape(miles_ssp):
@@ -167,27 +166,27 @@ def test_ssp_interp_array_age_met_alpha_imf_fix(miles_ssp):
     out = miles_ssp.interpolate(
         age=[10.0, 12.0], met=[-0.3, 0.0], alpha=[0.1, 0.3], imf_slope=[1.2, 1.3]
     )
-    assert np.array_equal(out.meta["age"], np.array([10.0, 12.0]))
-    assert np.array_equal(out.meta["met"], np.array([-0.3, 0.0]))
-    assert np.array_equal(out.meta["alpha"], np.array([0.1, 0.3]))
-    assert np.array_equal(out.meta["imf_slope"], np.array([1.2, 1.3]))
+    assert np.array_equal(out.age, np.array([10.0, 12.0]))
+    assert np.array_equal(out.met, np.array([-0.3, 0.0]))
+    assert np.array_equal(out.alpha, np.array([0.1, 0.3]))
+    assert np.array_equal(out.imf_slope, np.array([1.2, 1.3]))
 
 
 def test_ssp_interp_array_age_met_alpha_imf(miles_ssp):
     out = miles_ssp.interpolate(
         age=[10.0, 12.0], met=[-0.3, 0.0], alpha=[0.1, 0.3], imf_slope=[1.25, 1.3]
     )
-    assert np.array_equal(out.meta["age"], np.array([10.0, 12.0]))
-    assert np.array_equal(out.meta["met"], np.array([-0.3, 0.0]))
-    assert np.array_equal(out.meta["alpha"], np.array([0.1, 0.3]))
-    assert np.array_equal(out.meta["imf_slope"], np.array([1.25, 1.3]))
+    assert np.array_equal(out.age, np.array([10.0, 12.0]))
+    assert np.array_equal(out.met, np.array([-0.3, 0.0]))
+    assert np.array_equal(out.alpha, np.array([0.1, 0.3]))
+    assert np.array_equal(out.imf_slope, np.array([1.25, 1.3]))
 
 
 def test_ssp_interp_array_age_met_imf(miles_ssp):
     out = miles_ssp.interpolate(age=[10.0, 11.0], met=[-0.3, 0.0], imf_slope=[1.2, 1.3])
-    assert np.array_equal(out.meta["age"], np.array([10.0, 11.0]))
-    assert np.array_equal(out.meta["met"], np.array([-0.3, 0.0]))
-    assert np.array_equal(out.meta["imf_slope"], np.array([1.2, 1.3]))
+    assert np.array_equal(out.age, np.array([10.0, 11.0]))
+    assert np.array_equal(out.met, np.array([-0.3, 0.0]))
+    assert np.array_equal(out.imf_slope, np.array([1.2, 1.3]))
 
 
 def test_ssp_interp_array_age_met_imf_mass(miles_ssp):
@@ -197,10 +196,10 @@ def test_ssp_interp_array_age_met_imf_mass(miles_ssp):
         imf_slope=[1.2, 1.3],
         mass=u.Quantity(value=[2.0, 3.0], unit=u.Msun),
     )
-    assert np.array_equal(out.meta["age"], np.array([10.0, 11.0]))
-    assert np.array_equal(out.meta["met"], np.array([-0.3, 0.0]))
-    assert np.array_equal(out.meta["imf_slope"], np.array([1.2, 1.3]))
-    assert np.array_equal(out.meta["mass"].value, np.array([2.0, 3.0]))
+    assert np.array_equal(out.age, np.array([10.0, 11.0]))
+    assert np.array_equal(out.met, np.array([-0.3, 0.0]))
+    assert np.array_equal(out.imf_slope, np.array([1.2, 1.3]))
+    assert np.array_equal(out.mass.value, np.array([2.0, 3.0]))
 
 
 # @pytest.fixture
@@ -245,7 +244,7 @@ def test_ssp_mass(miles_ssp):
     ratio = light / heavy
 
     assert np.allclose(ratio.data, 0.5)
-    assert light.meta["mass"].value == 1
-    assert light.meta["mass"].unit == u.Msun
-    assert heavy.meta["mass"].value == 2
-    assert heavy.meta["mass"].unit == u.Msun
+    assert light.mass.value == 1
+    assert light.mass.unit == u.Msun
+    assert heavy.mass.value == 2
+    assert heavy.mass.unit == u.Msun

@@ -15,8 +15,6 @@ def test_ml(miles_single):
         "SLOAN_SDSS.u": np.array([np.nan]),
         "SLOAN_SDSS.z": np.array([np.nan]),
     }
-    assert np.allclose(
-        miles_single.meta["Mass_star_remn"], np.array([0.622357175092374])
-    )
+    assert np.isclose(miles_single.Mass_star_remn, 0.622357175092374)
     for k in ref.keys():
         np.testing.assert_allclose(ref[k], outmls["star+remn"][k], rtol=1e-5, err_msg=k)
