@@ -18,23 +18,8 @@ def miles_ssp():
 
 
 @pytest.fixture
-def emiles_ssp():
-    return SSPLibrary(
-        source="EMILES_SSP",
-        version="9.1",
-        imf_type="bi",
-        isochrone="P",
-    )
-
-
-@pytest.fixture
 def miles_single(miles_ssp):
     return miles_ssp.interpolate(age=5.7, met=-0.45, imf_slope=1.3)
-
-
-@pytest.fixture
-def emiles_single(emiles_ssp):
-    return emiles_ssp.interpolate(age=1.0, met=-0.45, imf_slope=1.3)
 
 
 @pytest.fixture
