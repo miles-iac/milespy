@@ -3,33 +3,36 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import scipy
+from astropy import units as u
 from packaging.version import Version
 
 import pymiles.filter as flib
 from pymiles import SFH
+from pymiles import SSPLibrary
 
 
 @pytest.fixture
-def sfh():
-    # Initializing instance
-    sfh = SFH(
+def miles_ssp_basti():
+    return SSPLibrary(
         source="MILES_SSP",
         version="9.1",
         imf_type="bi",
         isochrone="T",
     )
 
-    # Let's play with the methods
-    # First we select the age range we want
-    sfh.set_time_range(start=13.5, end=0.01)
+
+@pytest.fixture
+def sfh(miles_ssp_basti):
+    times = np.unique(miles_ssp_basti.models.age) << u.Gyr
+    sfh = SFH(times[times <= 13.5 * u.Gyr])
 
     # Then we define the SFR
-    sfh.tau_sfr(start=11, tau=1.5, met=0.1)
+    sfh.tau_sfr(start=11 * u.Gyr, tau=1.5 * u.Gyr)
 
     # Chemical and IMF evolution can also be included
-    sfh.met_evol_sigmoid(start=-2.1, end=0.2, tc=10, gamma=2.0)
-    sfh.alp_evol_sigmoid(start=0.4, end=0.0, tc=10)
-    sfh.imf_evol_linear(start=0.5, end=2.3, t_start=11.5, t_end=9.0)
+    sfh.sigmoid_met(start=-2.1, end=0.2, tc=10 * u.Gyr, gamma=2.0 / u.Gyr)
+    sfh.sigmoid_alpha(start=0.4, end=0.0, tc=10 * u.Gyr)
+    sfh.linear_imf(start=0.5, end=2.3, t_start=11.5 * u.Gyr, t_end=9.0 * u.Gyr)
 
     return sfh
 
@@ -41,9 +44,9 @@ def sfh():
 )
 def test_sfh_img(sfh):
     fig, ax = plt.subplots()
-    ax.plot(sfh.time, sfh.imf_evol, label="IMF slope")
-    ax.plot(sfh.time, sfh.met_evol, label="[M/H]")
-    ax.plot(sfh.time, sfh.sfr * 10, label="SFR (scaled)")
+    ax.plot(sfh.time, sfh.imf, label="IMF slope")
+    ax.plot(sfh.time, sfh.met, label="[M/H]")
+    ax.plot(sfh.time, sfh.sfr.to(u.Msun / u.Gyr) * 10, label="SFR (scaled)")
     ax.set_xlabel("Look-back time")
     ax.legend()
     ax.set_xlim(0, 14)
@@ -52,9 +55,9 @@ def test_sfh_img(sfh):
 
 
 @pytest.fixture
-def pred(sfh):
+def pred(sfh, miles_ssp_basti):
     # And finally some predictions
-    return sfh.generate_spectra()
+    return miles_ssp_basti.from_sfh(sfh)
 
 
 def test_predictions(pred):

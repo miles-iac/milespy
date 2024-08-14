@@ -677,17 +677,15 @@ class SSPLibrary(Repository):
 
         # We make an initial call to interpolate (ssp_model_class) to
         # obtain the values of the triangulation to be used extensively below
-        _ = self.interpolate(
-            age=sfh.time[0],
-            met=sfh.met[0],
-            imf_slope=sfh.imf[0],
-            alpha=sfh.alpha[0],
+        interp_specs = self.interpolate(
+            age=sfh.time,
+            met=sfh.met,
+            imf_slope=sfh.imf,
+            alpha=sfh.alpha,
             force_interp=["alpha", "imf_slope"],
         )
 
         # Making sure we select the right IMF and alpha models
-        uimf_slope = np.unique(self.models.meta["imf_slope"])
-        nimf_slope = len(uimf_slope)
         ospec = np.zeros(self.models.npix)
         new_meta = {
             "lsf_wave": self.models.meta["lsf_wave"],
@@ -702,44 +700,15 @@ class SSPLibrary(Repository):
 
         # We iterate now over all the age bins in the SFH
         for t, date in tqdm(enumerate(sfh.time), delay=3.0):
-            ok = nimf_slope == 1
-            if self.fixed_alpha:
-                if ok:
-                    input_pt = np.array([sfh.time[t], sfh.met[t]], ndmin=2)
-                else:
-                    input_pt = np.array([sfh.time[t], sfh.met[t], sfh.imf[t]], ndmin=2)
-            else:
-                if ok:
-                    input_pt = np.array(
-                        [sfh.time[t], sfh.met[t], sfh.alpha[t]], ndmin=2
-                    )
-                else:
-                    input_pt = np.array(
-                        [
-                            sfh.time[t].value,
-                            sfh.met[t],
-                            sfh.imf[t],
-                            sfh.alpha[t],
-                        ],
-                        ndmin=2,
-                    )
-
-            vtx, wts = interp_weights(self.params, input_pt, self.tri)
-            vtx, wts = vtx.ravel(), wts.ravel()
-
             # Update quantities
             for k in new_meta.keys():
-                if len(self.models.meta[k]) == self.models.nspec:
-                    new_meta[k] += np.dot(self.models.meta[k][self.idx][vtx], wts) * (
+                if len(interp_specs.meta[k]) == interp_specs.nspec:
+                    new_meta[k] += interp_specs.meta[k][t] * (
                         sfh.time_weights[t] / sfh.mass
                     )
 
             # The final spectrum is also the mass-weighted one
-            ospec = (
-                ospec
-                + np.dot(self.models.flux[self.idx, :][vtx].T, wts)
-                * sfh.time_weights[t]
-            )
+            ospec = ospec + interp_specs.flux[t, :] * sfh.time_weights[t]
 
         return Spectra(
             spectral_axis=self.models.spectral_axis, flux=ospec, meta=new_meta

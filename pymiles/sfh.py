@@ -3,9 +3,11 @@ import logging
 
 import numpy as np
 from astropy import units as u
-from scipy.integrate import simpson
+from scipy.integrate import trapezoid
 
 logger = logging.getLogger("pymiles.sfh")
+
+DEFAULT_NBINS = 20
 
 
 class SFH:
@@ -26,11 +28,16 @@ class SFH:
         Values of the IMF slope
     """
 
-    time: u.Quantity = np.linspace(0.035, 13.5, 20) * u.Gyr
-    sfr: u.Quantity = np.zeros(20) * u.Msun / u.Gyr
-    met: np.ndarray = np.zeros(20)
-    alpha: np.ndarray = np.zeros(20)
-    imf: np.ndarray = np.full(20, 1.3)
+    @u.quantity_input
+    def __init__(
+        self, time: u.Quantity[u.Gyr] = np.linspace(0.035, 13.5, DEFAULT_NBINS) << u.Gyr
+    ):
+        nbins = len(time)
+        self.time = time
+        self.sfr = np.zeros(nbins) * u.Msun / u.Gyr
+        self.met = np.zeros(nbins)
+        self.alpha = np.zeros(nbins)
+        self.imf = np.full(nbins, 1.3)
 
     @staticmethod
     def _process_param(argname, arg, refname, ref, offset=0):
@@ -53,14 +60,16 @@ class SFH:
         if arg < low or arg > high:
             raise ValueError(f"{argname} is out of range")
 
-    def _normalize(self, sfr):
-        norm = simpson(sfr, x=self.time.to_value(u.yr))
-        self.sfr = sfr / norm * self.mass / u.yr
-
-        # Mass-weights
+    def _compute_time_weights(self):
         dt = self.time - np.roll(self.time, 1)
         dt[0] = dt[1]
         self.time_weights = (self.sfr * dt).to(u.Msun)
+
+    def _normalize(self, sfr):
+        norm = trapezoid(sfr, x=self.time.to_value(u.yr))
+        self.sfr = sfr / norm * self.mass / u.yr
+
+        self._compute_time_weights()
 
     def tau_sfr(self, start=10.0 * u.Gyr, tau=1.0 * u.Gyr, mass=1.0 * u.Msun):
         """Exponentially declinging SFR
@@ -233,16 +242,9 @@ class SFH:
 
     @u.quantity_input
     def _set_input_sfr(self, sfr: u.Quantity[u.Msun / u.Gyr]):
-        # For some reason simpson does not maintain the units information so we
-        # need to do the conversion
-        self.mass = (
-            simpson(sfr.to_value(u.Msun / u.yr), x=self.time.to_value(u.yr)) * u.Msun
-        )
-        print(self.mass)
-        dt = self.time - np.roll(self.time, 1)
-        dt[0] = dt[1]
-        self.time_weights = (sfr * dt).to(u.Msun)
+        self.mass = trapezoid(sfr, x=self.time)
         self.sfr = sfr
+        self._compute_time_weights()
 
     @staticmethod
     def _linear(time, start, end, t_start, t_end):
@@ -294,7 +296,7 @@ class SFH:
         None
             Updates the SFH parameters of the instance
         """
-        self.met = self._sigmoid(start, end, tc, gamma)
+        self.met = self._sigmoid(self.time, start, end, tc, gamma)
 
     def sigmoid_alpha(self, start=0.4, end=0.0, tc=5.0 * u.Gyr, gamma=1.0 / u.Gyr):
         """Sigmoidal [alpha/Fe] evolution
