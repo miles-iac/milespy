@@ -42,15 +42,38 @@ def sfh(miles_ssp_basti):
     Version(scipy.__version__) < Version("1.11"),
     reason="scipy.integrate.simpson results change",
 )
-def test_sfh_img(sfh):
-    fig, ax = plt.subplots()
-    ax.plot(sfh.time, sfh.imf, label="IMF slope")
-    ax.plot(sfh.time, sfh.met, label="[M/H]")
-    ax.plot(sfh.time, sfh.sfr.to(u.Msun / u.Gyr) * 10, label="SFR (scaled)")
-    ax.set_xlabel("Look-back time")
-    ax.legend()
-    ax.set_xlim(0, 14)
-    ax.set_ylim(-3, 6)
+def test_sfh_img(pred, sfh):
+    fig, axs = plt.subplots(2, 2, sharex=True)
+
+    # SFR
+    axs[0, 0].plot(sfh.time, sfh.sfr.to(u.Msun / u.Gyr), label="SFR")
+    axs[0, 0].axvline(
+        np.average(sfh.time, weights=sfh.time_weights).value, c="k", ls="--"
+    )
+    axs[0, 0].axvline(pred.age, c="r", ls=":")
+    axs[0, 0].set_title("SFR")
+
+    # IMF slope
+    axs[1, 0].plot(sfh.time, sfh.imf, label="IMF slope")
+    axs[1, 0].axhline(np.average(sfh.imf, weights=sfh.sfr).value, c="k", ls="--")
+    axs[1, 0].axhline(pred.imf_slope, c="r", ls=":")
+    axs[1, 0].set_title("IMF slope")
+
+    # Metallicity
+    axs[0, 1].plot(sfh.time, sfh.met, label="[M/H]")
+    axs[0, 1].axhline(np.average(sfh.met, weights=sfh.sfr).value, c="k", ls="--")
+    axs[0, 1].axhline(pred.met, c="r", ls=":")
+    axs[0, 1].set_title("Metallicity")
+
+    # Alpha
+    axs[1, 1].plot(sfh.time, sfh.alpha, label="alpha/Fe")
+    axs[1, 1].axhline(np.average(sfh.alpha, weights=sfh.sfr).value, c="k", ls="--")
+    axs[1, 1].axhline(pred.alpha, c="r", ls=":")
+    axs[1, 1].set_title("[alpha/Fe]")
+
+    axs[1, 0].set_xlabel("Gyr")
+    axs[1, 1].set_xlabel("Gyr")
+
     return fig
 
 
@@ -60,14 +83,21 @@ def pred(sfh, miles_ssp_basti):
     return miles_ssp_basti.from_sfh(sfh)
 
 
-def test_predictions(pred):
+def test_predictions(pred, sfh):
     fnames = flib.search("sloan")
     filts = flib.get(fnames)
     outmls = pred.mass_to_light(filters=filts, mass_in="star+remn")
 
-    np.testing.assert_almost_equal(pred.age, 9.747229444806024)
-    np.testing.assert_almost_equal(pred.met, -0.9777525480919624)
-    np.testing.assert_almost_equal(outmls["SLOAN_SDSS.g"], np.array([3.01242965]))
+    expected_imf = np.average(sfh.imf, weights=sfh.sfr).value
+    expected_age = np.average(sfh.time, weights=sfh.sfr).value
+    expected_alpha = np.average(sfh.alpha, weights=sfh.sfr).value
+    expected_met = np.average(sfh.met, weights=sfh.sfr).value
+
+    assert np.isclose(pred.age, expected_age, rtol=0.05)
+    assert np.isclose(pred.met, expected_met, rtol=0.05)
+    assert np.isclose(pred.alpha, expected_alpha, rtol=0.05)
+    assert np.isclose(pred.imf_slope, expected_imf, rtol=0.05)
+    assert np.isclose(outmls["SLOAN_SDSS.g"], np.array([2.95471517]))
 
 
 @pytest.mark.mpl_image_compare
@@ -77,5 +107,4 @@ def test_spectra_img(pred):
     ax.plot(pred.spectral_axis, pred.flux)
     ax.set_xlabel("Wavelength")
     ax.set_ylabel("Flux")
-    ax.legend()
     return fig
