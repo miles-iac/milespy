@@ -42,6 +42,7 @@ extensions = [
     "numpydoc",
     "nbsphinx",
     "sphinx_gallery.load_style",
+    "sphinx.ext.intersphinx",
 ]
 
 autosummary_generate = True
@@ -55,6 +56,10 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+intersphinx_mapping = {
+    "astropy": ("https://docs.astropy.org/en/stable/", None),
+    "specutils": ("https://specutils.readthedocs.io/en/stable/", None),
+}
 
 # -- Options for HTML output -------------------------------------------------
 

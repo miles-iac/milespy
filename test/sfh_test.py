@@ -21,18 +21,33 @@ def miles_ssp_basti():
     )
 
 
+def test_missing_units():
+    sfh = SFH()
+
+    with pytest.raises(TypeError):
+        sfh.sfr_tau(start=11.0, tau=1.5 * u.Msun)
+    with pytest.raises(TypeError):
+        sfh.met_sigmoid(start=-2.1, end=0.2, tc=10 * u.Gyr, gamma=2.0 / u.Gyr)
+    with pytest.raises(TypeError):
+        sfh.alpha_sigmoid(start=0.4, end=0.0, tc=10 * u.Gyr)
+
+
 @pytest.fixture
 def sfh(miles_ssp_basti):
     times = np.unique(miles_ssp_basti.models.age) << u.Gyr
     sfh = SFH(times[times <= 13.5 * u.Gyr])
 
     # Then we define the SFR
-    sfh.tau_sfr(start=11 * u.Gyr, tau=1.5 * u.Gyr)
+    sfh.sfr_tau(start=11 * u.Gyr, tau=1.5 * u.Gyr)
 
     # Chemical and IMF evolution can also be included
-    sfh.sigmoid_met(start=-2.1, end=0.2, tc=10 * u.Gyr, gamma=2.0 / u.Gyr)
-    sfh.sigmoid_alpha(start=0.4, end=0.0, tc=10 * u.Gyr)
-    sfh.linear_imf(start=0.5, end=2.3, t_start=11.5 * u.Gyr, t_end=9.0 * u.Gyr)
+    sfh.met_sigmoid(
+        start=-2.1 * u.dex, end=0.2 * u.dex, tc=10 * u.Gyr, gamma=2.0 / u.Gyr
+    )
+    sfh.alpha_sigmoid(start=0.4 * u.dex, end=0.0 * u.dex, tc=10 * u.Gyr)
+    sfh.imf_linear(
+        start=0.5 * u.dex, end=2.3 * u.dex, t_start=11.5 * u.Gyr, t_end=9.0 * u.Gyr
+    )
 
     return sfh
 
