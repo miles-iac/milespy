@@ -99,7 +99,8 @@ def pred(sfh, miles_ssp_basti):
 
 
 def test_predictions(pred, sfh):
-    fnames = flib.search("sloan")
+    assert pred.flux.unit == u.Unit(u.Lsun / u.AA)
+    fnames = flib.search("SLOAN_SDSS.g")
     filts = flib.get(fnames)
     outmls = pred.mass_to_light(filters=filts, mass_in="star+remn")
 
@@ -112,7 +113,7 @@ def test_predictions(pred, sfh):
     assert np.isclose(pred.met, expected_met, rtol=0.05)
     assert np.isclose(pred.alpha, expected_alpha, rtol=0.05)
     assert np.isclose(pred.imf_slope, expected_imf, rtol=0.05)
-    assert np.isclose(outmls["SLOAN_SDSS.g"], np.array([2.95471517]))
+    assert np.isclose(outmls["SLOAN_SDSS.g"], np.array([0.40293997]))
 
 
 @pytest.mark.mpl_image_compare

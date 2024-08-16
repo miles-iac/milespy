@@ -222,7 +222,7 @@ class SSPLibrary(Repository):
         if ncases == 0:
             raise ValueError("No matching SSPs")
 
-        out = Spectra.__getitem__(self.models, idx)._assign_mass(mass)
+        out = Spectra.__getitem__(self.models, idx)._apply_mass(mass)
 
         return out
 
@@ -334,7 +334,7 @@ class SSPLibrary(Repository):
                     f"Asked for {ncases} SSPs, but found only {ngood} matching ones"
                 )
 
-        out = Spectra.__getitem__(self.models, good)._assign_mass(mass)
+        out = Spectra.__getitem__(self.models, good)._apply_mass(mass)
 
         return out
 
@@ -596,7 +596,7 @@ class SSPLibrary(Repository):
                 if simplex and ninterp == 1:
                     out = Spectra.__getitem__(
                         self.models, self.models.meta["index"][idx][vtx]
-                    )._assign_mass(mass)
+                    )._apply_mass(mass)
                     return out
                 else:
                     closest_idx[i] = vtx[np.argmax(wts)]
@@ -611,9 +611,9 @@ class SSPLibrary(Repository):
                             new_meta[k][i] = np.dot(self.models.meta[k][idx][vtx], wts)
 
         if closest:
-            out = Spectra.__getitem__(self.models, closest_idx)._assign_mass(mass)
+            out = Spectra.__getitem__(self.models, closest_idx)._apply_mass(mass)
         else:
-            out = Spectra(spectral_axis=wave, flux=spec, meta=new_meta)._assign_mass(
+            out = Spectra(spectral_axis=wave, flux=spec, meta=new_meta)._apply_mass(
                 mass
             )
 
@@ -681,12 +681,11 @@ class SSPLibrary(Repository):
             age=sfh.time,
             met=sfh.met,
             imf_slope=sfh.imf,
+            mass=sfh.time_weights,
             alpha=sfh.alpha,
             force_interp=["alpha", "imf_slope"],
         )
 
-        # Making sure we select the right IMF and alpha models
-        ospec = np.zeros(self.models.npix)
         new_meta = {
             "lsf_wave": self.models.meta["lsf_wave"],
             "lsf_fwhm": self.models.meta["lsf_fwhm"],
@@ -707,8 +706,9 @@ class SSPLibrary(Repository):
                         sfh.time_weights[t] / sfh.mass
                     )
 
-            # The final spectrum is also the mass-weighted one
-            ospec = ospec + interp_specs.flux[t, :] * sfh.time_weights[t]
+        # The final spectrum is also the mass-weighted one, but the mass was
+        # already taking into account when doing the interpolation
+        ospec = np.sum(interp_specs.flux, axis=0)
 
         return Spectra(
             spectral_axis=self.models.spectral_axis, flux=ospec, meta=new_meta

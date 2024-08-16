@@ -11,6 +11,7 @@
 #
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.abspath("../"))
 
@@ -60,6 +61,11 @@ intersphinx_mapping = {
     "astropy": ("https://docs.astropy.org/en/stable/", None),
     "specutils": ("https://specutils.readthedocs.io/en/stable/", None),
 }
+
+# Only executes the notebooks if we have availble the tutorial dataset
+if Path("docs/tutorials/stars.txt").exists():
+    nbsphinx_execute = "always"
+
 
 # -- Options for HTML output -------------------------------------------------
 

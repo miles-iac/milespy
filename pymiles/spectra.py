@@ -522,12 +522,35 @@ class Spectra(Spectrum1D):
             )
         return outmls
 
-    def _assign_mass(self, mass):
+    def _update_mass(self, mass):
+        if "mass" in self.meta.keys():
+            previous_mass = self.meta["mass"]
+        else:
+            previous_mass = np.ones(mass.shape) << u.Msun
+            self.meta["mass"] = previous_mass
+
+        ratio = mass.to_value(u.Msun) / previous_mass.to_value(u.Msun)
+        if np.ndim(ratio) == 0:
+            if ratio <= 0.0:
+                raise ValueError("Trying to set zero or negative mass to an spectra")
+        else:
+            # This can happens for spectra in a SFH that have a total contribution
+            # of zero
+            ratio[np.isnan(ratio)] = 0.0
+
+        self.meta["mass"] *= ratio
+        self.meta["Mass_total"] *= ratio
+        self.meta["Mass_remn"] *= ratio
+        self.meta["Mass_star"] *= ratio
+        self.meta["Mass_star_remn"] *= ratio
+        self.meta["Mass_gas"] *= ratio
+
+    def _apply_mass(self, mass):
         if np.ndim(mass) == 0:
             m = mass
         else:
             m = mass[:, np.newaxis]
 
         out = self.multiply(m, handle_meta="first_found")
-        out.meta["mass"] = mass
+        out._update_mass(mass)
         return out
