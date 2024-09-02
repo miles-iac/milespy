@@ -22,8 +22,10 @@ def test_ml(miles_single):
 
 
 def test_ml_mass_invariant(miles_ssp):
-    s0 = miles_ssp.interpolate(age=5.7, met=-0.45, imf_slope=1.3)
-    s1 = miles_ssp.interpolate(age=5.7, met=-0.45, imf_slope=1.3, mass=1e10 * u.Msun)
+    s0 = miles_ssp.interpolate(age=5.7 * u.Gyr, met=-0.45 * u.dex, imf_slope=1.3)
+    s1 = miles_ssp.interpolate(
+        age=5.7 * u.Gyr, met=-0.45 * u.dex, imf_slope=1.3, mass=1e10 * u.Msun
+    )
 
     fnames = flib.search("SLOAN_SDSS.g")
     filts = flib.get(fnames)

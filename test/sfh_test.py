@@ -65,7 +65,7 @@ def test_sfh_img(pred, sfh):
     axs[0, 0].axvline(
         np.average(sfh.time, weights=sfh.time_weights).value, c="k", ls="--"
     )
-    axs[0, 0].axvline(pred.age, c="r", ls=":")
+    axs[0, 0].axvline(pred.age.value, c="r", ls=":")
     axs[0, 0].set_title("SFR")
 
     # IMF slope
@@ -77,13 +77,13 @@ def test_sfh_img(pred, sfh):
     # Metallicity
     axs[0, 1].plot(sfh.time, sfh.met, label="[M/H]")
     axs[0, 1].axhline(np.average(sfh.met, weights=sfh.sfr).value, c="k", ls="--")
-    axs[0, 1].axhline(pred.met, c="r", ls=":")
+    axs[0, 1].axhline(pred.met.value, c="r", ls=":")
     axs[0, 1].set_title("Metallicity")
 
     # Alpha
     axs[1, 1].plot(sfh.time, sfh.alpha, label="alpha/Fe")
     axs[1, 1].axhline(np.average(sfh.alpha, weights=sfh.sfr).value, c="k", ls="--")
-    axs[1, 1].axhline(pred.alpha, c="r", ls=":")
+    axs[1, 1].axhline(pred.alpha.value, c="r", ls=":")
     axs[1, 1].set_title("[alpha/Fe]")
 
     axs[1, 0].set_xlabel("Gyr")
@@ -104,10 +104,10 @@ def test_predictions(pred, sfh):
     filts = flib.get(fnames)
     outmls = pred.mass_to_light(filters=filts, mass_in="star+remn")
 
-    expected_imf = np.average(sfh.imf, weights=sfh.sfr).value
-    expected_age = np.average(sfh.time, weights=sfh.sfr).value
-    expected_alpha = np.average(sfh.alpha, weights=sfh.sfr).value
-    expected_met = np.average(sfh.met, weights=sfh.sfr).value
+    expected_imf = np.average(sfh.imf, weights=sfh.sfr)
+    expected_age = np.average(sfh.time, weights=sfh.sfr)
+    expected_alpha = np.average(sfh.alpha, weights=sfh.sfr)
+    expected_met = np.average(sfh.met, weights=sfh.sfr)
 
     assert np.isclose(pred.age, expected_age, rtol=0.05)
     assert np.isclose(pred.met, expected_met, rtol=0.05)

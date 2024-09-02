@@ -19,7 +19,7 @@ def miles_ssp():
 
 @pytest.fixture
 def miles_single(miles_ssp):
-    return miles_ssp.interpolate(age=5.7, met=-0.45, imf_slope=1.3)
+    return miles_ssp.interpolate(age=5.7 * u.Gyr, met=-0.45 * u.dex, imf_slope=1.3)
 
 
 @pytest.fixture

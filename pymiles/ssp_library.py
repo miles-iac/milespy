@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import warnings
+from typing import Optional
 
 import h5py
 import numpy as np
@@ -18,6 +19,13 @@ from .sfh import SFH
 from .spectra import Spectra
 
 logger = logging.getLogger("pymiles.ssp")
+
+_ssp_attr_units = {
+    "age": u.Gyr,
+    "alpha": u.dex,
+    "met": u.dex,
+    "imf_slope": u.dimensionless_unscaled,
+}
 
 
 class SSPLibrary(Repository):
@@ -123,16 +131,17 @@ class SSPLibrary(Repository):
             "index": np.arange(self.nspec),
             "isochrone": np.array(np.array(f["isochrone"][idx]), dtype="str"),
             "imf_type": np.array(np.array(f["imf_type"][idx]), dtype="str"),
-            "alpha": np.array(f["alpha"][idx]),
             "filename": np.array(filename),
         }
         # Standard set of keys available in the repository that are taken
         # care of manually
-        base_keys = ["spec", "wave", "isochrone", "imf_type", "alpha", "filename"]
+        base_keys = ["spec", "wave", "isochrone", "imf_type", "filename"]
         # Other information in the repository, store them as arrays
         for k in f.keys():
             if k not in base_keys:
                 meta[k] = np.array(f[k])[idx]
+                if k in _ssp_attr_units:
+                    meta[k] <<= _ssp_attr_units[k]
 
         f.close()
 
@@ -157,13 +166,15 @@ class SSPLibrary(Repository):
         trimmed.meta = self.models.meta
         self._models = trimmed
 
+    @u.quantity_input
     def in_range(
         self,
-        age_lims=[0.0, 20.0],
-        met_lims=[-5.0, 1.0],
-        alpha_lims=None,
-        imf_slope_lims=[0.0, 5.0],
-        mass=Quantity(value=1.0, unit=u.Msun),
+        age_lims: u.Quantity[u.Gyr] = [0.0, 20.0] << u.Gyr,
+        met_lims: u.Quantity[u.dex] = [-5.0, 1.0] << u.dex,
+        alpha_lims: Optional[u.Quantity[u.dex]] = None,
+        imf_slope_lims: u.Quantity[u.dimensionless_unscaled] = [0.0, 5.0]
+        << u.dimensionless_unscaled,
+        mass: u.Quantity[u.Msun] = 1.0 << u.Msun,
     ) -> Spectra:
         """
         Extracts all SSP models within selected limits
@@ -226,8 +237,14 @@ class SSPLibrary(Repository):
 
         return out
 
+    @u.quantity_input
     def in_list(
-        self, age=None, met=None, alpha=None, imf_slope=None, mass=None
+        self,
+        age: Optional[u.Quantity[u.Gyr]] = None,
+        met: Optional[u.Quantity[u.dex]] = None,
+        alpha: Optional[u.Quantity[u.dex]] = None,
+        imf_slope: Optional[u.Quantity[u.dimensionless_unscaled]] = None,
+        mass: Optional[u.Quantity[u.Msun]] = None,
     ) -> Spectra:
         """
         Extracts a selected set of models available from the library.
@@ -338,13 +355,14 @@ class SSPLibrary(Repository):
 
         return out
 
+    @u.quantity_input
     def closest(
         self,
-        age=None,
-        met=None,
-        alpha=None,
-        imf_slope=None,
-        mass=Quantity(value=1.0, unit=u.Msun),
+        age: Optional[u.Quantity[u.Gyr]] = None,
+        met: Optional[u.Quantity[u.dex]] = None,
+        alpha: Optional[u.Quantity[u.dex]] = None,
+        imf_slope: Optional[u.Quantity[u.dimensionless_unscaled]] = None,
+        mass: u.Quantity[u.Msun] = Quantity(value=1.0, unit=u.Msun),
     ) -> Spectra:
         """
         Retrieve the closest SSP avaiable in the library
@@ -378,13 +396,14 @@ class SSPLibrary(Repository):
             age=age, met=met, alpha=alpha, imf_slope=imf_slope, mass=mass, closest=True
         )
 
+    @u.quantity_input
     def interpolate(
         self,
-        age=None,
-        met=None,
-        alpha=None,
-        imf_slope=None,
-        mass=Quantity(value=1.0, unit=u.Msun),
+        age: Optional[u.Quantity[u.Gyr]] = None,
+        met: Optional[u.Quantity[u.dex]] = None,
+        alpha: Optional[u.Quantity[u.dex]] = None,
+        imf_slope: Optional[u.Quantity[u.dimensionless_unscaled]] = None,
+        mass: u.Quantity[u.Msun] = Quantity(value=1.0, unit=u.Msun),
         closest=False,
         simplex=False,
         force_interp=[],
@@ -437,10 +456,14 @@ class SSPLibrary(Repository):
         single_imf_slope = imf_slope is not None and np.ndim(imf_slope) == 0
         nan_imf = imf_slope is None
 
-        age = np.array(age, copy=False, ndmin=1)
-        met = np.array(met, copy=False, ndmin=1)
-        alpha = np.array(alpha, copy=False, ndmin=1)
-        imf_slope = np.array(imf_slope, copy=False, ndmin=1)
+        age = np.atleast_1d(age)
+        met = np.atleast_1d(met)
+        alpha = np.atleast_1d(alpha)
+        # For the IMF slope we can have floats being passed, so we make sure
+        # that it is a Quantity object
+        imf_slope = np.atleast_1d(imf_slope)
+        if not nan_imf:
+            imf_slope <<= u.dimensionless_unscaled
 
         wrong_shape = age.shape != met.shape
         if not nan_alpha:
@@ -561,6 +584,8 @@ class SSPLibrary(Repository):
             }
             if interp_fix_alpha:
                 new_meta["alpha"] = np.full(ninterp, alpha)
+                if not nan_alpha:
+                    new_meta["alpha"] <<= u.dex
             if interp_fix_imf_slope:
                 new_meta["imf_slope"] = np.full(ninterp, imf_slope)
 
@@ -572,17 +597,17 @@ class SSPLibrary(Repository):
                             new_meta[k] = np.empty(
                                 ninterp, dtype=self.models.meta[k].dtype
                             )
+                            if hasattr(self.models.meta[k], "unit"):
+                                new_meta[k] <<= self.models.meta[k].unit
 
         for i in tqdm(range(ninterp), delay=3.0):
-            input_pt = [age[i], met[i]]
+            input_pt = [age[i].to_value(u.Gyr), met[i].to_value(u.dex)]
             if not interp_fix_imf_slope:
-                input_pt.append(imf_slope[i])
+                input_pt.append(imf_slope[i].value)
             if not interp_fix_alpha:
-                input_pt.append(alpha[i])
+                input_pt.append(alpha[i].value)
 
-            vtx, wts = interp_weights(
-                self.params, np.array(input_pt, ndmin=2), self.tri
-            )
+            vtx, wts = interp_weights(self.params, np.atleast_2d(input_pt), self.tri)
             vtx, wts = vtx.ravel(), wts.ravel()
 
             if logger.isEnabledFor(logging.DEBUG):
@@ -696,6 +721,8 @@ class SSPLibrary(Repository):
                 kind = self.models.meta[k].dtype.kind
                 if "f" in kind:
                     new_meta[k] = np.zeros(1)
+                    if hasattr(self.models.meta[k], "unit"):
+                        new_meta[k] <<= self.models.meta[k].unit
 
         # We iterate now over all the age bins in the SFH
         for t, date in tqdm(enumerate(sfh.time), delay=3.0):
