@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Optional
 
 import h5py
 import numpy as np
@@ -53,10 +54,10 @@ class StellarLibrary(Repository):
         # ------------------------------
         meta = {
             "index": np.array(f["index"]),
-            "teff": np.array(f["teff"]),
-            "logg": np.array(f["logg"]),
-            "FeH": np.array(f["FeH"]),
-            "MgFe": np.array(f["MgFe"]),
+            "teff": np.array(f["teff"]) << u.K,
+            "logg": np.array(f["logg"]) << u.dex,
+            "FeH": np.array(f["FeH"]) << u.dex,
+            "MgFe": np.array(f["MgFe"]) << u.dex,
             "starname": np.array([n.decode() for n in f["starname"]]),
             "filename": np.array([n.decode() for n in f["filename"]]),
             "id": np.array([np.int32(n.decode()) for n in f["id"]]),
@@ -83,7 +84,7 @@ class StellarLibrary(Repository):
             )
             ngood = np.sum(idx)
             self.params = np.empty((ngood, 3))
-            self.params[:, 0] = np.log10(meta["teff"])[idx]
+            self.params[:, 0] = np.log10(meta["teff"].to_value(u.K))[idx]
             self.params[:, 1] = meta["logg"][idx]
             self.params[:, 2] = meta["FeH"][idx]
         else:
@@ -173,7 +174,14 @@ class StellarLibrary(Repository):
 
     # -----------------------------------------------------------------------------
 
-    def in_range(self, teff_lims=None, logg_lims=None, FeH_lims=None, MgFe_lims=None):
+    @u.quantity_input
+    def in_range(
+        self,
+        teff_lims: Optional[u.Quantity[u.K]] = None,
+        logg_lims: Optional[u.Quantity[u.dex]] = None,
+        FeH_lims: Optional[u.Quantity[u.dex]] = None,
+        MgFe_lims: Optional[u.Quantity[u.dex]] = None,
+    ):
         """
         Gets set of stars with parameters range
 
@@ -220,8 +228,14 @@ class StellarLibrary(Repository):
 
         return out
 
-    # -----------------------------------------------------------------------------
-    def closest(self, teff=None, logg=None, FeH=None, MgFe=None):
+    @u.quantity_input
+    def closest(
+        self,
+        teff: Optional[u.Quantity[u.K]] = None,
+        logg: Optional[u.Quantity[u.dex]] = None,
+        FeH: Optional[u.Quantity[u.dex]] = None,
+        MgFe: Optional[u.Quantity[u.dex]] = None,
+    ):
         """
         Gets closest star in database for given set of parameters
 
@@ -244,8 +258,15 @@ class StellarLibrary(Repository):
         """
         return self.interpolate(teff, logg, FeH, MgFe, closest=True)
 
+    @u.quantity_input
     def interpolate(
-        self, teff=None, logg=None, FeH=None, MgFe=None, closest=False, simplex=False
+        self,
+        teff: Optional[u.Quantity[u.K]] = None,
+        logg: Optional[u.Quantity[u.dex]] = None,
+        FeH: Optional[u.Quantity[u.dex]] = None,
+        MgFe: Optional[u.Quantity[u.dex]] = None,
+        closest=False,
+        simplex=False,
     ):
         """
         Interpolates a star spectrum for given set of parameters using Delaunay
@@ -285,10 +306,10 @@ class StellarLibrary(Repository):
             If the provided parameters do not have the same shape.
         """
 
-        teff = np.array(teff, copy=False, ndmin=1)
-        logg = np.array(logg, copy=False, ndmin=1)
-        FeH = np.array(FeH, copy=False, ndmin=1)
-        MgFe = np.array(MgFe, copy=False, ndmin=1)
+        teff = np.atleast_1d(teff)
+        logg = np.atleast_1d(logg)
+        FeH = np.atleast_1d(FeH)
+        MgFe = np.atleast_1d(MgFe)
 
         wrong_shape = teff.shape != logg.shape
         wrong_shape |= teff.shape != FeH.shape
@@ -303,6 +324,7 @@ class StellarLibrary(Repository):
         def _compute_bounds(val, model):
             min_model = np.amin(model)
             max_model = np.amax(model)
+            print(val, model)
             if np.any(val < min_model) or np.any(val > max_model):
                 raise RuntimeError(
                     f"Input parameters {val} is outside of model grid: "
@@ -340,10 +362,17 @@ class StellarLibrary(Repository):
 
         for i in tqdm(range(ninterp), delay=3.0):
             if self.MgFe_nan:
-                input_pt = np.array([np.log10(teff[i]), logg[i], FeH[i]], ndmin=2)
+                input_pt = np.atleast_2d(
+                    [np.log10(teff[i].to_value(u.K)), logg[i].value, FeH[i].value]
+                )
             else:
-                input_pt = np.array(
-                    [np.log10(teff[i]), logg[i], FeH[i], MgFe[i]], ndmin=2
+                input_pt = np.atleast_2d(
+                    [
+                        np.log10(teff[i].to_value(u.K)),
+                        logg[i].value,
+                        FeH[i].value,
+                        MgFe[i].value,
+                    ]
                 )
 
             vtx, wts = interp_weights(self.params, input_pt, self.tri)
