@@ -324,7 +324,6 @@ class StellarLibrary(Repository):
         def _compute_bounds(val, model):
             min_model = np.amin(model)
             max_model = np.amax(model)
-            print(val, model)
             if np.any(val < min_model) or np.any(val > max_model):
                 raise RuntimeError(
                     f"Input parameters {val} is outside of model grid: "
