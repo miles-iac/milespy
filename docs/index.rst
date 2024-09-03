@@ -24,8 +24,9 @@ may be the best resource.
    :maxdepth: 2
 
    Installation <installation>
-   Tutorials & examples <tutorials/index>
    Configuration <configuration>
+   Units handling <units>
+   Tutorials & examples <tutorials/index>
    Reference <reference/index>
 
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import warnings
+from typing import List
 from typing import Optional
 
 import h5py
@@ -169,12 +170,11 @@ class SSPLibrary(Repository):
     @u.quantity_input
     def in_range(
         self,
-        age_lims: u.Quantity[u.Gyr] = [0.0, 20.0] << u.Gyr,
-        met_lims: u.Quantity[u.dex] = [-5.0, 1.0] << u.dex,
+        age_lims: u.Quantity[u.Gyr],
+        met_lims: u.Quantity[u.dex],
         alpha_lims: Optional[u.Quantity[u.dex]] = None,
-        imf_slope_lims: u.Quantity[u.dimensionless_unscaled] = [0.0, 5.0]
-        << u.dimensionless_unscaled,
-        mass: u.Quantity[u.Msun] = 1.0 << u.Msun,
+        imf_slope_lims: Optional[u.Quantity[u.dimensionless_unscaled]] = None,
+        mass: u.Quantity[u.Msun] = u.Quantity(1, unit=u.Msun),
     ) -> Spectra:
         """
         Extracts all SSP models within selected limits
@@ -189,7 +189,7 @@ class SSPLibrary(Repository):
             tuple with alpha limits
         imf_slope_lims:
             tuple with IMF slope limits
-        mass: Quantity, default: 1 solar mass
+        mass:
             mass of each SSP
 
         Raises
@@ -205,6 +205,9 @@ class SSPLibrary(Repository):
         """
 
         logger.debug("Searching for models within parameters range")
+
+        if imf_slope_lims is None:
+            imf_slope_lims = np.array([0.0, 5.0])
 
         if self.fixed_alpha or alpha_lims is None:
             idx = (
@@ -240,8 +243,8 @@ class SSPLibrary(Repository):
     @u.quantity_input
     def in_list(
         self,
-        age: Optional[u.Quantity[u.Gyr]] = None,
-        met: Optional[u.Quantity[u.dex]] = None,
+        age: u.Quantity[u.Gyr],
+        met: u.Quantity[u.dex],
         alpha: Optional[u.Quantity[u.dex]] = None,
         imf_slope: Optional[u.Quantity[u.dimensionless_unscaled]] = None,
         mass: Optional[u.Quantity[u.Msun]] = None,
@@ -358,8 +361,8 @@ class SSPLibrary(Repository):
     @u.quantity_input
     def closest(
         self,
-        age: Optional[u.Quantity[u.Gyr]] = None,
-        met: Optional[u.Quantity[u.dex]] = None,
+        age: u.Quantity[u.Gyr],
+        met: u.Quantity[u.dex],
         alpha: Optional[u.Quantity[u.dex]] = None,
         imf_slope: Optional[u.Quantity[u.dimensionless_unscaled]] = None,
         mass: u.Quantity[u.Msun] = Quantity(value=1.0, unit=u.Msun),
@@ -369,15 +372,15 @@ class SSPLibrary(Repository):
 
         Parameters
         ----------
-        age: array_like
+        age:
             Desired age
-        met: array_like
+        met:
             Desired metallicity
-        alpha: array_like
+        alpha:
             Desired alpha
-        img_slope: array_like
+        imf_slope:
             Desired IMF slope
-        mass: Quantity
+        mass:
             Mass of the SSP
 
         Returns
@@ -399,39 +402,39 @@ class SSPLibrary(Repository):
     @u.quantity_input
     def interpolate(
         self,
-        age: Optional[u.Quantity[u.Gyr]] = None,
-        met: Optional[u.Quantity[u.dex]] = None,
+        age: u.Quantity[u.Gyr],
+        met: u.Quantity[u.dex],
         alpha: Optional[u.Quantity[u.dex]] = None,
         imf_slope: Optional[u.Quantity[u.dimensionless_unscaled]] = None,
         mass: u.Quantity[u.Msun] = Quantity(value=1.0, unit=u.Msun),
-        closest=False,
-        simplex=False,
-        force_interp=[],
+        closest: bool = False,
+        simplex: bool = False,
+        force_interp: List = [],
     ) -> Spectra:
         """
         Interpolates SSP models for certain parameters using Delaunay triangulation
 
         Parameters
         ----------
-        age: array_like
+        age:
             Desired age
-        met: array_like
+        met:
             Desired metallicity
-        alpha: array_like
+        alpha:
             Desired alpha
-        img_slope: array_like
+        imf_slope:
             Desired IMF slope
-        mass: Quantity
+        mass:
             Mass of the SSP
-        closest: bool
+        closest:
             Return the closest spectra, rather than performing the interpolation.
             If only one interpolation is performed, all the spectra in the simplex
             vertices are returned.
-        simplex: bool
+        simplex:
             If only one set of input parameters is given, return all the spectra
             that form part of the simplex used for the interpolation. These spectra
             have the weights information in their `meta` dictionary.
-        force_interp: list
+        force_interp:
             Force the interpolation over the indicated variables, even if the
             asked alpha/imf_slope is sampled in the repository. Valid values
             are "alpha" and "imf_slope".
@@ -649,10 +652,16 @@ class SSPLibrary(Repository):
 
         return out
 
-    def _compute_lsf(self, source):
+    def _compute_lsf(self, source: str):
         # This information could be given in the repository files!
         """
         Returns the line-spread function (LSF) given a source
+
+        Parameters
+        ----------
+        source:
+            Name of input models to use. Valid inputs are MILES_SSP/CaT_SSP/EMILES_SSP
+
 
         Returns
         -------
@@ -694,6 +703,11 @@ class SSPLibrary(Repository):
     def from_sfh(self, sfh: SFH) -> Spectra:
         """
         Compute the spectra derived from the input SFH.
+
+        Parameters
+        ----------
+        sfh:
+            Star formation history
 
         Returns
         -------

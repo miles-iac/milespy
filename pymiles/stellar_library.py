@@ -177,9 +177,9 @@ class StellarLibrary(Repository):
     @u.quantity_input
     def in_range(
         self,
-        teff_lims: Optional[u.Quantity[u.K]] = None,
-        logg_lims: Optional[u.Quantity[u.dex]] = None,
-        FeH_lims: Optional[u.Quantity[u.dex]] = None,
+        teff_lims: u.Quantity[u.K],
+        logg_lims: u.Quantity[u.dex],
+        FeH_lims: u.Quantity[u.dex],
         MgFe_lims: Optional[u.Quantity[u.dex]] = None,
     ):
         """
@@ -231,9 +231,9 @@ class StellarLibrary(Repository):
     @u.quantity_input
     def closest(
         self,
-        teff: Optional[u.Quantity[u.K]] = None,
-        logg: Optional[u.Quantity[u.dex]] = None,
-        FeH: Optional[u.Quantity[u.dex]] = None,
+        teff: u.Quantity[u.K],
+        logg: u.Quantity[u.dex],
+        FeH: u.Quantity[u.dex],
         MgFe: Optional[u.Quantity[u.dex]] = None,
     ):
         """
@@ -241,13 +241,13 @@ class StellarLibrary(Repository):
 
         Parameters
         ----------
-        teff: array_like
+        teff:
             Desired Teff
-        logg: array_like
+        logg:
             Desired Log(g)
-        FeH: array_like
+        FeH:
             Desired [Fe/H]
-        MgFe: array_like
+        MgFe:
             Desired [Mg/Fe]
 
         Returns
@@ -261,12 +261,12 @@ class StellarLibrary(Repository):
     @u.quantity_input
     def interpolate(
         self,
-        teff: Optional[u.Quantity[u.K]] = None,
-        logg: Optional[u.Quantity[u.dex]] = None,
-        FeH: Optional[u.Quantity[u.dex]] = None,
+        teff: u.Quantity[u.K],
+        logg: u.Quantity[u.dex],
+        FeH: u.Quantity[u.dex],
         MgFe: Optional[u.Quantity[u.dex]] = None,
-        closest=False,
-        simplex=False,
+        closest: bool = False,
+        simplex: bool = False,
     ):
         """
         Interpolates a star spectrum for given set of parameters using Delaunay
@@ -274,19 +274,19 @@ class StellarLibrary(Repository):
 
         Parameters
         ----------
-        teff: array_like
+        teff:
             Desired Teff
-        logg: array_like
+        logg:
             Desired Log(g)
-        FeH: array_like
+        FeH:
             Desired [Fe/H]
-        MgFe: array_like
+        MgFe:
             Desired [Mg/Fe]
-        closest: bool
+        closest:
             Return the closest spectra, rather than performing the interpolation.
             If only one interpolation is performed, all the spectra in the simplex
             vertices are returned.
-        simplex: bool
+        simplex:
             If only one set of input parameters is given, return all the spectra
             that form part of the simplex used for the interpolation. These spectra
             have the weights information in their `meta` dictionary.
