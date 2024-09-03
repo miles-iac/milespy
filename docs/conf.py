@@ -63,7 +63,7 @@ intersphinx_mapping = {
 }
 
 # Only executes the notebooks if we have availble the tutorial dataset
-if Path("docs/tutorials/stars.txt").exists():
+if Path("tutorials/stars.txt").exists():
     nbsphinx_execute = "always"
 
 
