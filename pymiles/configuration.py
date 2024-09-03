@@ -22,7 +22,7 @@ def _setup_logger(config):
 
 config = rcfile("pymiles", {})
 config_folder = pathlib.Path(__file__).parent.resolve() / "config_files"
-def_repo_folder = pathlib.Path(__file__).parent.resolve() / "repository"
+def_repo_folder = pathlib.Path(__file__).parent.resolve()
 
 logger = _setup_logger(config)
 
