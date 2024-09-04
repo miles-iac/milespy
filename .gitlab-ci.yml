@@ -2,6 +2,7 @@
 stages:
   - test
   - build
+  - deploy
 
 test:
   image: "python:$VERSION"
@@ -33,3 +34,15 @@ build-doc:
     - make install-dev
     - poetry run pip install jupyter
     - make doc
+
+
+package:
+  only:
+    - tags
+  image: python:3.10
+  stage: deploy
+  script:
+    - python3 -m pip install twine
+    - python3 -m pip install poetry
+    - poetry build
+    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python3 -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
