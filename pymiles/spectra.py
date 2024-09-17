@@ -19,8 +19,6 @@ from .ls_indices import lsindex
 from .magnitudes import compute_mags
 from .magnitudes import Magnitude
 from .magnitudes import sun_magnitude
-from .misc import log_rebin
-from .misc import log_unbinning
 
 # ==============================================================================
 
@@ -121,86 +119,6 @@ class Spectra(Spectrum1D):
         out.lsf_fwhm = out.lsf_fwhm / (1.0 + redshift)
 
         return out
-
-    def log_rebin(self, velscale=None):
-        """
-        Returns a logrebinned version of the spectra
-
-        Notes
-        -----
-        Currently this functions is not supported and will raise a
-        `NotImplementedError`
-
-        Parameters
-        ----------
-        velscale:
-            Desired velocity scale in km/s. Computed automatically if None.
-
-        Returns
-        -------
-        Spectra
-        """
-        raise NotImplementedError
-        logger.info("Ln-rebining the spectra")
-
-        lamRange = [self.spectral_axis[0].value, self.spectral_axis[-1].value]
-        outshape = self.flux.shape
-
-        # Call once just to know the correct output size
-        if velscale is not None:
-            lspec, lwave, velscale = log_rebin(
-                lamRange, np.empty(self.flux.shape[-1]), velscale=velscale, flux=False
-            )
-            outshape = self.flux.shape[:-1] + (len(lwave),)
-
-        outflux = np.empty(outshape)
-        for index in np.ndindex(outshape[:-1]):
-            lspec, lwave, velscale = log_rebin(
-                lamRange, self.flux[index].value, velscale=velscale, flux=False
-            )
-            s = slice(None)
-            outflux[index + (s,)] = lspec
-
-        # TODO: What about the LSF?
-
-        return Spectra(
-            spectral_axis=u.Quantity(np.exp(lwave), unit=self.spectral_axis.unit),
-            flux=u.Quantity(outflux, unit=self.flux.unit),
-            meta=self.meta,
-        )
-
-    def log_unbin(self):
-        """
-        Returns a un-logbinned version of the spectra
-
-        Notes
-        -----
-        Currently this functions is not supported and will raise a
-        `NotImplementedError`
-
-        Returns
-        -------
-        Spectra
-            Object instance with linearly binned spectra and updated info
-
-        """
-        raise NotImplementedError
-        logger.info("Unbin ln spectra")
-
-        lamRange = np.log([self.spectral_axis[0].value, self.spectral_axis[-1].value])
-        outflux = np.empty(self.flux.shape)
-        for index in np.ndindex(outflux.shape[:-1]):
-            lspec, lwave = log_unbinning(lamRange, self.flux[index].value, flux=True)
-            s = slice(None)
-            outflux[index + (s,)] = lspec
-
-        # TODO: What about the LSF?
-
-        return Spectra(
-            spectral_axis=u.Quantity(lwave, unit=self.spectral_axis.unit),
-            flux=u.Quantity(outflux, unit=self.flux.unit),
-            meta=self.meta,
-        )
 
     def resample(self, new_wave: u.Quantity):
         """
