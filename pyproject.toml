@@ -27,6 +27,7 @@ astropy = [
   {version = "^6", python = ">=3.12"}
 ]
 specutils = "^1.15"
+spectres = "^2.2.2"
 # setuptools is required by gwcs
 setuptools = {version = ">63", python = ">=3.12"}
 matplotlib = "^3.7"

@@ -102,3 +102,9 @@ def test_interp_array_wrong_shape(lib):
         lib.interpolate(
             teff=[10.0, 12.0] << u.K, logg=[-0.3, 0.0] << u.dex, FeH=[0.0] << u.dex
         )
+
+
+def test_resample(lib):
+    lib.resample(np.linspace(4000, 5000, 200) << u.AA)
+    assert lib.models.npix == 200
+    assert lib.models.shape[-1] == 200

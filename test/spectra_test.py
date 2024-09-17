@@ -65,26 +65,45 @@ def test_convolve_after_trim(emiles_single):
     return plot_lsf(spec)
 
 
-@pytest.mark.skip(reason="logrebin is NotImplemented")
 @pytest.mark.mpl_image_compare
-def test_logrebin(miles_single):
+def test_resample(miles_single):
     s0 = miles_single
-    s1 = s0.log_rebin(velscale=500)
-    s2 = s1.log_unbin()
+    s1 = s0.resample(np.linspace(4000, 6000, 200) << u.AA)
+    s2 = s0.resample(np.logspace(np.log10(4000), np.log10(6000), 50) << u.AA)
 
     f, ax = plt.subplots()
 
-    ax.plot(s0.spectral_axis, s0.flux, "b", alpha=0.5, label="Original")
-    ax.plot(s1.spectral_axis, s1.flux, "k", alpha=0.5, label="Log_rebin velscale=500")
-    ax.plot(s2.spectral_axis, s2.flux, "r", alpha=0.5, label="Log_unbin")
+    ax.plot(s0.spectral_axis, s0.flux, "k", alpha=0.5, label="Original")
+    ax.plot(s1.spectral_axis, s1.flux, "b", alpha=0.5, label=r"10 $\AA$")
+    ax.plot(s2.spectral_axis, s2.flux, "r.-", alpha=0.5, label="Log resample")
 
     ax.legend(loc=0)
 
     return f
 
 
-@pytest.mark.skip(reason="logrebin is NotImplemented")
 @pytest.mark.mpl_image_compare
-def test_logrebin_cube(miles_cube):
-    cube2 = miles_cube.log_rebin()
-    _ = cube2.log_unbin()
+def test_resample_cube(miles_cube):
+    s0 = miles_cube
+    s1 = s0.resample(np.linspace(4000, 6000, 200) << u.AA)
+    s2 = s0.resample(np.logspace(np.log10(4000), np.log10(6000), 50) << u.AA)
+
+    f, ax = plt.subplots()
+
+    ax.plot(
+        s0.spectral_axis, s0.flux.mean(axis=(0, 1)), "k", alpha=0.5, label="Original"
+    )
+    ax.plot(
+        s1.spectral_axis, s1.flux.mean(axis=(0, 1)), "b", alpha=0.5, label=r"10 $\AA$"
+    )
+    ax.plot(
+        s2.spectral_axis,
+        s2.flux.mean(axis=(0, 1)),
+        "r.-",
+        alpha=0.5,
+        label="Log resample",
+    )
+
+    ax.legend(loc=0)
+
+    return f

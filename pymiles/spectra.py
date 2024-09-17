@@ -8,6 +8,7 @@ from copy import copy
 
 import numpy as np
 from astropy import units as u
+from spectres import spectres
 from specutils import Spectrum1D
 
 from .configuration import get_config_file
@@ -50,17 +51,18 @@ class Spectra(Spectrum1D):
         return list(self.meta.keys())
 
     def __getattr__(self, attr):
-        if attr in self.meta.keys():
-            if (
-                np.ndim(self.meta[attr]) > 0
-                and hasattr(self.meta[attr], "__len__")
-                and len(self.meta[attr]) == 1
-            ):
-                return self.meta[attr][0]
+        if attr not in ["meta", "_meta"]:
+            if attr in self.meta.keys():
+                if (
+                    np.ndim(self.meta[attr]) > 0
+                    and hasattr(self.meta[attr], "__len__")
+                    and len(self.meta[attr]) == 1
+                ):
+                    return self.meta[attr][0]
+                else:
+                    return self.meta[attr]
             else:
-                return self.meta[attr]
-        else:
-            raise AttributeError
+                raise AttributeError
 
     @property
     def npix(self):
@@ -199,6 +201,39 @@ class Spectra(Spectrum1D):
             flux=u.Quantity(outflux, unit=self.flux.unit),
             meta=self.meta,
         )
+
+    def resample(self, new_wave: u.Quantity):
+        """
+        Resample the spectra
+
+
+        Parameters
+        ----------
+        new_wave
+            Spectral axis with the desired sampling for the spectra
+
+        Notes
+        -----
+        This functions makes use of :func:`spectres.spectres` [1]_.
+        Care must be taken when resampling near the boundaries of the spectral
+        axis, which can cause `nan` values.
+
+        .. [1] A. C. Carnall, "SpectRes: A Fast Spectral Resampling Tool in Python",
+           arXiv:1705.05165
+
+        """
+        new_flux = spectres(
+            new_wave.to_value(u.AA),
+            self.spectral_axis.to_value(u.AA),
+            self.flux,
+            fill=None,
+        )
+        out = Spectra(
+            spectral_axis=new_wave,
+            flux=new_flux << self.flux.unit,
+            meta=copy(self.meta),
+        )
+        return out
 
     def convolve(self, lsf: u.Quantity = u.Quantity(1, unit=u.AA), lsf_wave=None):
         """

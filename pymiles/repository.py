@@ -2,8 +2,10 @@
 import logging
 import os
 
+import astropy.units as u
 import h5py
 import requests
+from specutils.manipulation import spectral_slab
 from tqdm import tqdm
 
 from .configuration import config
@@ -22,6 +24,9 @@ repository_url = {
 
 
 class Repository:
+    def __init__(self, models):
+        self._models = models
+
     def _assert_repository_file(self, file_path):
         try:
             with h5py.File(file_path) as f:
@@ -71,3 +76,37 @@ class Repository:
                 raise ValueError(f"No known URL for {base_name}")
 
         return repo_filename
+
+    @property
+    def models(self):
+        return self._models
+
+    def trim(self, lower: u.Quantity, upper: u.Quantity):
+        """
+        Trim all the models in the library
+
+        Parameters
+        ----------
+        lower : Quantity
+        upper : Quantity
+        """
+        trimmed = spectral_slab(self.models, lower, upper)
+        trimmed.meta = self.models.meta
+        self._models = trimmed
+
+    def resample(self, new_wave: u.Quantity):
+        """
+        Resample all the models in the library
+
+        Parameters
+        ----------
+        new_wave
+            Spectral axis with the desired sampling for the spectra
+
+        See Also
+        --------
+        :meth:`pymiles.spectra.resample`
+        """
+        resample = self.models.resample(new_wave)
+        resample.meta = self.models.meta
+        self._models = resample

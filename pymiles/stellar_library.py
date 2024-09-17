@@ -8,7 +8,6 @@ import numpy.typing as npt
 from astropy import units as u
 from astropy.units import Quantity
 from scipy.spatial import Delaunay
-from specutils.manipulation import spectral_slab
 from tqdm import tqdm
 
 from .misc import interp_weights
@@ -105,20 +104,13 @@ class StellarLibrary(Repository):
         self.index = meta["index"][idx]
         self.main_keys = list(self.__dict__.keys())
 
-        self._models = Spectra(
-            spectral_axis=Quantity(wave, unit=u.AA),
-            flux=Quantity(spec.T, unit=None),
-            meta=meta,
+        super().__init__(
+            Spectra(
+                spectral_axis=Quantity(wave, unit=u.AA),
+                flux=Quantity(spec.T, unit=None),
+                meta=meta,
+            )
         )
-
-    @property
-    def models(self):
-        return self._models
-
-    def trim(self, lower, upper):
-        trimmed = spectral_slab(self.models, lower, upper)
-        trimmed.meta = self.models.meta
-        self._models = trimmed
 
     def search_by_id(self, id=None):
         """

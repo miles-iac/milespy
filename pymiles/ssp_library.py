@@ -10,7 +10,6 @@ from astropy import units as u
 from astropy.io import ascii
 from astropy.units import Quantity
 from scipy.spatial import Delaunay
-from specutils.manipulation import spectral_slab
 from tqdm import tqdm
 
 from .configuration import get_config_file
@@ -146,10 +145,12 @@ class SSPLibrary(Repository):
 
         f.close()
 
-        self._models = Spectra(
-            spectral_axis=Quantity(wave, unit=u.AA),
-            flux=Quantity(spec.T, unit=u.L_sun / u.M_sun / u.AA),
-            meta=meta,
+        super().__init__(
+            Spectra(
+                spectral_axis=Quantity(wave, unit=u.AA),
+                flux=Quantity(spec.T, unit=u.L_sun / u.M_sun / u.AA),
+                meta=meta,
+            )
         )
 
         lsf_wave, lsf_fhwm = self._compute_lsf(source)
@@ -157,15 +158,6 @@ class SSPLibrary(Repository):
         self._models.meta["lsf_fwhm"] = lsf_fhwm
 
         logger.info(source + " models loaded")
-
-    @property
-    def models(self):
-        return self._models
-
-    def trim(self, lower, upper):
-        trimmed = spectral_slab(self.models, lower, upper)
-        trimmed.meta = self.models.meta
-        self._models = trimmed
 
     @u.quantity_input
     def in_range(
