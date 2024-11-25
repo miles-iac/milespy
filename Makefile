@@ -94,7 +94,7 @@ tests:  ## Run tests
 
 doc:
 	rm -rf _build
-	poetry run sphinx-build -W --keep-going -b html docs/ _build/
+	MILESPY_AUTO_DOWNLOAD=1 poetry run sphinx-build -W --keep-going -b html docs/ _build/
 
 release:
 	poetry build
