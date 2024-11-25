@@ -1,7 +1,7 @@
 **/__pycache__
 *env/
 *.egg-info
-*.pymiles
+*.milespy
 poetry.lock
 docs/reference/_autosummary/
 _build

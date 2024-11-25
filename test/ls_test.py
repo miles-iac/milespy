@@ -2,8 +2,8 @@
 import astropy.units as u
 import numpy as np
 
-import pymiles.ls_indices as lslib
-from pymiles.spectra import Spectra
+import milespy.ls_indices as lslib
+from milespy.spectra import Spectra
 
 
 def test_cube_ls(miles_single):

@@ -3,8 +3,8 @@ import astropy.units as u
 import numpy as np
 import pytest
 
-from pymiles import SSPLibrary
-from pymiles.spectra import Spectra
+from milespy import SSPLibrary
+from milespy.spectra import Spectra
 
 
 @pytest.fixture

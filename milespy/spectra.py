@@ -22,12 +22,12 @@ from .magnitudes import sun_magnitude
 
 # ==============================================================================
 
-logger = logging.getLogger("pymiles.spectra")
+logger = logging.getLogger("milespy.spectra")
 
 
 class Spectra(Spectrum1D):
     """
-    Class for storing spectra in pymiles.
+    Class for storing spectra in milespy.
 
     This class inherits `Spectrum1D` from specutils, and can use
     all the methods of that class.
@@ -307,7 +307,7 @@ class Spectra(Spectrum1D):
         Parameters
         ----------
         filters: list[Filter]
-            Filters as provided by :meth:`pymiles.filter.get`
+            Filters as provided by :meth:`milespy.filter.get`
         zeropoint:
             Type of zero point. Valid inputs are AB/VEGA
 
@@ -331,7 +331,7 @@ class Spectra(Spectrum1D):
         Parameters
         ----------
         indeces: list[LineStrenghtIndex]
-            Indeces as provided by :meth:`pymiles.ls_indices.get`
+            Indeces as provided by :meth:`milespy.ls_indices.get`
 
         Returns
         -------

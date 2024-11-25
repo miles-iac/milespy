@@ -11,7 +11,7 @@ way.  The key element of this module is the concept of a
 :doc:`astropy:api/astropy.units.Quantity`.  It stores both numerical data (a
 single number or a numpy array) and its unit.
 
-In pymiles, we make extensive use of this mechanism to avoid unit conversion
+In MILESpy, we make extensive use of this mechanism to avoid unit conversion
 mistakes and have a cleaner user interaface.  For example, most of the API
 exposed to users check that the input units are correct (i.e., you can not pass
 a mass to an input varible that expect an age).  In addition, you can provide
@@ -20,7 +20,7 @@ can provide age in `Gyr`, `yr`, or seconds if you wish, and the output will be t
 same.
 
 We recommend you to take a look at the different `tutorials <tutorials/index.html>`_ available in this
-documentation to see how to work with the units in pymiles.
+documentation to see how to work with the units in MILESpy.
 
 .. note ::
    There are some special units in astropy used for logarithmic quantities. We

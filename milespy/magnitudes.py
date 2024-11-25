@@ -14,7 +14,7 @@ from scipy.interpolate import interp1d
 from .configuration import get_config_file
 from .filter import Filter
 
-logger = logging.getLogger("pymiles.magnitudes")
+logger = logging.getLogger("milespy.magnitudes")
 
 solar_ref_spec = get_config_file("sun_mod_001.fits")
 
@@ -204,7 +204,7 @@ def sun_magnitude(filters: list[Filter] = [], zeropoint="AB") -> Magnitude:
     Parameters
     ----------
     filters: list[Filter]
-        Filters as provided by :meth:`pymiles.filter.get`
+        Filters as provided by :meth:`milespy.filter.get`
     zeropoint:
         Type of zero point. Valid inputs are AB/VEGA
 

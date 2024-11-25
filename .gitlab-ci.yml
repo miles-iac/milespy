@@ -11,7 +11,7 @@ test:
     - apt -y update
     - pip install poetry && poetry config virtualenvs.create false
     - make prepare-dev
-    - source .pymiles
+    - source .milespy
     - make install-dev
     - PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests
   artifacts:
@@ -30,7 +30,7 @@ build-doc:
     - apt-get -y install pandoc
     - pip install poetry && poetry config virtualenvs.create false
     - make prepare-dev
-    - source .pymiles
+    - source .milespy
     - make install-dev
     - poetry run pip install jupyter
     - make doc

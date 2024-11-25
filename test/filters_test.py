@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import pytest
 
-import pymiles.filter as flib
+import milespy.filter as flib
 
 
 def test_nfilters():

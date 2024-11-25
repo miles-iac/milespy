@@ -6,9 +6,9 @@ import scipy
 from astropy import units as u
 from packaging.version import Version
 
-import pymiles.filter as flib
-from pymiles import SFH
-from pymiles import SSPLibrary
+import milespy.filter as flib
+from milespy import SFH
+from milespy import SSPLibrary
 
 
 @pytest.fixture

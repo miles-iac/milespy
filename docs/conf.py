@@ -15,18 +15,18 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.abspath("../"))
 
-import pymiles  # noqa: E402
+import milespy  # noqa: E402
 
 
 # -- Project information -----------------------------------------------------
 
-project = "pymiles"
+project = "MILESpy"
 copyright = "2024, Isaac Alonso Asensio"
 author = "Isaac Alonso Asensio"
 
 # The full version, including alpha/beta/rc tags
-release = pymiles.__version__
-version = pymiles.__version__
+release = milespy.__version__
+version = milespy.__version__
 
 
 # -- General configuration ---------------------------------------------------

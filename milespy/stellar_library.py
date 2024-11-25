@@ -15,7 +15,7 @@ from .repository import Repository
 from .spectra import Spectra
 
 
-logger = logging.getLogger("pymiles.stellarlib")
+logger = logging.getLogger("milespy.stellarlib")
 
 
 class StellarLibrary(Repository):

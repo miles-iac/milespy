@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-import pymiles.filter as flib
-from pymiles.magnitudes import sun_magnitude
+import milespy.filter as flib
+from milespy.magnitudes import sun_magnitude
 
 
 def test_solar_mags():

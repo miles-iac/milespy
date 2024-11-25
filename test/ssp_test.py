@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from astropy import units as u
 
-from pymiles import SSPLibrary
+from milespy import SSPLibrary
 
 
 @pytest.mark.mpl_image_compare
@@ -225,7 +225,7 @@ def test_ssp_interp_array_age_met_imf_mass(miles_ssp):
 
 # @pytest.fixture
 # def miles_tuned(miles_single):
-#     tab = ascii.read("./pymiles/config_files/MUSE-WFM.lsf")
+#     tab = ascii.read("./milespy/config_files/MUSE-WFM.lsf")
 #     lsf_wave = tab["Lambda"]
 #     lsf = tab["FWHM"] * 0.25
 

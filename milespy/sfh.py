@@ -6,7 +6,7 @@ import numpy as np
 from astropy import units as u
 from scipy.integrate import trapezoid
 
-logger = logging.getLogger("pymiles.sfh")
+logger = logging.getLogger("milespy.sfh")
 
 DEFAULT_NBINS = 20
 

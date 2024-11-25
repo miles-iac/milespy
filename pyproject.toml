@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pymiles"
+name = "milespy"
 version = "0.2"
 authors = [
   "TODO <TODO@iac.es>"
@@ -9,7 +9,7 @@ maintainers = [
 ]
 description = "Wrapper for the MILES spectral library"
 readme = "README.md"
-packages = [{include = "pymiles"}]
+packages = [{include = "milespy"}]
 
 [build-system]
 requires = ["poetry-core"]

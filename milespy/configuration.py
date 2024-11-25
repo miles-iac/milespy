@@ -6,7 +6,7 @@ from rcfile import rcfile
 
 
 def _setup_logger(config):
-    logger = logging.getLogger("pymiles")
+    logger = logging.getLogger("milespy")
     logger.setLevel(logging.WARNING)
 
     for existing_handler in list(logger.handlers):
@@ -20,7 +20,7 @@ def _setup_logger(config):
         logger.setLevel(config["log"])
 
 
-config = rcfile("pymiles", {})
+config = rcfile("milespy", {})
 config_folder = pathlib.Path(__file__).parent.resolve() / "config_files"
 def_repo_folder = pathlib.Path(__file__).parent.resolve()
 

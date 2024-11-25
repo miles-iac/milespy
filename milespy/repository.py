@@ -11,7 +11,7 @@ from tqdm import tqdm
 from .configuration import config
 from .configuration import def_repo_folder
 
-logger = logging.getLogger("pymiles.repository")
+logger = logging.getLogger("milespy.repository")
 
 
 repository_url = {
@@ -105,7 +105,7 @@ class Repository:
 
         See Also
         --------
-        :meth:`pymiles.spectra.resample`
+        :meth:`milespy.spectra.resample`
         """
         resample = self.models.resample(new_wave)
         resample.meta = self.models.meta

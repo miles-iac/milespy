@@ -11,7 +11,7 @@ from astropy.io import ascii
 
 from .configuration import get_config_file
 
-logger = logging.getLogger("pymiles.ls_indices")
+logger = logging.getLogger("milespy.ls_indices")
 
 lsfile = get_config_file("ls_indices_full.def")
 lsindex_names = ascii.read(lsfile, comment=r"\s*#")["names"]
@@ -34,7 +34,7 @@ class LineStrengthIndex:
 
         This reads the information from the configuration files, so the
         name should match with a given existing index. This can be easily
-        accomplished with :meth:`pymiles.index.search`.
+        accomplished with :meth:`milespy.index.search`.
 
         Parameters
         ----------
@@ -103,7 +103,7 @@ def get(lsindex_names: list[str]) -> list[LineStrengthIndex]:
     Parameters
     ----------
     lsindex_names: list[str]
-        The index names as given by :meth:`pymiles.ls_indeces.search`
+        The index names as given by :meth:`milespy.ls_indeces.search`
 
     Returns
     -------

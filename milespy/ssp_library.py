@@ -18,7 +18,7 @@ from .repository import Repository
 from .sfh import SFH
 from .spectra import Spectra
 
-logger = logging.getLogger("pymiles.ssp")
+logger = logging.getLogger("milespy.ssp")
 
 _ssp_attr_units = {
     "age": u.Gyr,

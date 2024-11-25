@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from astropy import units as u
 
-from pymiles import StellarLibrary
+from milespy import StellarLibrary
 
 
 @pytest.fixture

@@ -1,8 +1,8 @@
-# pymiles
+# milespy
 
-![Action badge](https://github.com/pymiles/pymiles/actions/workflows/pymiles-dev.yml/badge.svg)
+![Action badge](https://github.com/milespy/milespy/actions/workflows/milespy-dev.yml/badge.svg)
 
-pymiles is a python interface to the [MILES](http://miles.iac.es) stellar
+milespy is a python interface to the [MILES](http://miles.iac.es) stellar
 library and SSP models.  This package aims to provide users an easy interface
 to generate single stellar population (SSP) models, navigate the stellar
 library or generate a spectra given an input star formation history (SFH),
@@ -15,7 +15,7 @@ existing tools, namely [astropy](https://www.astropy.org/) and
 In a standard python installation using pip as the package manager, just do:
 
 ```bash
-python3 -m pip install pymiles
+python3 -m pip install milespy
 ```
 
 If you are installing from source, after cloning this repository, install it with:
@@ -27,4 +27,4 @@ python3 -m pip install .
 ## Support
 
 If you find bugs or have feature suggestions, please submit an
-[issue](https://github.com/pymiles/pymiles/issues) to this repository.
+[issue](https://github.com/milespy/milespy/issues) to this repository.

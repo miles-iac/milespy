@@ -2,7 +2,7 @@
 import numpy as np
 from astropy import units as u
 
-import pymiles.filter as flib
+import milespy.filter as flib
 
 
 def test_ml(miles_single):

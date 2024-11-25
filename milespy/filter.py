@@ -13,7 +13,7 @@ from astropy.io import ascii
 from .configuration import config_folder
 from .configuration import get_config_file
 
-logger = logging.getLogger("pymiles.filter")
+logger = logging.getLogger("milespy.filter")
 
 
 class Filter:
@@ -36,7 +36,7 @@ class Filter:
 
         This reads the information from the configuration files, so the
         name should match with a given existing file. This can be easily
-        accomplished with :meth:`pymiles.filter.search`.
+        accomplished with :meth:`milespy.filter.search`.
 
         Parameters
         ----------
@@ -119,7 +119,7 @@ def get(filter_names: list[str]) -> list[Filter]:
     Parameters
     ----------
     filter_names: list[str]
-        The filter names as given by :meth:`pymiles.filter.search`
+        The filter names as given by :meth:`milespy.filter.search`
 
     Returns
     -------

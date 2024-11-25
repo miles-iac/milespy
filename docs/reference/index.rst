@@ -3,10 +3,10 @@
 
 .. _reference :
 
-Pymiles reference documentation
+MILESpy reference documentation
 ===============================
 
-The reference documentation for pymiles is largely generated automatically
+The reference documentation for milespy is largely generated automatically
 from the source code. It is split into the following sections:
 
 
@@ -17,7 +17,7 @@ Stellar spectra library
    :toctree: _autosummary
    :recursive:
 
-   pymiles.stellar_library.StellarLibrary
+   milespy.stellar_library.StellarLibrary
 
 SSP models
 ^^^^^^^^^^
@@ -25,7 +25,7 @@ SSP models
    :toctree: _autosummary
    :recursive:
 
-   pymiles.ssp_library.SSPLibrary
+   milespy.ssp_library.SSPLibrary
 
 SFH analysis
 ^^^^^^^^^^^^
@@ -33,7 +33,7 @@ SFH analysis
    :toctree: _autosummary
    :recursive:
 
-   pymiles.sfh.SFH
+   milespy.sfh.SFH
 
 
 Spectra manipulation
@@ -42,7 +42,7 @@ Spectra manipulation
    :toctree: _autosummary
    :recursive:
 
-   pymiles.spectra.Spectra
+   milespy.spectra.Spectra
 
 Other tools
 ^^^^^^^^^^^
@@ -50,5 +50,5 @@ Other tools
    :toctree: _autosummary
    :recursive:
 
-   pymiles.filter
-   pymiles.magnitudes
+   milespy.filter
+   milespy.magnitudes

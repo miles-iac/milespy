@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := init
 .PHONY: add_major_version add_minor_version add_patch_version add_premajor_version add_preminor_version add_prepatch_version add_prerelease_version prepare-dev install-dev data help lint reference-img tests upload-prod-pypi upload-test-pypi update_req update_req_dev pyclean doc
-VENV = ".pymiles"
+VENV = ".milespy"
 
 define PROJECT_HELP_MSG
 
@@ -11,14 +11,14 @@ Usage:\n
 	-------------------------------------------------------------------------\n
 	\t\tInstallation\n
 	-------------------------------------------------------------------------\n
-	make\t\t\t\t                Install pymiles in the system (root)\n
-	make user\t\t\t 			Install pymiles for non-root usage\n
+	make\t\t\t\t                Install milespy in the system (root)\n
+	make user\t\t\t 			Install milespy for non-root usage\n
 	\n
 	-------------------------------------------------------------------------\n
 	\t\tDevelopment\n
 	-------------------------------------------------------------------------\n
 	make prepare-dev\t\t 		Prepare Development environment\n
-	make install-dev\t\t 		Install COTS and pymiles for development purpose\n
+	make install-dev\t\t 		Install milespy for development purpose\n
 	make reference-img\t\t     Generate reference images for tests\n
 	make tests\t\t\t             Run units and integration tests\n
 	\n
@@ -75,15 +75,15 @@ user:
 	poetry install --no-dev
 
 prepare-dev:
-	git config --global init.defaultBranch main && git init && echo "python3 -m venv pymiles-env && export PYTHONPATH=. && export PATH=`pwd`/pymiles-env/bin:${PATH}" > ${VENV} && echo "source \"`pwd`/pymiles-env/bin/activate\"" >> ${VENV} && echo "\nnow source this file: \033[31msource ${VENV}\033[0m"
+	git config --global init.defaultBranch main && git init && echo "python3 -m venv milespy-env && export PYTHONPATH=. && export PATH=`pwd`/milespy-env/bin:${PATH}" > ${VENV} && echo "source \"`pwd`/milespy-env/bin/activate\"" >> ${VENV} && echo "\nnow source this file: \033[31msource ${VENV}\033[0m"
 
 install-dev:
 	poetry install -E docs && poetry run pre-commit install
 
 lint:  ## Lint and static-check
-	poetry run flake8 --ignore=E203,E266,E501,W503,F403,F401 --max-line-length=79 --max-complexity=18 --select=B,C,E,F,W,T4,B9 pymiles
-	poetry run pylint pymiles
-	poetry run mypy --install-types --non-interactive pymiles
+	poetry run flake8 --ignore=E203,E266,E501,W503,F403,F401 --max-line-length=79 --max-complexity=18 --select=B,C,E,F,W,T4,B9 milespy
+	poetry run pylint milespy
+	poetry run mypy --install-types --non-interactive milespy
 
 
 reference-img:  ## Generate reference images for the tests
