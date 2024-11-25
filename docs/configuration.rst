@@ -18,6 +18,6 @@ You can change them by creating a configuration file in any of the following loc
  * ~/.milespyrc
  * .milespyrc
 
-Or by setting the environment variable ``PYMILES_VAR``, where ``VAR`` is the configuration
+Or by setting the environment variable ``MILESPY_VAR``, where ``VAR`` is the configuration
 option in upper case.
-For example ``PYMILES_AUTO_DOWNLOAD=1``.
+For example ``MILESPY_AUTO_DOWNLOAD=1``.

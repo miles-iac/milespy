@@ -26,7 +26,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Run tests
-      run: PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests
+      run: MILESPY_AUTO_DOWNLOAD=1 MILESPY_REPOSITORY_FOLDER=/tmp/ make tests
     - name: Upload artifacts
       uses: actions/upload-artifact@v4.1.0
       if: always()

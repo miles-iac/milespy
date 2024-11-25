@@ -13,7 +13,7 @@ test:
     - make prepare-dev
     - source .milespy
     - make install-dev
-    - PYMILES_AUTO_DOWNLOAD=1 PYMILES_REPOSITORY_FOLDER=/tmp/ make tests
+    - MILESPY_AUTO_DOWNLOAD=1 MILESPY_REPOSITORY_FOLDER=/tmp/ make tests
   artifacts:
     when: always
     paths:

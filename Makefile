@@ -90,7 +90,7 @@ reference-img:  ## Generate reference images for the tests
 	poetry run pytest --mpl-generate-path=test/baseline
 
 tests:  ## Run tests
-	PYMILES_LOG=DEBUG poetry run pytest --html=test_results/report.html --self-contained-html --mpl --mpl-generate-summary=basic-html --mpl-results-path=test_results
+	MILESPY_LOG=DEBUG poetry run pytest --html=test_results/report.html --self-contained-html --mpl --mpl-generate-summary=basic-html --mpl-results-path=test_results
 
 doc:
 	rm -rf _build
