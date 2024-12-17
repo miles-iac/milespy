@@ -56,7 +56,7 @@ class LineStrengthIndex:
             self.bands[3] = tab["b4"][idx][0][0]
             self.bands[4] = tab["b5"][idx][0][0]
             self.bands[5] = tab["b6"][idx][0][0]
-            self.bands[6] = tab["b7"][idx][0][0]
+            self.type = tab["b7"][idx][0][0]
         else:
             raise ValueError(f"The index {name} is not on the database")
 
@@ -156,7 +156,7 @@ def _sum_counts(ll, c, b1, b2):
     return s
 
 
-def _calc_index(bands, name, ll, counts, plot=False):
+def _calc_index(bands, index_type, name, ll, counts, plot=False):
     cb = _sum_counts(ll, counts, bands[0], bands[1])
     cr = _sum_counts(ll, counts, bands[4], bands[5])
     s = _sum_counts(ll, counts, bands[2], bands[3])
@@ -170,10 +170,10 @@ def _calc_index(bands, name, ll, counts, plot=False):
     c2 = (m * (bands[3] - lb)) + cb
     cont = 0.5 * (c1 + c2) * (bands[3] - bands[2])
 
-    if bands[6] == 1.0:
+    if index_type == "A":
         # atomic index
         ind = (1.0 - (s / cont)) * (bands[3] - bands[2])
-    elif bands[6] == 2.0:
+    elif index_type == "M":
         # molecular index
         ind = -2.5 * np.log10(s / cont)
 
@@ -260,7 +260,7 @@ def lsindex(
             )
             continue
         # calculate index value
-        outindex[ind.name] = _calc_index(ind.bands, ind.name, dll, flux, plot)
+        outindex[ind.name] = _calc_index(ind.bands, ind.type, ind.name, dll, flux, plot)
 
     if sims > 0:
         raise NotImplementedError
