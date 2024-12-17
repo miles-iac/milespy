@@ -128,7 +128,8 @@ class Spectra(Spectrum1D):
         Parameters
         ----------
         new_wave
-            Spectral axis with the desired sampling for the spectra
+            Spectral axis with the desired sampling for the spectra. These values
+            are the positions of the bin centers.
 
         Notes
         -----
