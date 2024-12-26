@@ -8,8 +8,10 @@ from copy import copy
 
 import numpy as np
 from astropy import units as u
+from astropy.constants import c
 from spectres import spectres
 from specutils import Spectrum1D
+from tqdm import tqdm
 
 from .configuration import get_config_file
 from .filter import Filter
@@ -119,6 +121,47 @@ class Spectra(Spectrum1D):
         out.lsf_fwhm = out.lsf_fwhm / (1.0 + redshift)
 
         return out
+
+    # @u.quantity_input # For some reason this does not work...
+    def velocity_shift(self, v_los: u.Quantity[u.km / u.s]) -> Spectra:
+        if v_los.isscalar:
+            # Simply move the spectral axis
+            return Spectra(
+                spectral_axis=self.spectral_axis * (1.0 + v_los / c),
+                flux=self.flux,
+                meta=copy(self.meta),
+            )
+        else:
+            assert len(v_los) == self.nspec
+
+            # Preallocate for performance
+            new_flux = np.empty(self.flux.shape)
+            ref_axis = self.spectral_axis.to_value(u.AA)
+            new_axis = np.empty_like(self.spectral_axis.to_value(u.AA))
+
+            for i, vi in tqdm(enumerate(v_los), delay=3.0, total=self.nspec):
+                # NB: This would be ideal to conserve flux, but it is very
+                #   computationally expensive.
+                # new_flux[i, :] = spectres(
+                #     self.spectral_axis.to_value(u.AA),
+                #     self.spectral_axis.to_value(u.AA) * (1. + vi / c),
+                #     self.flux[i, :],
+                #     fill=None,
+                # ) << self.flux.unit
+                fac = 1.0 + vi / c
+                new_axis[:] = ref_axis[:] * fac
+                new_flux[i, :] = np.interp(
+                    ref_axis,
+                    new_axis,
+                    self.flux[i, :],
+                )
+
+            out = Spectra(
+                spectral_axis=self.spectral_axis,
+                flux=new_flux << self.flux.unit,
+                meta=copy(self.meta),
+            )
+            return out
 
     def resample(self, new_wave: u.Quantity):
         """
