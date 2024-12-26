@@ -22,6 +22,23 @@ def test_cube_ls(miles_single):
     np.testing.assert_allclose(outls["Fe4033"], 0.45146105, rtol=1e-5)
 
 
+def test_custom_ls_index(miles_single):
+    # This is in reality the Fe3619 index
+    custom_index = lslib.LineStrengthIndex(
+        "test",
+        "A",
+        3594.0000 * u.AA,
+        3602.0000 * u.AA,
+        3602.0000 * u.AA,
+        3623.5000 * u.AA,
+        3623.5000 * u.AA,
+        3628.5000 * u.AA,
+    )
+
+    outls = miles_single.line_strength([custom_index])
+    np.testing.assert_allclose(np.array([4.2427661]), outls["test"], rtol=1e-5)
+
+
 def test_ls_indices(miles_single):
     lsnames = lslib.search(".*")
     indeces = lslib.get(lsnames)

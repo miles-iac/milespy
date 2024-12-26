@@ -4,9 +4,11 @@ from __future__ import annotations
 import logging
 import re
 import sys
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy import units as u
 from astropy.io import ascii
 
 from .configuration import get_config_file
@@ -20,15 +22,52 @@ logging.debug(f"Initialized line strength with {len(lsindex_names)} indeces.")
 
 class LineStrengthIndex:
     """
-    Line strenght index information
+    Line strength index information
 
     Attributes
     ----------
     name: str
-        Name of the index
+        Name of the index.
+    index_type: str
+        Whether the index is for atomic ("A") or molecular ("M") lines.
+    band_blue1:
+        Left edge of the blue band
+    band_blue2:
+        Right edge of the blue band
+    band_centre1:
+        Left edge of the central bandpass
+    band_centre2:
+        Right edge of the central bandpass
+    band_red1:
+        Left edge of the red band
+    band_red2:
+        Right edge of the red band
     """
 
-    def __init__(self, name):
+    def __init__(
+        self,
+        name: str,
+        index_type: Literal["A", "M"],
+        band_blue1: u.Quantity[u.AA],
+        band_blue2: u.Quantity[u.AA],
+        band_centre1: u.Quantity[u.AA],
+        band_centre2: u.Quantity[u.AA],
+        band_red1: u.Quantity[u.AA],
+        band_red2: u.Quantity[u.AA],
+    ):
+        self.name = name
+        self.type = index_type
+
+        self.bands = np.empty(6)
+        self.bands[0] = band_blue1.to(u.AA).value
+        self.bands[1] = band_blue2.to(u.AA).value
+        self.bands[2] = band_centre1.to(u.AA).value
+        self.bands[3] = band_centre2.to(u.AA).value
+        self.bands[4] = band_red1.to(u.AA).value
+        self.bands[5] = band_red2.to(u.AA).value
+
+    @staticmethod
+    def from_database(name) -> LineStrengthIndex:
         """
         Create an index from the name in the database.
 
@@ -40,6 +79,13 @@ class LineStrengthIndex:
         ----------
         name : str
             Name of the index to be loaded
+
+        Raises
+        ------
+        ValueError
+            If there is no matching index in the database
+        RuntimeError
+            If there are multiple indeces that match the input name
         """
         tab = ascii.read(lsfile, comment=r"\s*#")
         names = tab["names"]
@@ -48,15 +94,17 @@ class LineStrengthIndex:
             if len(idx) > 1:
                 raise RuntimeError("Multiple matching filters")
 
-            self.name = name
-            self.bands = np.zeros(7)
-            self.bands[0] = tab["b1"][idx][0][0]
-            self.bands[1] = tab["b2"][idx][0][0]
-            self.bands[2] = tab["b3"][idx][0][0]
-            self.bands[3] = tab["b4"][idx][0][0]
-            self.bands[4] = tab["b5"][idx][0][0]
-            self.bands[5] = tab["b6"][idx][0][0]
-            self.type = tab["b7"][idx][0][0]
+            return LineStrengthIndex(
+                name,
+                tab["b7"][idx][0][0],
+                tab["b1"][idx][0][0] << u.AA,
+                tab["b2"][idx][0][0] << u.AA,
+                tab["b3"][idx][0][0] << u.AA,
+                tab["b4"][idx][0][0] << u.AA,
+                tab["b5"][idx][0][0] << u.AA,
+                tab["b6"][idx][0][0] << u.AA,
+            )
+
         else:
             raise ValueError(f"The index {name} is not on the database")
 
@@ -109,7 +157,7 @@ def get(lsindex_names: list[str]) -> list[LineStrengthIndex]:
     -------
     list[Filter]
     """
-    indeces = [LineStrengthIndex(name) for name in lsindex_names]
+    indeces = [LineStrengthIndex.from_database(name) for name in lsindex_names]
 
     return indeces
 
