@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.0rc1"
+__version__ = "1.0rc2"
 
 
 from .ssp_library import SSPLibrary
