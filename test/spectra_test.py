@@ -3,7 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from astropy import units as u
+from astropy.constants import c
+from scipy.optimize import curve_fit
 from specutils.manipulation import spectral_slab
+
+from milespy.spectra import Spectra
 
 
 @pytest.fixture
@@ -107,3 +111,34 @@ def test_resample_cube(miles_cube):
     ax.legend(loc=0)
 
     return f
+
+
+def test_velocity_shift():
+    np.random.seed(42)
+
+    nsamples = 400
+    naxis = 40
+    li = 4000
+    lf = 4040
+    l0 = (li + lf) // 2 << u.AA
+
+    sigma_v = 200 << (u.km / u.s)
+    sigma_l = l0 * sigma_v / c
+
+    wave = np.linspace(li, lf, naxis) << u.AA
+    flux = np.zeros((nsamples, naxis)) << u.dimensionless_unscaled
+    flux[:, naxis // 2] = 1.0
+
+    v = np.random.normal(loc=0, scale=sigma_v.to_value(), size=nsamples) << (u.km / u.s)
+
+    s = Spectra(flux=flux, spectral_axis=wave)
+    s_shift = s.velocity_shift(v).collapse("sum", "spatial")
+
+    def gauss(x, a, x0, s):
+        return a * np.exp(-((x - x0) ** 2) / (2 * s * s))
+
+    popt, _ = curve_fit(gauss, s_shift.spectral_axis, s_shift.flux, p0=(1, 4020, 1))
+
+    sigma_l_obs = np.abs(popt[2])
+
+    assert np.isclose(sigma_l.to_value(u.AA), sigma_l_obs, atol=2e-1)
