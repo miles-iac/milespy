@@ -132,7 +132,11 @@ class Spectra(Spectrum1D):
                 meta=copy(self.meta),
             )
         else:
-            assert len(v_los) == self.nspec
+            if len(v_los) != self.nspec:
+                raise ValueError(
+                    "The size of the input velocity shift should"
+                    "match the number of spectra"
+                )
 
             # Preallocate for performance
             new_flux = np.empty(self.flux.shape)
