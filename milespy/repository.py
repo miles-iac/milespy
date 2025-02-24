@@ -58,12 +58,11 @@ class Repository:
         else:
             repo_filename = def_repo_folder.as_posix() + "/" + base_name + ".hdf5"
 
-        logger.debug(f"# Loading models in {repo_filename}")
+        logger.debug(f"Loading models in {repo_filename}")
 
-        if not os.path.exists(repo_filename):
-            logger.warning("Unable to locate repository")
-
-            if base_name in repository_url.keys():
+        if base_name in repository_url.keys():
+            if not os.path.exists(repo_filename):
+                logger.warning("Unable to locate repository")
                 if "auto_download" in config.keys() and config["auto_download"]:
                     self._download_repository(base_name, repo_filename)
                 else:
@@ -72,8 +71,9 @@ class Repository:
                     )
                     if opt == "y":
                         self._download_repository(base_name, repo_filename)
-            else:
-                raise ValueError(f"No known URL for {base_name}")
+        else:
+            logger.debug(f"Not known URL for {base_name}, trying to load it as a file")
+            return source
 
         return repo_filename
 

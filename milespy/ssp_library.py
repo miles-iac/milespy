@@ -66,7 +66,10 @@ class SSPLibrary(Repository):
         Parameters
         ----------
         source: str, default: "MILES_SSP"
-            Name of input models to use. Valid inputs are
+            Name of input models to use.
+            If none of the options below, it will assume that `source` is the path
+            to an external model repository file.
+            Valid inputs are
             MILES_SSP/CaT_SSP/EMILES_SSP
         version: str, default: "9.1"
             version number of the models

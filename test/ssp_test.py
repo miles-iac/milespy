@@ -7,6 +7,26 @@ from astropy import units as u
 from milespy import SSPLibrary
 
 
+def test_ssp_wrong_imf():
+    with pytest.raises(ValueError, match="No cases found"):
+        _ = SSPLibrary(
+            source="MILES_SSP",
+            version="9.1",
+            imf_type="invalidinput",
+            isochrone="P",
+        )
+
+
+def test_ssp_wrong_isochrone():
+    with pytest.raises(ValueError, match="No cases found"):
+        _ = SSPLibrary(
+            source="MILES_SSP",
+            version="9.1",
+            imf_type="bi",
+            isochrone="invalid input",
+        )
+
+
 @pytest.mark.mpl_image_compare
 def test_ssp_interp_alpha():
     # This test reproduces Fig 10 of Vazdekis et al. 2015

@@ -39,8 +39,11 @@ class StellarLibrary(Repository):
         Parameters
         ----------
         source:
-            Name of input models to use. Valid inputs are
-                 MILES_STARS/CaT_STARS/EMILES_STARS
+            Name of input models to use.
+            If none of the options below, it will assume that `source` is the path
+            to an external model repository file.
+            Valid inputs are
+            MILES_STARS/CaT_STARS/EMILES_STARS
         version:
             Version number of the models
 
