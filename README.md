@@ -1,6 +1,6 @@
 # milespy
 
-![Action badge](https://github.com/milespy/milespy/actions/workflows/milespy-dev.yml/badge.svg)
+![Action badge](https://github.com/miles-iac/milespy/actions/workflows/test.yml/badge.svg)
 
 milespy is a python interface to the [MILES](http://miles.iac.es) stellar
 library and SSP models.  This package aims to provide users an easy interface
@@ -27,4 +27,4 @@ python3 -m pip install .
 ## Support
 
 If you find bugs or have feature suggestions, please submit an
-[issue](https://github.com/milespy/milespy/issues) to this repository.
+[issue](https://github.com/miles-iac/milespy/issues) to this repository.

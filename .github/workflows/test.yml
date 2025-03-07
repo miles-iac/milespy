@@ -1,4 +1,4 @@
-name: Tests and documentation build
+name: Tests
 on:
   push:
 
@@ -33,15 +33,3 @@ jobs:
       with:
         name: "${{ github.job }}-python${{ matrix.python-version }}"
         path: test_results/
-
-
-  build-doc:
-    runs-on: ubuntu-22.04
-    steps:
-    - run: sudo apt -y update && sudo apt-get -y install pandoc
-    - uses: actions/checkout@v4
-    - name: Setup the environment
-      uses: ./.github/actions/setup
-    - run: poetry run pip install jupyter
-    - name: Build documentation
-      run: make doc
