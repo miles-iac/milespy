@@ -1,8 +1,10 @@
 # milespy
 
-![Action badge](https://github.com/miles-iac/milespy/actions/workflows/test.yml/badge.svg)
+[![PyPi](https://img.shields.io/pypi/v/milespy)](https://pypi.org/project/milespy)
+![Test badge](https://github.com/miles-iac/milespy/actions/workflows/test.yml/badge.svg)
+[![Docs badge](https://github.com/miles-iac/milespy/actions/workflows/docs.yml/badge.svg)](https://miles-iac.github.io/milespy/)
 
-milespy is a python interface to the [MILES](http://miles.iac.es) stellar
+MILESpy is a python interface to the [MILES](http://miles.iac.es) stellar
 library and SSP models.  This package aims to provide users an easy interface
 to generate single stellar population (SSP) models, navigate the stellar
 library or generate a spectra given an input star formation history (SFH),
