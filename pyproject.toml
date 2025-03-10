@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "milespy"
-version = "1.0rc2"
+version = "1.0rc3"
 authors = [
   "Isaac Alonso Asensio <isaac.alonso.asensio@iac.es>"
 ]
