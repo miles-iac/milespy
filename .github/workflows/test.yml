@@ -9,7 +9,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-22.04
-    if: ${{ ! contains(github.event.head_commit.message, '[docs only]') }}
+    if: ${{ ! contains(github.event.head_commit.message, '[no test]') }}
     strategy:
       matrix:
         python-version:
