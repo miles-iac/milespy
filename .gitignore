@@ -7,3 +7,4 @@ docs/reference/_autosummary/
 _build
 **/.ipynb_checkpoints*
 test_results
+.coverage
