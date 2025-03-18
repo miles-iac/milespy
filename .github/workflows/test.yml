@@ -8,6 +8,8 @@ concurrency:
 
 jobs:
   test:
+    permissions:
+      contents: write
     runs-on: ubuntu-22.04
     if: ${{ ! contains(github.event.head_commit.message, '[no test]') }}
     strategy:
@@ -27,6 +29,21 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Run tests
       run: MILESPY_AUTO_DOWNLOAD=1 MILESPY_REPOSITORY_FOLDER=/tmp/ make tests
+    - name: Creating coverage folder
+      if: matrix.version == '3.10'
+      run: |
+        mkdir -p coverage
+    - name: Coverage Bagdge
+      if: matrix.version == '3.10'
+      uses: tj-actions/coverage-badge-py@v1.8
+      with:
+        output: coverage/coverage.svg
+    - name: Publish coverage report to coverage-badge branch
+      if: matrix.version == '3.10'
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        branch: coverage-badge
+        folder: coverage
     - name: Upload artifacts
       uses: actions/upload-artifact@v4.1.0
       if: always()

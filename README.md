@@ -1,8 +1,10 @@
 # milespy
 
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![PyPi](https://img.shields.io/pypi/v/milespy)](https://pypi.org/project/milespy)
 ![Test badge](https://github.com/miles-iac/milespy/actions/workflows/test.yml/badge.svg)
 [![Docs badge](https://github.com/miles-iac/milespy/actions/workflows/docs.yml/badge.svg)](https://miles-iac.github.io/milespy/)
+![Coverage Status](https://raw.githubusercontent.com/miles-iac/milespy/coverage-badge/coverage.svg?raw=true)
 
 MILESpy is a python interface to the [MILES](http://miles.iac.es) stellar
 library and SSP models.  This package aims to provide users an easy interface

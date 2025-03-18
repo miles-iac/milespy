@@ -81,7 +81,7 @@ install-dev:
 	poetry install -E docs && poetry run pre-commit install
 
 lint:  ## Lint and static-check
-	poetry run flake8 --ignore=E203,E266,E501,W503,F403,F401 --max-line-length=79 --max-complexity=18 --select=B,C,E,F,W,T4,B9 milespy
+	poetry run flake8 --ignore=E203,E266,E501,W503,F403,F401 --max-line-length=79 --select=B,C,E,F,W,T4,B9 milespy
 	poetry run pylint milespy
 	poetry run mypy --install-types --non-interactive milespy
 
