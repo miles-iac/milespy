@@ -19,6 +19,7 @@ jobs:
 
   publish-to-testpypi:
     name: Publish milespy to TestPyPI
+    if: ${{ contains(github.event.head_commit.message, '[TestPyPI]') }}
     needs:
     - build
     runs-on: ubuntu-22.04
