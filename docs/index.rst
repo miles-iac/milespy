@@ -6,8 +6,8 @@
 MILESpy documentation
 ===================================
 
-Welcome to the documentation for MILESpy - a python interface to the `MILES <http://miles.iac.es>`_
-stellar library and SSP models. [#f]_
+Welcome to the documentation for MILESpy - a python interface to the
+`MILES <http://miles.iac.es>`_ stellar library and SSP models.
 This package aims to provide users an easy interface to generate single stellar
 population (SSP) models, navigate the stellar library or generate a spectra given
 an input star formation history (SFH), among other things.
@@ -19,6 +19,54 @@ the possibilities of the package. Then, navigate to the :doc:`installation` inst
 to start using the code. Lastly, during your development process the :doc:`reference/index`
 may be the best resource.
 
+.. attention::
+   Note that MILESpy is shipped with a simple interpolating routine based on a
+   Voronoi tesselation of the parameter space. We simply weight by the distance
+   to the vertices of the enclosing cell. This is NOT the classical
+   interpolator :cite:p:`Vazdekis2003` used in :cite:t:`Vazdekis2010a`
+   to generate SSP spectra from the MILES stellar library.
+
+Available stellar libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++-----------------+---------+-------+-----------------------------+
+| Stellar library | Version | Notes | Reference                   |
++=================+=========+=======+=============================+
+| MILES           | 9.1     |       | :cite:t:`Vazdekis2010a`     |
++-----------------+         +-------+-----------------------------+
+| EMILES          |         |       |                             |
++-----------------+         +-------+-----------------------------+
+| CaT             |         |       |                             |
++-----------------+---------+-------+-----------------------------+
+| sMILES          |          in prep.                             |
++-----------------+---------+-------+-----------------------------+
+
+Available SSP models
+~~~~~~~~~~~~~~~~~~~~
+
++-----------+---------+----------------+-----------+-------+------------------------------+
+| SSP model | Version | IMF            + Isochrone + Notes | Reference                    |
++===========+=========+================+===========+=======+==============================+
+| MILES     | 9.1     |                |           |       | :cite:t:`Vazdekis2010a`      |
++-----------+         |                |           +-------+------------------------------+
+| EMILES    |         | ch/ku/kb/un/bi | P/T       |       |                              |
++-----------+         |                |           +-------+------------------------------+
+| CaT       |         |                |           |       |                              |
++-----------+---------+----------------+-----------+-------+------------------------------+
+| sMILES    |          in prep.                                                           |
++-----------+---------+----------------+-----------+-------+------------------------------+
+
+Where the IMF correspond to
+  - ch: Chabrier
+  - kb: Kroupa Revised
+  - ku: Kroupa Universal
+  - un: Unimodal with variable logarithmic slope
+  - bi: Bimodal with variable massive stars segment logarithmic slope
+And the isochrones to:
+  - P: Padova+00
+  - B: BaSTI
+
+Please refer to the `official MILES website <https://research.iac.es/proyecto/miles/pages/ssp-models.php>`_ for more details.
 
 .. toctree::
    :maxdepth: 2
@@ -29,7 +77,4 @@ may be the best resource.
    Tutorials & examples <tutorials/index>
    Reference <reference/index>
 
-
-
-.. [#f] See [V10]_ and others (TO BE FILLED)
-.. [V10] `Vazdekis et al. 2010; Evolutionary stellar population synthesis with MILES – I. The base models and a new line index system <https://academic.oup.com/mnras/article/404/4/1639/1080511>`_
+.. bibliography::

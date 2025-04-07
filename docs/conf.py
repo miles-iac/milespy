@@ -45,7 +45,12 @@ extensions = [
     "nbsphinx",
     "sphinx_gallery.load_style",
     "sphinx.ext.intersphinx",
+    "sphinxcontrib.bibtex",
 ]
+
+bibtex_bibfiles = ["biblio.bib"]
+bibtex_reference_style = "author_year"
+bibtex_default_style = "plain"
 
 autosummary_generate = True
 numpydoc_class_members_toctree = False
