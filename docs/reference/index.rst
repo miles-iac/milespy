@@ -3,8 +3,8 @@
 
 .. _reference :
 
-MILESpy reference documentation
-===============================
+MILESpy API reference documentation
+===================================
 
 The reference documentation for milespy is largely generated automatically
 from the source code. It is split into the following sections:

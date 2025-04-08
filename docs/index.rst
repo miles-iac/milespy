@@ -23,7 +23,7 @@ may be the best resource.
    Note that MILESpy is shipped with a simple interpolating routine based on a
    Voronoi tesselation of the parameter space. We simply weight by the distance
    to the vertices of the enclosing cell. This is NOT the classical
-   interpolator :cite:p:`Vazdekis2003` used in :cite:t:`Vazdekis2010a`
+   interpolator :cite:p:`Vazdekis2003a` used in :cite:t:`Vazdekis2010b`
    to generate SSP spectra from the MILES stellar library.
 
 Available stellar libraries
@@ -32,7 +32,7 @@ Available stellar libraries
 +-----------------+---------+-------+-----------------------------+
 | Stellar library | Version | Notes | Reference                   |
 +=================+=========+=======+=============================+
-| MILES           | 9.1     |       | :cite:t:`Vazdekis2010a`     |
+| MILES           | 9.1     |       | :cite:t:`Vazdekis2010b`     |
 +-----------------+         +-------+-----------------------------+
 | EMILES          |         |       |                             |
 +-----------------+         +-------+-----------------------------+
@@ -47,7 +47,7 @@ Available SSP models
 +-----------+---------+----------------+-----------+-------+------------------------------+
 | SSP model | Version | IMF            + Isochrone + Notes | Reference                    |
 +===========+=========+================+===========+=======+==============================+
-| MILES     | 9.1     |                |           |       | :cite:t:`Vazdekis2010a`      |
+| MILES     | 9.1     |                |           |       | :cite:t:`Vazdekis2010b`      |
 +-----------+         |                |           +-------+------------------------------+
 | EMILES    |         | ch/ku/kb/un/bi | P/T       |       |                              |
 +-----------+         |                |           +-------+------------------------------+
@@ -62,11 +62,12 @@ Where the IMF correspond to
   - ku: Kroupa Universal
   - un: Unimodal with variable logarithmic slope
   - bi: Bimodal with variable massive stars segment logarithmic slope
+
 And the isochrones to:
   - P: Padova+00
   - B: BaSTI
 
-Please refer to the `official MILES website <https://research.iac.es/proyecto/miles/pages/ssp-models.php>`_ for more details.
+Please refer to the `official MILES website <https://research.iac.es/proyecto/miles/pages/ssp-models.php>`_ for more details. Also check the relevant publications for each of the models in :doc:`references`.
 
 .. toctree::
    :maxdepth: 2
@@ -75,6 +76,7 @@ Please refer to the `official MILES website <https://research.iac.es/proyecto/mi
    Configuration <configuration>
    Units handling <units>
    Tutorials & examples <tutorials/index>
-   Reference <reference/index>
+   API Reference <reference/index>
+   Relevant publications <references>
 
 .. bibliography::
