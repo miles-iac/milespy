@@ -77,6 +77,7 @@ Please refer to the `official MILES website <https://research.iac.es/proyecto/mi
    Units handling <units>
    Tutorials & examples <tutorials/index>
    API Reference <reference/index>
+   Contributing <development>
    Relevant publications <references>
 
 .. bibliography::
