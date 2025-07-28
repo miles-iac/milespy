@@ -14,6 +14,10 @@ among other things.  We try to make this package compatible with previously
 existing tools, namely [astropy](https://www.astropy.org/) and
 [specutils](https://specutils.readthedocs.io).
 
+The documentation can be [browsed online](https://miles-iac.github.io/milespy/).
+It has extensive [tutorials and examples](https://miles-iac.github.io/milespy/tutorials/index.html)
+to easily start developing.
+
 ## Getting started
 
 In a standard python installation using pip as the package manager, just do:
