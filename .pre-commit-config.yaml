@@ -26,5 +26,5 @@ repos:
     rev: "v0.12.5"
     hooks:
       - id: ruff
-        args: ["--fix", --max-line-lenght=88]
+        args: ["--fix", --line-length=88]
       - id: ruff-format
