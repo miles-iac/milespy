@@ -3,7 +3,7 @@ name = "milespy"
 version = "1.0rc3"
 description = "Wrapper for the MILES spectral library"
 authors = [{ name = "Isaac Alonso Asensio", email = "isaac.alonso.asensio@iac.es" }]
-requires-python = "~=3.8"
+requires-python = ">=3.8"
 readme = "README.md"
 maintainers = [{ name = "Isaac Alonso Asensio", email = "isaac.alonso.asensio@iac.es" }]
 dependencies = [
@@ -12,7 +12,8 @@ dependencies = [
     "scipy~=1.10 ; python_version >= '3.12'",
     "astropy~=5.2 ; python_version < '3.12'",
     "astropy>=6,<7 ; python_version >= '3.12'",
-    "specutils~=1.15",
+    "setuptools ; python_version < '3.10'",
+    "specutils~=1.16",
     "spectres>=2.2.2,<3",
     "setuptools>63 ; python_version >= '3.12'",
     "matplotlib~=3.7",

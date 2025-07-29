@@ -49,10 +49,10 @@ install-dev:
 	uv lock && uv sync --all-groups
 
 lint:  ## Lint and static-check
-	uv run flake8 --ignore=E203,E266,E501,W503,F403,F401 --max-line-length=79 --select=B,C,E,F,W,T4,B9 milespy
-	uv run pylint milespy
-	uv run mypy --install-types --non-interactive milespy
+	uv run ruff check milespy
 
+format:  ## Lint and static-check
+	uv run ruff format milespy
 
 reference-img:  ## Generate reference images for the tests
 	uv run pytest --mpl-generate-path=test/baseline

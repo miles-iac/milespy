@@ -14,8 +14,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup the environment
         uses: ./.github/actions/setup
-      - run: ruff check
-      - run: ruff format
+      - run: make lint
+      - run: make format
   test:
     permissions:
       contents: write
