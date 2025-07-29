@@ -10,7 +10,7 @@ import numpy as np
 from astropy import units as u
 from astropy.constants import c
 from spectres import spectres
-from specutils import Spectrum1D
+from specutils import Spectrum
 from tqdm import tqdm
 
 from .configuration import get_config_file
@@ -27,11 +27,11 @@ from .magnitudes import sun_magnitude
 logger = logging.getLogger("milespy.spectra")
 
 
-class Spectra(Spectrum1D):
+class Spectra(Spectrum):
     """
     Class for storing spectra in milespy.
 
-    This class inherits `Spectrum1D` from specutils, and can use
+    This class inherits `Spectrum` from specutils, and can use
     all the methods of that class.
 
     The main difference is how we use the `meta` dictionary.
@@ -45,6 +45,13 @@ class Spectra(Spectrum1D):
     warnings.filterwarnings("ignore")
 
     solar_ref_spec = get_config_file("sun_mod_001.fits")
+
+    def __init__(self, *args, **kwargs):
+        # We force the default behaviour of specutils < 2 of having the spectral
+        # axis in the last index
+        if "flux" in kwargs.keys():
+            kwargs["spectral_axis_index"] = -1
+        super().__init__(*args, **kwargs)
 
     @property
     def properties(self):
@@ -87,7 +94,14 @@ class Spectra(Spectrum1D):
         for k in out.meta.keys():
             try:
                 if len(out.meta[k]) == self.nspec:
-                    out.meta[k] = out.meta[k][item]
+                    try:
+                        out.meta[k] = out.meta[k][item]
+                    except IndexError:
+                        # This can happen now because specutils>=2.0 passes a
+                        # list of `slice(None, None, None)` rather than an
+                        # Ellipsis to allow for the spectral axis to be in any
+                        # index.
+                        out.meta[k] = out.meta[k][item[self.spectral_axis_index]]
                 else:
                     out.meta[k] = self.meta[k]
             except TypeError:
@@ -552,6 +566,8 @@ class Spectra(Spectrum1D):
         else:
             m = mass[:, np.newaxis]
 
-        out = self.multiply(m, handle_meta="first_found")
+        out = Spectra(
+            flux=self.flux * m, spectral_axis=self.spectral_axis, meta=copy(self.meta)
+        )
         out._update_mass(mass)
         return out
