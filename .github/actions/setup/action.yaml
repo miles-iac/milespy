@@ -14,5 +14,6 @@ runs:
       uses: astral-sh/ruff-action@v3
       with:
         version-file: "pyproject.toml"
+        args: "--version"
     - run: make install-dev
       shell: bash
