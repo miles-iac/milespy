@@ -505,7 +505,7 @@ class SSPLibrary(Repository):
             single_imf_slope and imf_slope in self.avail_imfs
         )
         # But this can be overruled
-        interp_fix_imf_slope &= not ("imf_slope" in force_interp)
+        interp_fix_imf_slope &= "imf_slope" not in force_interp
         if interp_fix_imf_slope:
             if nan_imf:
                 imf_slope = self.avail_imfs[0]
@@ -526,7 +526,7 @@ class SSPLibrary(Repository):
         )
         if self.fixed_alpha and not nan_alpha:
             logger.warning("There is no alpha-enhanced SSPs with this model choice")
-        interp_fix_alpha &= not ("alpha" in force_interp)
+        interp_fix_alpha &= "alpha" not in force_interp
         if interp_fix_alpha:
             if nan_alpha:
                 alpha_mask = np.isnan(self.models.meta["alpha"])
