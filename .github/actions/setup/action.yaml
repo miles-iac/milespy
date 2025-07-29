@@ -10,12 +10,9 @@ runs:
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
-    - name: Install poetry
-      uses: abatilo/actions-poetry@v2
-    - name: Setup local environment
-      shell: bash
-      run: |
-          poetry config virtualenvs.create true --local
-          poetry config virtualenvs.in-project true --local
+    - name: Install ruff
+      uses: astral-sh/ruff-action@v3
+      with:
+        version-file: "pyproject.toml"
     - run: make install-dev
       shell: bash

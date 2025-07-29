@@ -16,7 +16,6 @@ jobs:
     - uses: actions/checkout@v4
     - name: Setup the environment
       uses: ./.github/actions/setup
-    - run: poetry run pip install jupyter
     - name: Build documentation
       run: make doc
     - name: Upload static files as artifact
