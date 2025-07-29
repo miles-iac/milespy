@@ -1,6 +1,6 @@
 [project]
 name = "milespy"
-version = "1.0rc3"
+version = "1.0rc4"
 description = "Wrapper for the MILES spectral library"
 authors = [{ name = "Isaac Alonso Asensio", email = "isaac.alonso.asensio@iac.es" }]
 requires-python = ">=3.10"
