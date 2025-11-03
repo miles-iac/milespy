@@ -60,6 +60,64 @@ def test_ssp_interp_alpha():
 
 
 @pytest.mark.mpl_image_compare
+def test_ssp_interp_alpha_smiles():
+    # This test reproduces bottom panel of Fig 5 of Knowles et al. 2023
+    smiles_ssp = SSPLibrary(
+        source="sMILES_SSP",
+        version="9.1",
+        imf_type="ku",
+        isochrone="T",
+    )
+    fig, ax = plt.subplots()
+
+    common_params = {
+        "age": 10 * u.Gyr,
+        "met": -0.96 * u.dex,
+        "imf_slope": 1.3,
+    }
+
+    base = smiles_ssp.interpolate(**common_params, alpha=0.0 * u.dex)
+
+    alpha_m02 = smiles_ssp.interpolate(**common_params, alpha=-0.2 * u.dex)
+    ax.plot(
+        base.spectral_axis,
+        alpha_m02.flux / base.flux,
+        label=r"[$\alpha$/Fe] = -0.2",
+        c="g",
+    )
+
+    alpha_02 = smiles_ssp.interpolate(**common_params, alpha=0.2 * u.dex)
+    ax.plot(
+        base.spectral_axis,
+        alpha_02.flux / base.flux,
+        label=r"[$\alpha$/Fe] = 0.2",
+        c="k",
+    )
+
+    alpha_04 = smiles_ssp.interpolate(**common_params, alpha=0.4 * u.dex)
+    ax.plot(
+        base.spectral_axis,
+        alpha_04.flux / base.flux,
+        label=r"[$\alpha$/Fe] = 0.4",
+        c="r",
+    )
+
+    alpha_06 = smiles_ssp.interpolate(**common_params, alpha=0.6 * u.dex)
+    ax.plot(
+        base.spectral_axis,
+        alpha_06.flux / base.flux,
+        label=r"[$\alpha$/Fe] = 0.6",
+        c="b",
+    )
+
+    ax.axhline(1.0, c="k")
+    ax.legend(loc=0)
+    ax.set_xlim(3500, 7500)
+    ax.set_ylim(0.875, 1.425)
+    return fig
+
+
+@pytest.mark.mpl_image_compare
 def test_ssp_interp_closest_img(miles_ssp):
     close = miles_ssp.closest(
         age=[2.57, 3.8, 11.3] << u.Gyr,

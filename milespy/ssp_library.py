@@ -70,7 +70,7 @@ class SSPLibrary(Repository):
             If none of the options below, it will assume that `source` is the path
             to an external model repository file.
             Valid inputs are
-            MILES_SSP/CaT_SSP/EMILES_SSP
+            MILES_SSP/CaT_SSP/EMILES_SSP/sMILES_SSP
         version: str, default: "9.1"
             version number of the models
         isochrone: str, default: "P"
@@ -668,7 +668,7 @@ class SSPLibrary(Repository):
 
         lsf_wave = self.models.spectral_axis
         npix = self.models.npix
-        if source == "MILES_SSP":
+        if source == "MILES_SSP" or source == "sMILES_SSP":
             lsf_fwhm = 2.51 * np.ones(npix)
 
         elif source == "MILES_STARS":
@@ -690,7 +690,7 @@ class SSPLibrary(Repository):
             raise ValueError(
                 self.source
                 + " is not a valid entry."
-                + "Allowed values: MILES_SSP/MILES_STARS/CaT_SSP/CaT_STARS/EMILES"
+                + "Allowed values: MILES_SSP/MILES_STARS/CaT_SSP/CaT_STARS/EMILES/sMILES"
             )
 
         return lsf_wave, lsf_fwhm * u.AA

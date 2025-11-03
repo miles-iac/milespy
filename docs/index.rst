@@ -24,7 +24,7 @@ may be the best resource.
    spectra based on a Voronoi tesselation of the parameter space.
    We simply weight by the distance to the vertices of the enclosing cell. This
    is NOT the classical interpolator :cite:p:`Vazdekis2003a` used in
-   :cite:t:`Vazdekis2010b` to generate SSP spectra from the MILES stellar
+   :cite:t:`Vazdekis2010a` to generate SSP spectra from the MILES stellar
    library.
 
 Available stellar libraries
@@ -66,7 +66,7 @@ Available SSP models
        * bimodal
      - * Padova00
        * BaSTI
-     - :cite:t:`Vazdekis2010b`
+     - :cite:t:`Vazdekis2010a`
    * - **MILES** (α-variable models)
      - 3400 - 7300 Å
      - [α/Fe]= 0.0; +0.4
@@ -77,6 +77,16 @@ Available SSP models
        * bimodal
      - * BaSTI
      - :cite:t:`Vazdekis2015a`
+   * - **sMILES** (α-abundance variations)
+     - 3400 - 7300 Å
+     - [α/Fe]= -0.2; 0.0; +0.2; +0.4; +0.6
+     - * Chabrier
+       * Kroupa universal
+       * Kroupa revised
+       * unimodal
+       * bimodal
+     - * BaSTI
+     - :cite:t:`Knowles2023`
    * - **EMILES**
      - 1680 - 50000 Å
      - Solar neighborhood

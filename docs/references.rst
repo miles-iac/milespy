@@ -21,9 +21,10 @@ Relevant papers
 
   Sanchez-Blazquez2006
   Cenarro2007
-  Vazdekis2010b
+  Vazdekis2010a
   Falcon-Barroso2011
   Vazdekis2015a
+  Knowles2023
 
 
 .. rubric:: CaT related papers:

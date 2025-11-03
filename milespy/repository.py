@@ -17,6 +17,7 @@ logger = logging.getLogger("milespy.repository")
 repository_url = {
     "MILES_STARS_v9.1": "https://cloud.iac.es/index.php/s/TKEwKfSiaZePYsx/download/MILES_STARS_v9.1.hdf5",  # noqa
     "MILES_SSP_v9.1": "https://cloud.iac.es/index.php/s/wz3xS9jj7zDe7Hs/download/MILES_SSP_v9.1.hdf5",  # noqa
+    "sMILES_SSP_v9.1": "https://cloud.iac.es/index.php/s/KsJFXKB7LLmGrxN/download/sMILES_SSP_v9.1.hdf5",  # noqa
     "EMILES_SSP_v9.1": "https://cloud.iac.es/index.php/s/2CqEBsreXdeK2Pd/download/EMILES_SSP_v9.1.hdf5",  # noqa
     "CaT_STARS_v9.1": "https://cloud.iac.es/index.php/s/jCt2TzD8DMFXXdZ/download/CaT_STARS_v9.1.hdf5",  # noqa
     "CaT_SSP_v9.1": "https://cloud.iac.es/index.php/s/ex3Ep9jA5eG6Pwt/download/CaT_SSP_v9.1.hdf5",  # noqa
