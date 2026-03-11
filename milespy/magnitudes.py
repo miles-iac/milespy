@@ -137,9 +137,9 @@ def compute_mags(
         vega = np.interp(
             tmp_wave, zerosed[zeropoint]["wave"], zerosed[zeropoint]["flux"]
         )
-        vega_f = np.trapz(vega * response, x=tmp_wave)
+        vega_f = np.trapezoid(vega * response, x=tmp_wave)
 
-        f = np.trapz(tmp_flux * response, x=tmp_wave, axis=-1)
+        f = np.trapezoid(tmp_flux * response, x=tmp_wave, axis=-1)
         mag = -2.5 * np.log10(f / vega_f)
         fmag = mag + cfact
         if zeropoint == "AB":
