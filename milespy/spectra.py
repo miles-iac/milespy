@@ -15,6 +15,7 @@ from tqdm import tqdm
 
 from .configuration import get_config_file
 from .filter import Filter
+from .ls_indices import line_strength_index
 from .ls_indices import LineStrengthDict
 from .ls_indices import LineStrengthIndex
 from .ls_indices import lsindex
@@ -108,8 +109,7 @@ class Spectra(Spectrum):
                 pass
         return out
 
-    def redshift_spectra(self, redshift=None):
-        # This may still be required because it also changes the LSF
+    def redshift_spectra(self, redshift=None) -> Spectra:
         """
         Returns a copy of the instance with a redshifted wavelength vector,
         spectra and LSF
@@ -128,10 +128,7 @@ class Spectra(Spectrum):
         logger.info("Redshifting spectra ...")
 
         out = copy(self)
-        # wave = out.wave * (1.0 + redshift)
-        # spec = out.spec / (1.0 + redshift)
-        # out.update_basic_pars(wave, spec)
-        out.redshift = redshift
+        out._redshift = redshift
         out.lsf_fwhm = out.lsf_fwhm / (1.0 + redshift)
 
         return out
