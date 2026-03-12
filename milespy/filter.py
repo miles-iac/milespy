@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+"""Filter database access and transmissivity curves for photometric bandpasses."""
 from __future__ import annotations
 
 import glob
 import logging
 import os
 import re
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,7 +38,7 @@ class Filter:
 
         This reads the information from the configuration files, so the
         name should match with a given existing file. This can be easily
-        accomplished with :meth:`milespy.filter.search`.
+        accomplished with :meth:`milespy.filter.search_filters`.
 
         Parameters
         ----------
@@ -53,14 +55,14 @@ class Filter:
             self.name = fname
             self.trans = tab["trans"]
 
-    def plot(self, ax) -> None:
+    def plot_transmissivity(self, ax) -> None:
         """
-        Plot the filter transmissivity
+        Plot the filter transmissivity.
 
         Parameters
         ----------
         ax : matplotlib.Axes
-            Axes where the plot is drawn
+            Axes where the plot is drawn.
         """
         ax.fill_between(
             self.wave,
@@ -70,6 +72,15 @@ class Filter:
             edgecolor="k",
         )
 
+    def plot(self, ax) -> None:
+        """Plot the filter transmissivity (deprecated: use plot_transmissivity)."""
+        warnings.warn(
+            "Filter.plot is deprecated; use plot_transmissivity instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.plot_transmissivity(ax)
+
 
 fnames = glob.glob(f"{config_folder.as_posix()}/filters/*.dat")
 filter_names = np.sort([os.path.basename(x).split(".dat")[0] for x in fnames])
@@ -77,29 +88,20 @@ nfilters = len(filter_names)
 logging.debug(f"Initialized library with {nfilters} filters")
 
 
-def search(name) -> list[str]:
+def search_filters(name: str) -> list[str]:
     """
-    Searches for a filter in database.
-
-    Notes
-    -----
-    Search is case insensitive
-    The filter seach does not have to be precise. Substrings within filter
-    names are ok.  It uses the python package 're' for regular expressions
-    matching
+    Search for filters in the database by name (regex, case insensitive).
 
     Parameters
     ----------
-    name:
-        The search string to match filter names
+    name : str
+        The search string to match filter names (regex pattern).
 
     Returns
     -------
     list[str]
-        List of filter names available matching the search string
-
+        List of filter names matching the search string.
     """
-
     reg = re.compile(name, re.IGNORECASE)
     filtered_filters = list(filter(reg.search, filter_names))
 
@@ -112,42 +114,67 @@ def search(name) -> list[str]:
     return filtered_filters
 
 
-def get(filter_names: list[str]) -> list[Filter]:
+def search(name: str) -> list[str]:
+    """Deprecated: use search_filters instead."""
+    warnings.warn(
+        "filter.search is deprecated; use search_filters instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return search_filters(name)
+
+
+def get_filters(filter_name_list: list[str]) -> list[Filter]:
     """
-    Retrieves filter from database
+    Retrieve Filter instances from the database by name.
 
     Parameters
     ----------
-    filter_names: list[str]
-        The filter names as given by :meth:`milespy.filter.search`
+    filter_name_list : list[str]
+        Filter names (e.g. as returned by search_filters).
 
     Returns
     -------
     list[Filter]
+        List of Filter instances.
     """
-    filters = [Filter(fname) for fname in filter_names]
-
-    return filters
+    return [Filter(fname) for fname in filter_name_list]
 
 
-def plot(filter_names, legend=True):
+def get(filter_names: list[str]) -> list[Filter]:
+    """Deprecated: use get_filters instead."""
+    warnings.warn(
+        "filter.get is deprecated; use get_filters instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return get_filters(filter_names)
+
+
+def plot_filters(filter_names: list[str], legend: bool = True) -> None:
     """
-    Plot filters
+    Plot transmissivity curves for a set of filters.
 
     Parameters
     ----------
-    filter_names: list[str]
-        The filter names
-    legend: bool
-        Flag to turn on/off the legend
-
+    filter_names : list[str]
+        The filter names to plot.
+    legend : bool, optional
+        Whether to show the legend (default True).
     """
-
     fig, ax = plt.subplots()
-
-    _ = [Filter(fname).plot(ax) for fname in filter_names]
-
+    for fname in filter_names:
+        Filter(fname).plot_transmissivity(ax)
     if legend:
         plt.legend()
-
     plt.show()
+
+
+def plot(filter_names: list[str], legend: bool = True) -> None:
+    """Deprecated: use plot_filters instead."""
+    warnings.warn(
+        "filter.plot is deprecated; use plot_filters instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    plot_filters(filter_names, legend)
