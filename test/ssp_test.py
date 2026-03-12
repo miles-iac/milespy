@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from astropy import units as u
+from pydantic import ValidationError
 
 from milespy import SSPLibrary
 
 
 def test_ssp_wrong_imf():
-    with pytest.raises(ValueError, match="No cases found"):
+    with pytest.raises(ValidationError):
         _ = SSPLibrary(
             source="MILES_SSP",
             version="9.1",
@@ -18,7 +19,7 @@ def test_ssp_wrong_imf():
 
 
 def test_ssp_wrong_isochrone():
-    with pytest.raises(ValueError, match="No cases found"):
+    with pytest.raises(ValidationError):
         _ = SSPLibrary(
             source="MILES_SSP",
             version="9.1",
