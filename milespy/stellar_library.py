@@ -10,7 +10,7 @@ from astropy.units import Quantity
 from scipy.spatial import Delaunay
 from tqdm import tqdm
 
-from .misc import interp_weights
+from .interpolation_utils import interp_weights
 from .repository import Repository
 from .spectra import Spectra
 

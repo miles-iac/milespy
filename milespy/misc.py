@@ -1,18 +1,13 @@
 # -*- coding: utf-8 -*-
-import numpy as np
+"""Deprecated: use milespy.interpolation_utils instead."""
+import warnings
 
+warnings.warn(
+    "milespy.misc is deprecated; use milespy.interpolation_utils instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-def interp_weights(xyz, uvw, tri):
-    """
-    Creates a Delaunay triangulation and finds the vertices and weights of
-    points around a given location in parameter space
-    """
+from .interpolation_utils import interp_weights  # noqa: E402
 
-    d = len(uvw[0, :])
-    simplex = tri.find_simplex(uvw)
-    vertices = np.take(tri.simplices, simplex, axis=0)
-    temp = np.take(tri.transform, simplex, axis=0)
-    delta = uvw - temp[:, d]
-    bary = np.einsum("njk,nk->nj", temp[:, :d, :], delta)
-
-    return vertices, np.hstack((bary, 1 - bary.sum(axis=1, keepdims=True)))
+__all__ = ["interp_weights"]
