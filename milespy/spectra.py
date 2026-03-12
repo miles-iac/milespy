@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+"""Spectrum container with metadata, resampling, convolution, and magnitude/index computation."""
+
 from __future__ import annotations
 
 import logging
 import typing
-import warnings
 from copy import copy
 
 import numpy as np
@@ -18,7 +19,6 @@ from .filter import Filter
 from .ls_indices import line_strength_index
 from .ls_indices import LineStrengthDict
 from .ls_indices import LineStrengthIndex
-from .ls_indices import lsindex
 from .magnitudes import compute_mags
 from .magnitudes import Magnitude
 from .magnitudes import sun_magnitude
@@ -38,12 +38,10 @@ class Spectra(Spectrum):
     The main difference is how we use the `meta` dictionary.
     We assume that all the values stored in meta have the same lengths as the
     number of spectra.  Thus, each value of each key univoquely refers to some
-    information of a given spectra.  The exact keys in this dictionary will
+    information of a given spectra.      The exact keys in this dictionary will
     depend on the model creating this object.
 
     """
-
-    warnings.filterwarnings("ignore")
 
     solar_ref_spec = get_config_file("sun_mod_001.fits")
 
@@ -55,7 +53,8 @@ class Spectra(Spectrum):
         super().__init__(*args, **kwargs)
 
     @property
-    def properties(self):
+    def properties(self) -> list:
+        """List of metadata keys (e.g. age, metallicity) attached to each spectrum."""
         return list(self.meta.keys())
 
     def __getattr__(self, attr):
@@ -73,22 +72,23 @@ class Spectra(Spectrum):
                 raise AttributeError
 
     @property
-    def npix(self):
+    def npix(self) -> int:
+        """Number of spectral pixels (length of the spectral axis)."""
         if len(self.data.shape) > 1:
             return self.data.shape[1]
-        else:
-            return self.data.shape[0]
+        return self.data.shape[0]
 
     @property
-    def dim(self):
+    def dim(self) -> tuple:
+        """Shape of the spectrum array excluding the spectral axis (e.g. (n_models,) or (ny, nx))."""
         return self.data.shape[:-1]
 
     @property
-    def nspec(self):
+    def nspec(self) -> int:
+        """Total number of spectra (product of non-spectral dimensions)."""
         if len(self.data.shape) > 1:
-            return np.prod(self.data.shape[:-1])
-        else:
-            return 1
+            return int(np.prod(self.data.shape[:-1]))
+        return 1
 
     def __getitem__(self, item):
         out = super().__getitem__(item)
@@ -111,30 +111,41 @@ class Spectra(Spectrum):
 
     def redshift_spectra(self, redshift=None) -> Spectra:
         """
-        Returns a copy of the instance with a redshifted wavelength vector,
-        spectra and LSF
+        Return a copy with redshift and line-spread function (LSF) metadata updated.
+
+        Does not change the spectral axis or flux; only sets the redshift
+        attribute and scales the LSF FWHM by 1/(1+z) for use in later processing.
 
         Parameters
         ----------
-        redshift:
-            Desired redshift
+        redshift : float or ~astropy.units.Quantity, optional
+            Desired redshift (dimensionless or velocity).
 
         Returns
         -------
         Spectra
-            Object instance with spectra redshifted and updated info
-
+            Copy with updated redshift and lsf_fwhm metadata.
         """
         logger.info("Redshifting spectra ...")
-
         out = copy(self)
         out._redshift = redshift
         out.lsf_fwhm = out.lsf_fwhm / (1.0 + redshift)
-
         return out
 
-    # @u.quantity_input # For some reason this does not work...
     def velocity_shift(self, v_los: u.Quantity[u.km / u.s]) -> Spectra:
+        """
+        Apply a line-of-sight velocity shift to the spectrum (Doppler shift).
+
+        Parameters
+        ----------
+        v_los : ~astropy.units.Quantity
+            Line-of-sight velocity (e.g. km/s); scalar or array of length nspec.
+
+        Returns
+        -------
+        Spectra
+            New instance with shifted spectral axis (and flux if per-spectrum velocities).
+        """
         if v_los.isscalar:
             # Simply move the spectral axis
             return Spectra(
@@ -178,26 +189,29 @@ class Spectra(Spectrum):
             )
             return out
 
-    def resample(self, new_wave: u.Quantity):
+    def resample(self, new_wave: u.Quantity) -> Spectra:
         """
-        Resample the spectra
+        Resample the spectra onto a new wavelength grid.
 
+        Uses flux-conserving resampling via spectres. Values at bin centers
+        are interpolated; boundaries may yield NaN.
 
         Parameters
         ----------
-        new_wave
-            Spectral axis with the desired sampling for the spectra. These values
-            are the positions of the bin centers.
+        new_wave : ~astropy.units.Quantity
+            New spectral axis (e.g. wavelength in u.AA); bin centers.
+
+        Returns
+        -------
+        Spectra
+            New instance with the resampled flux and spectral_axis.
 
         Notes
         -----
-        This functions makes use of :func:`spectres.spectres` [1]_.
-        Care must be taken when resampling near the boundaries of the spectral
-        axis, which can cause `nan` values.
+        Uses :func:`spectres.spectres` [1]_. Care at boundaries may cause NaN.
 
         .. [1] A. C. Carnall, "SpectRes: A Fast Spectral Resampling Tool in Python",
            arXiv:1705.05165
-
         """
         new_flux = spectres(
             new_wave.to_value(u.AA),
@@ -212,31 +226,27 @@ class Spectra(Spectrum):
         )
         return out
 
-    def convolve(self, lsf: u.Quantity = u.Quantity(1, unit=u.AA), lsf_wave=None):
+    def convolve(
+        self, lsf: u.Quantity = u.Quantity(1, unit=u.AA), lsf_wave=None
+    ) -> Spectra:
         """
-        Returns a convolved version of the spectra. It does the convolution
-        using the FWHM given in the input line spread function (LSF).
+        Convolve the spectra with a Gaussian kernel given by the line-spread function (LSF).
 
-        Notes
-        -----
-        If output LSF < input LSF the sigma used for the convolution is set to
-        very small values.
+        The LSF is specified as FWHM (full width at half maximum) in wavelength.
+        Convolution sigma is derived from the difference between target and current LSF.
+        If target LSF is smaller than the current one, a very small sigma is used.
 
         Parameters
         ----------
-        lsf: `~astropy.units.Quantity`
-            Line spread function as a function of `lsf_wave`. This is the
-            FWMH to be used in the convolution, thus, should be provide in units
-            of wavelength. It accepts a scalar value, that is assumend constant
-            for all wavelenghts.
-        lsf_wave: `~astropy.units.Quantity`
-            Associated wavelenghts to the values of `lsf`.
+        lsf : ~astropy.units.Quantity
+            LSF FWHM (wavelength); scalar (constant with wavelength) or array.
+        lsf_wave : ~astropy.units.Quantity, optional
+            Wavelengths for each LSF value (required if lsf is not scalar).
 
         Returns
         -------
         Spectra
-            Object instance with convolved spectra
-
+            New instance with convolved flux and updated lsf_fwhm/lsf_wave metadata.
         """
 
         logger.info("Convolving spectra")
@@ -279,7 +289,6 @@ class Spectra(Spectrum):
         out.meta["lsf_wave"] = self.spectral_axis
         return out
 
-    # -----------------------------------------------------------------------------
     def tune_spectra(
         self,
         wave_lims=None,
@@ -290,36 +299,33 @@ class Spectra(Spectrum):
         lsf_mode="FWHM",
         lsf_wave=None,
         lsf=None,
-    ):
-        # This wrapper should be defined at the flask application layer
+    ) -> Spectra:
         """
-        Returns the a tuned to desired input parameters
+        Return a copy tuned to desired wavelength range, sampling, redshift, and LSF.
 
         Parameters
         ----------
-        wave_lims:
-            Wavelength limits in Angstroms
-        dwave:
-            Step in wavelength (in Angstroms)
-        sampling:
-            Type of sampling of the spectra. Valid inputs are lin/ln.
-            Default: lin
-        redshift:
-            Desired redshift
-        lsf_flag:
-            Boolean flag to do LSF correction
-        lsf_wave:
-            Wavelength vector of output LSF
-        lsf:
-            LSF vector
-        lsf_mode:
-            FWHM/VDISP. First one in Angstroms. Second one in km/s
+        wave_lims : array-like, optional
+            Wavelength limits in Ångström.
+        dwave : float, optional
+            Wavelength step (Ångström).
+        sampling : str, optional
+            'lin' or 'ln' (log).
+        redshift : float, optional
+            Desired redshift.
+        lsf_flag : bool, optional
+            Whether to apply LSF (line-spread function) correction.
+        lsf_wave : ~astropy.units.Quantity, optional
+            Wavelength vector for the output LSF.
+        lsf : ~astropy.units.Quantity, optional
+            LSF FWHM (or velocity dispersion if lsf_mode='VDISP').
+        lsf_mode : str, optional
+            'FWHM' (wavelength) or 'VDISP' (km/s).
 
         Returns
         -------
         Spectra
-            Object instance with tuned spectra and updated info
-
+            Tuned spectra (resampling/redshift may be no-ops; convolution applied if lsf given).
         """
 
         logger.debug("Tuning spectra ----------------------")
@@ -357,72 +363,53 @@ class Spectra(Spectrum):
 
     def magnitudes(
         self,
-        filters: list[Filter] = [],
-        zeropoint="AB",
+        filters: list[Filter] | None = None,
+        zeropoint: str = "AB",
     ) -> Magnitude:
         """
-        Returns the magnitudes of the input spectra given a list of filters in a file
+        Compute magnitudes in the given filters (AB or Vega zeropoint).
 
         Parameters
         ----------
-        filters: list[Filter]
-            Filters as provided by :meth:`milespy.filter.get`
-        zeropoint:
-            Type of zero point. Valid inputs are AB/VEGA
+        filters : list[Filter], optional
+            Filters as provided by :meth:`milespy.filter.get_filters`. Default empty.
+        zeropoint : str, optional
+            'AB' or 'VEGA'.
 
         Returns
         -------
         Magnitude
-            Dictionary with output magnitudes for each spectra for each filter
-
+            Dictionary mapping filter name to magnitude (per spectrum).
         """
+        if filters is None:
+            filters = []
         logger.info("Computing absolute magnitudes")
 
         outmags = compute_mags(self.spectral_axis, self.flux, filters, zeropoint)
 
         return outmags
 
-    # -----------------------------------------------------------------------------
     def line_strength(self, indeces: list[LineStrengthIndex]) -> LineStrengthDict:
         """
-        Returns the LS indices of the input spectra given a list of index definitions
+        Compute line-strength (Lick/IDS) indices for the spectra.
 
         Parameters
         ----------
-        indeces: list[LineStrenghtIndex]
-            Indeces as provided by :meth:`milespy.ls_indices.get`
+        indeces : list[LineStrengthIndex]
+            Index definitions from :meth:`milespy.ls_indices.get_indices_from_database`.
 
         Returns
         -------
         LineStrengthDict
-            Dictionary with output LS indices for each spectra for each index
-
+            Dictionary mapping index name to value (array or scalar per spectrum).
         """
         logger.info("Computing Line-Strength indices")
-        outls = lsindex(
+        outls = line_strength_index(
             indeces,
             self.spectral_axis,
             self.flux,
             self.redshift,
         )
-
-        """
-        nls = len(indices)
-        indices = np.zeros((nls, self.nspec))
-
-        for i in tqdm(range(self.nspec), delay=3.):
-            names, indices[:, i], dummy = lsindex(
-                self.spectral_axis,
-                self.flux,
-                self.flux * 0.1,
-                self.redshift,
-                0.0,
-                self.lsfile,
-            )
-
-        outls = LineStrengthDict((names[i], indices[i, :]) for i in range(nls))
-        """
-
         return outls
 
     @staticmethod
@@ -470,23 +457,23 @@ class Spectra(Spectrum):
         self, filters: list[Filter], mass_in: typing.Union[str, list[str]] = "star+remn"
     ) -> dict:
         """
-        Computes the mass-to-light ratios of models in the desired filters
+        Compute mass-to-light (M/L) ratios in the desired filters.
+
+        Uses solar absolute magnitudes and the chosen mass component (total, stellar,
+        remnant, star+remnant, or gas).
 
         Parameters
         ----------
-        filters: list[Filter]
-            Filters as provided by the method 'get_filters"
-        mass_in: str | list[str]
-            What mass to take into account for the ML. It can be given as a list,
-            so that it returns a dictionary for each type.
-            Valid values are: total, star, remn, star+remn, gas
+        filters : list[Filter]
+            Filters as provided by :meth:`milespy.filter.get_filters`.
+        mass_in : str or list[str], optional
+            Mass component: 'total', 'star', 'remn', 'star+remn', 'gas'. If a list,
+            returns a dict keyed by type.
 
         Returns
         -------
         dict
-            Dictionary with mass-to-light ratios for each SSP model and filter.
-            If mass_in is a list, the first key is the type of ML.
-
+            Mass-to-light ratio per filter (and per mass type if mass_in is a list).
         """
         logger.info("Computing mass-to-light ratios")
 
@@ -526,7 +513,10 @@ class Spectra(Spectrum):
         else:
             return outmls
 
-    def _single_type_mass_to_light(self, filters: list[Filter], mass, mags, msun):
+    def _single_type_mass_to_light(
+        self, filters: list[Filter], mass, mags: Magnitude, msun: Magnitude
+    ) -> dict:
+        """Compute mass-to-light for one mass type and all filters (M/L = mass * 10^(-0.4*(Msun - mag)))."""
         outmls = {}
         for f in filters:
             outmls[f.name] = (mass / 1.0) * 10 ** (
@@ -534,7 +524,8 @@ class Spectra(Spectrum):
             )
         return outmls
 
-    def _update_mass(self, mass):
+    def _update_mass(self, mass: u.Quantity) -> None:
+        """Update metadata mass fields (total, star, remn, etc.) by the given ratio."""
         if "mass" in self.meta.keys():
             previous_mass = self.meta["mass"]
         else:
@@ -557,7 +548,8 @@ class Spectra(Spectrum):
         self.meta["Mass_star_remn"] *= ratio
         self.meta["Mass_gas"] *= ratio
 
-    def _apply_mass(self, mass):
+    def _apply_mass(self, mass: u.Quantity) -> Spectra:
+        """Scale flux by mass and update mass-related metadata; returns new Spectra."""
         if np.ndim(mass) == 0:
             m = mass
         else:
