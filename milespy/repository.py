@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""HDF5-based model repository management and optional download of MILES/EMILES/CaT data."""
 import logging
 import os
 
@@ -25,17 +26,44 @@ repository_url = {
 
 
 class Repository:
+    """
+    Base class for HDF5-based model repositories (SSP or stellar library).
+
+    Manages the ``models`` attribute (a Spectra-like object), optional download
+    of repository files from configured URLs, and validation that each repository
+    file is a readable HDF5 with a ``wave`` dataset. Subclasses (e.g. SSPLibrary)
+    load and attach models after resolving the repository path via _get_repository.
+    """
+
     def __init__(self, models):
         self._models = models
 
-    def _assert_repository_file(self, file_path):
-        try:
-            with h5py.File(file_path) as f:
-                _ = f["wave"]
-        except:  # noqa
-            raise AssertionError("Repository file is unreadable")
+    def _assert_repository_file(self, file_path: str) -> None:
+        """
+        Verify that the path points to a readable HDF5 file containing a 'wave' dataset.
 
-    def _download_repository(self, base_name, output_path):
+        Raises
+        ------
+        AssertionError
+            If the file cannot be opened or does not contain the required structure.
+        """
+        try:
+            with h5py.File(file_path, "r") as f:
+                _ = f["wave"]
+        except (OSError, KeyError) as e:
+            raise AssertionError("Repository file is unreadable") from e
+
+    def _download_repository(self, base_name: str, output_path: str) -> None:
+        """
+        Download the repository file for base_name from the configured URL to output_path.
+
+        Parameters
+        ----------
+        base_name : str
+            Key in repository_url (e.g. "MILES_SSP_v9.1").
+        output_path : str
+            Local path where the HDF5 file will be written.
+        """
         response = requests.get(repository_url[base_name], stream=True)
 
         total_size = int(response.headers.get("content-length", 0))
@@ -50,9 +78,29 @@ class Repository:
         if total_size != 0 and progress_bar.n != total_size:
             raise RuntimeError("Unable to download file")
 
-        logger.debug(f"Dowloaded {base_name} repository in {output_path}")
+        logger.debug(f"Downloaded {base_name} repository to {output_path}")
 
-    def _get_repository(self, source, version) -> str:
+    def _get_repository(self, source: str, version: str) -> str:
+        """
+        Resolve the path to the repository HDF5 file, downloading if missing and allowed.
+
+        If source + version matches a known key in repository_url, the file is
+        looked up in the configured repository folder (or default); if missing,
+        it may be downloaded when auto_download is True or the user confirms.
+        Otherwise, source is returned as-is (treated as a local path).
+
+        Parameters
+        ----------
+        source : str
+            Model source name (e.g. "MILES_SSP") or path to a local file.
+        version : str
+            Version string (e.g. "9.1") used to form base_name = source + "_v" + version.
+
+        Returns
+        -------
+        str
+            Path to the repository HDF5 file, or source if not a known repository.
+        """
         base_name = source + "_v" + version
         if "repository_folder" in config:
             repo_filename = config["repository_folder"] + base_name + ".hdf5"
@@ -80,33 +128,40 @@ class Repository:
 
     @property
     def models(self):
+        """The spectra (or spectrum-like) object holding the loaded models."""
         return self._models
 
-    def trim(self, lower: u.Quantity, upper: u.Quantity):
+    def trim(self, lower: u.Quantity, upper: u.Quantity) -> None:
         """
-        Trim all the models in the library
+        Restrict the spectral range of all models to [lower, upper].
+
+        Updates :attr:`models` in place with the trimmed spectra; metadata is preserved.
 
         Parameters
         ----------
-        lower : Quantity
-        upper : Quantity
+        lower : ~astropy.units.Quantity
+            Lower wavelength bound (e.g. u.AA).
+        upper : ~astropy.units.Quantity
+            Upper wavelength bound.
         """
         trimmed = spectral_slab(self.models, lower, upper)
         trimmed.meta = self.models.meta
         self._models = trimmed
 
-    def resample(self, new_wave: u.Quantity):
+    def resample(self, new_wave: u.Quantity) -> None:
         """
-        Resample all the models in the library
+        Resample all models onto the given wavelength grid.
+
+        Updates :attr:`models` in place; metadata is preserved.
 
         Parameters
         ----------
-        new_wave
-            Spectral axis with the desired sampling for the spectra
+        new_wave : ~astropy.units.Quantity
+            New spectral axis (e.g. wavelength in u.AA).
 
         See Also
         --------
-        :meth:`milespy.spectra.resample`
+        :meth:`milespy.spectra.Spectra.resample`
         """
         resample = self.models.resample(new_wave)
         resample.meta = self.models.meta
