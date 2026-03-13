@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """Filter database access and transmissivity curves for photometric bandpasses."""
+
 from __future__ import annotations
 
 import glob
 import logging
 import os
 import re
-import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -72,15 +72,6 @@ class Filter:
             edgecolor="k",
         )
 
-    def plot(self, ax) -> None:
-        """Plot the filter transmissivity (deprecated: use plot_transmissivity)."""
-        warnings.warn(
-            "Filter.plot is deprecated; use plot_transmissivity instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.plot_transmissivity(ax)
-
 
 fnames = glob.glob(f"{config_folder.as_posix()}/filters/*.dat")
 filter_names = np.sort([os.path.basename(x).split(".dat")[0] for x in fnames])
@@ -115,12 +106,7 @@ def search_filters(name: str) -> list[str]:
 
 
 def search(name: str) -> list[str]:
-    """Deprecated: use search_filters instead."""
-    warnings.warn(
-        "filter.search is deprecated; use search_filters instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    """Alias for search_filters."""
     return search_filters(name)
 
 
@@ -142,12 +128,7 @@ def get_filters(filter_name_list: list[str]) -> list[Filter]:
 
 
 def get(filter_names: list[str]) -> list[Filter]:
-    """Deprecated: use get_filters instead."""
-    warnings.warn(
-        "filter.get is deprecated; use get_filters instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    """Alias for use get_filters."""
     return get_filters(filter_names)
 
 
@@ -168,13 +149,3 @@ def plot_filters(filter_names: list[str], legend: bool = True) -> None:
     if legend:
         plt.legend()
     plt.show()
-
-
-def plot(filter_names: list[str], legend: bool = True) -> None:
-    """Deprecated: use plot_filters instead."""
-    warnings.warn(
-        "filter.plot is deprecated; use plot_filters instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    plot_filters(filter_names, legend)

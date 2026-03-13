@@ -213,12 +213,7 @@ def search_indices_in_database(name: str) -> list[str]:
 
 
 def search(name: str) -> list[str]:
-    """Deprecated: use search_indices_in_database instead."""
-    warnings.warn(
-        "ls_indices.search is deprecated; use search_indices_in_database instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    """Alias for search_indices_in_database."""
     return search_indices_in_database(name)
 
 
@@ -239,12 +234,7 @@ def get_indices_from_database(index_name_list: list[str]) -> list[LineStrengthIn
 
 
 def get(lsindex_names: list[str]) -> list[LineStrengthIndex]:
-    """Deprecated: use get_indices_from_database instead."""
-    warnings.warn(
-        "ls_indices.get is deprecated; use get_indices_from_database instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    """Alias for get_indices_from_database."""
     return get_indices_from_database(lsindex_names)
 
 
