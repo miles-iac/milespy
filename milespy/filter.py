@@ -132,6 +132,16 @@ def get(filter_names: list[str]) -> list[Filter]:
     return get_filters(filter_names)
 
 
+def list_all() -> list[str]:
+    """Alias for list_all_filters."""
+    return search_filters(".*")
+
+
+def list_all_filters() -> list[str]:
+    """Show all available filters"""
+    return search_filters(".*")
+
+
 def plot_filters(filter_names: list[str], legend: bool = True) -> None:
     """
     Plot transmissivity curves for a set of filters.

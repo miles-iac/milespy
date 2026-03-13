@@ -238,6 +238,16 @@ def get(lsindex_names: list[str]) -> list[LineStrengthIndex]:
     return get_indices_from_database(lsindex_names)
 
 
+def list_all() -> list[LineStrengthIndex]:
+    """Alias for list_all_indices."""
+    return search_indices_in_database(".*")
+
+
+def list_all_indices() -> list[LineStrengthIndex]:
+    """Show all available line strength indices"""
+    return search_indices_in_database(".*")
+
+
 class LineStrengthDict(dict):
     def write(self, output=sys.stdout, format="basic", **kwargs):
         """

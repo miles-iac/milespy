@@ -19,3 +19,11 @@ def test_plot_filter():
     ax.set_ylabel("Transmissivity")
     ax.set_xlabel("Wavelength")
     return fig
+
+
+def test_list_all():
+    lsall0 = flib.list_all()
+    lsall1 = flib.list_all_filters()
+
+    assert len(lsall0) == len(lsall1)
+    assert len(lsall0) == 153

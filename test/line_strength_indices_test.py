@@ -144,3 +144,11 @@ def test_ls_indices(miles_single):
 
     for k in ref.keys():
         np.testing.assert_allclose(ref[k], outls[k], rtol=1e-5, err_msg=k)
+
+
+def test_list_all():
+    lsall0 = lslib.list_all()
+    lsall1 = lslib.list_all_indices()
+
+    assert len(lsall0) == len(lsall1)
+    assert len(lsall0) == 175
