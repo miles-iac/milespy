@@ -24,8 +24,6 @@ class StellarLibrary(Repository):
 
     Attributes
     ----------
-    models: Spectra
-        Spectra of all the stars that form the loaded library
     source: str
         Name of input library being used
     version: str

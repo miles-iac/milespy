@@ -131,8 +131,6 @@ class SingleStellarPopulationLibrary(Repository):
 
     Attributes
     ----------
-    models : Spectra
-        All loaded SSP spectra for the chosen isochrone and IMF type.
     avail_alphas : ndarray
         Available [alpha/Fe] values in the library.
     avail_imfs : ndarray
