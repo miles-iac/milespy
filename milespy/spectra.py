@@ -16,9 +16,9 @@ from tqdm import tqdm
 
 from .configuration import get_config_file
 from .filter import Filter
-from .ls_indices import line_strength_index
-from .ls_indices import LineStrengthDict
-from .ls_indices import LineStrengthIndex
+from .line_strength_indices import line_strength_index
+from .line_strength_indices import LineStrengthDict
+from .line_strength_indices import LineStrengthIndex
 from .magnitudes import compute_mags
 from .magnitudes import Magnitude
 from .magnitudes import sun_magnitude

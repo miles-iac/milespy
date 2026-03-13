@@ -2,7 +2,7 @@
 import astropy.units as u
 import numpy as np
 
-import milespy.ls_indices as lslib
+import milespy.line_strength_indices as lslib
 from milespy.spectra import Spectra
 
 
