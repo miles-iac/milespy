@@ -19,7 +19,7 @@ from .configuration import get_config_file
 from .interpolation_utils import interp_weights
 from .repository import Repository
 from .spectra import Spectra
-from .star_formation_histories import StarFormationHistories
+from .star_formation_history import StarFormationHistory
 
 logger = logging.getLogger("milespy.ssp")
 
@@ -73,7 +73,6 @@ def _select_models(
     """
     Select models matching isochrone and imf_type; return wave, spec, meta, avail_alphas, avail_imfs, nspec, fixed_alpha.
     """
-    total_nspec = len(f["age"])
     idx = np.logical_and(
         np.equal(f["imf_type"][...], imf_type.encode()),
         np.equal(f["isochrone"][...], isochrone.encode()),
@@ -718,7 +717,7 @@ class SingleStellarPopulationLibrary(Repository):
 
         return lsf_wave, lsf_fwhm * u.AA
 
-    def from_sfh(self, sfh: StarFormationHistories) -> Spectra:
+    def from_sfh(self, sfh: StarFormationHistory) -> Spectra:
         """
         Synthesize a composite spectrum from a star formation history (SFH).
 
@@ -727,7 +726,7 @@ class SingleStellarPopulationLibrary(Repository):
 
         Parameters
         ----------
-        sfh : StarFormationHistories
+        sfh : StarFormationHistory
             Star formation history with time, SFR, met, alpha, imf (and time_weights).
 
         Returns

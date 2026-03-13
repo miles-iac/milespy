@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Star formation history (SFH) definitions and synthesis of composite spectra from SSPs."""
+
 import logging
 from typing import Optional
 
@@ -7,12 +8,12 @@ import numpy as np
 from astropy import units as u
 from scipy.integrate import trapezoid
 
-logger = logging.getLogger("milespy.star_formation_histories")
+logger = logging.getLogger("milespy.star_formation_history")
 
 DEFAULT_NBINS = 20
 
 
-class StarFormationHistories:
+class StarFormationHistory:
     """
     Star formation history (SFH) container and synthesis of composite spectra from SSPs.
 
@@ -310,7 +311,7 @@ class StarFormationHistories:
     @staticmethod
     def _linear(time, start, end, t_start, t_end):
         for inp in (start, end, t_start, t_end):
-            StarFormationHistories._validate_scalar(inp)
+            StarFormationHistory._validate_scalar(inp)
 
         slope = (start - end) / (t_start - t_end)
         out = np.empty(time.shape)
@@ -329,7 +330,7 @@ class StarFormationHistories:
     @staticmethod
     def _sigmoid(time, start, end, tc, gamma):
         for inp in (start, end, tc, gamma):
-            StarFormationHistories._validate_scalar(inp)
+            StarFormationHistory._validate_scalar(inp)
 
         return (end - start) / (1.0 + np.exp(-gamma * (tc - time))) + start
 
@@ -500,3 +501,10 @@ class StarFormationHistories:
 
         """
         self.imf = self._sigmoid(self.time, start, end, tc, gamma)
+
+
+class SFH(StarFormationHistory):
+    """Alias for StarFormationHistory."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
