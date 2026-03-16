@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**: Added module-level docstrings across core modules;
   expanded docstrings for repository, SFH, spectra, and SSP library; changelog
   added to documentation navigation.
+- Use `specutils` `vac_to_air` rather than our own implementation.
 
 ### Added
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Magnitude computation from spectra and filter response (AB and Vega zeropoints)."""
+
 from __future__ import annotations
 
 import logging
@@ -11,6 +12,7 @@ from astropy import units as u
 from astropy.io import ascii
 from astropy.io import fits
 from astropy.units import Quantity
+from specutils.utils.wcs_utils import vac_to_air
 from pydantic import BaseModel
 from scipy.interpolate import interp1d
 
@@ -205,32 +207,6 @@ def compute_mags(
     return outmags
 
 
-def vacuum2air(wave_vac: np.ndarray | Quantity) -> np.ndarray | Quantity:
-    """
-    Convert wavelength from vacuum to air (refractive index formula).
-
-    Parameters
-    ----------
-    wave_vac : array or ~astropy.units.Quantity
-        Wavelength in vacuum (e.g. Ångström). If Quantity, returned in same unit.
-
-    Returns
-    -------
-    array or ~astropy.units.Quantity
-        Wavelength in air (same type and unit as input).
-    """
-    if isinstance(wave_vac, Quantity):
-        w = wave_vac.to_value(u.AA)
-        out = w / (
-            1.0 + 2.735182e-4 + 131.4182 / w**2 + 2.76249e8 / w**4
-        )
-        return Quantity(out, u.AA)
-    wave_air = wave_vac / (
-        1.0 + 2.735182e-4 + 131.4182 / wave_vac**2 + 2.76249e8 / wave_vac**4
-    )
-    return wave_air
-
-
 def _load_solar_spectrum():
     """
     Loads the references solar spectrum
@@ -249,8 +225,13 @@ def _load_solar_spectrum():
     hdu = fits.open(solar_ref_spec)
     tab = hdu[1].data
 
-    wave_air = Quantity(vacuum2air(tab["WAVELENGTH"]), unit=u.AA)
-    flux = Quantity(tab["FLUX"], unit=u.erg / (u.cm**2 * u.s * u.AA))
+    # Do not load too short wavelengths as we do not need them and they can
+    # not be reliable converted with `vac_to_air`.
+    mask = tab["WAVELENGTH"] > 2000.0
+    wave_air = vac_to_air(
+        Quantity(tab["WAVELENGTH"][mask], unit=u.AA), method="Morton2000"
+    )
+    flux = Quantity(tab["FLUX"][mask], unit=u.erg / (u.cm**2 * u.s * u.AA))
 
     return wave_air, flux
 
