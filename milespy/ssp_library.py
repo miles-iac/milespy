@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+"""Single stellar population (SSP) model library loading, selection, and interpolation."""
+
 import logging
-import warnings
 from typing import List
+from typing import Literal
 from typing import Optional
 
 import h5py
@@ -9,17 +11,19 @@ import numpy as np
 from astropy import units as u
 from astropy.io import ascii
 from astropy.units import Quantity
+from pydantic import BaseModel
 from scipy.spatial import Delaunay
 from tqdm import tqdm
 
 from .configuration import get_config_file
-from .misc import interp_weights
+from .interpolation_utils import interp_weights
 from .repository import Repository
-from .sfh import SFH
 from .spectra import Spectra
+from .star_formation_history import StarFormationHistory
 
 logger = logging.getLogger("milespy.ssp")
 
+# Metadata keys and their units: age (Gyr), metallicity and [alpha/Fe] (dex), IMF slope (dimensionless).
 _ssp_attr_units = {
     "age": u.Gyr,
     "alpha": u.dex,
@@ -27,140 +31,169 @@ _ssp_attr_units = {
     "imf_slope": u.dimensionless_unscaled,
 }
 
+KNOWN_SOURCES = (
+    "MILES_SSP",
+    "CaT_SSP",
+    "EMILES_SSP",
+    "sMILES_SSP",
+    "MILES_STARS",
+    "CaT_STARS",
+)
+ISOCHRONE_TYPES = ("P", "T")  # P = Padova+00, T = BaSTI
+IMF_TYPES = (
+    "ch",
+    "ku",
+    "kb",
+    "un",
+    "bi",
+)  # Chabrier, Kroupa universal, Kroupa revised, unimodal, bimodal
 
-class SSPLibrary(Repository):
+
+class SSPLibraryConfig(BaseModel):
+    """Validates SSP library constructor arguments (isochrone and imf_type)."""
+
+    source: str
+    version: str = "9.1"
+    isochrone: Literal["P", "T"] = "P"
+    imf_type: Literal["ch", "ku", "kb", "un", "bi"] = "ch"
+
+
+def _load_repository_file(
+    repo_path: str,
+) -> h5py.File:
+    """Open and return the HDF5 repository file (read-only). Caller must close or use as context manager."""
+    return h5py.File(repo_path, "r")
+
+
+def _select_models(
+    f: h5py.File,
+    isochrone: str,
+    imf_type: str,
+) -> tuple:
     """
-    Single stellar population (SSP) model library.
+    Select models matching isochrone and imf_type; return wave, spec, meta, avail_alphas, avail_imfs, nspec, fixed_alpha.
+    """
+    idx = np.logical_and(
+        np.equal(f["imf_type"][...], imf_type.encode()),
+        np.equal(f["isochrone"][...], isochrone.encode()),
+    )
+    nspec = int(np.sum(idx))
+    if nspec == 0:
+        raise ValueError("No cases found with those specs.")
 
-    This class is used to generate SSP spectra from the repository files.
+    avail_alphas = np.unique(f["alpha"][idx])
+    fixed_alpha = len(avail_alphas) == 1
+    avail_alphas = avail_alphas[~np.isnan(avail_alphas)]
+
+    avail_imfs = np.unique(f["imf_slope"][idx])
+    avail_imfs = avail_imfs[~np.isnan(avail_imfs)]
+
+    wave = np.array(f["wave"])
+    spec = np.array(f["spec/" + isochrone + "/" + imf_type + "/data"])[...]
+
+    filename = []
+    for fullpath in np.array(np.array(f["filename"][idx]), dtype="str"):
+        filename.append((fullpath.split("/"))[-1].split(".fits")[0])
+
+    meta = {
+        "index": np.arange(nspec),
+        "isochrone": np.array(np.array(f["isochrone"][idx]), dtype="str"),
+        "imf_type": np.array(np.array(f["imf_type"][idx]), dtype="str"),
+        "filename": np.array(filename),
+    }
+    base_keys = ["spec", "wave", "isochrone", "imf_type", "filename"]
+    for k in f.keys():
+        if k not in base_keys:
+            meta[k] = np.array(f[k])[idx]
+            if k in _ssp_attr_units:
+                meta[k] <<= _ssp_attr_units[k]
+
+    return wave, spec, meta, avail_alphas, avail_imfs, nspec, fixed_alpha
+
+
+def _build_spectra(wave: np.ndarray, spec: np.ndarray, meta: dict) -> Spectra:
+    """Build a Spectra instance from wavelength, flux array, and metadata."""
+    return Spectra(
+        spectral_axis=Quantity(wave, unit=u.AA),
+        flux=Quantity(spec.T, unit=u.L_sun / u.M_sun / u.AA),
+        meta=meta,
+    )
+
+
+class SingleStellarPopulationLibrary(Repository):
+    """
+    Library of single stellar population (SSP) models.
+
+    Loads SSP spectra from HDF5 repository files (MILES, EMILES, CaT, sMILES),
+    and provides selection by parameter ranges (in_range, in_list), nearest-grid
+    retrieval (closest), and Delaunay-based interpolation (interpolate, from_sfh).
+    Metadata keys (age, met, alpha, imf_slope) use units as in _ssp_attr_units.
 
     Attributes
     ----------
-    models: Spectra
-        Spectra of all the SSP that form the loaded library
-    avail_alphas: list
-        Available alpha/Fe values in the loaded library
-    avail_imfs: list
-        Available initial mass function (IMF) slopes in the loaded library
-    source: str
-        Name of input models being used
-    version: str
-        Version number of the models
+    avail_alphas : ndarray
+        Available [alpha/Fe] values in the library.
+    avail_imfs : ndarray
+        Available IMF slopes in the library.
+    source : str
+        Model source name or path (e.g. MILES_SSP, EMILES_SSP).
+    version : str
+        Model version (e.g. 9.1).
     """
-
-    warnings.filterwarnings("ignore")
 
     emiles_lsf = get_config_file("EMILES.lsf")
 
-    # -----------------------------------------------------------------------------
     def __init__(
         self,
-        source="MILES_SSP",
-        version="9.1",
-        isochrone="P",
-        imf_type="ch",
+        source: str = "MILES_SSP",
+        version: str = "9.1",
+        isochrone: str = "P",
+        imf_type: str = "ch",
     ):
         """
-        Creates an instance of the class
+        Load an SSP library for the given source, version, isochrone, and IMF type.
 
         Parameters
         ----------
-        source: str, default: "MILES_SSP"
-            Name of input models to use.
-            If none of the options below, it will assume that `source` is the path
-            to an external model repository file.
-            Valid inputs are
-            MILES_SSP/CaT_SSP/EMILES_SSP/sMILES_SSP
-        version: str, default: "9.1"
-            version number of the models
-        isochrone: str, default: "P"
-            Type of isochrone to use. Valid inputs are P/T for Padova+00
-            and BaSTI isochrones respectively
-        imf_type: str, default: "ch"
-            Type of IMF shape. Valid inputs are ch/ku/kb/un/bi
-
-        Notes
-        -----
-        We limit the choice of models to a given isochrone and imf_type for
-        effective loading. Otherwise it can take along time to upload the entire
-        dataset
-
-        Returns
-        -------
-        SSPLibrary
-
+        source : str, optional
+            Model source: MILES_SSP, CaT_SSP, EMILES_SSP, sMILES_SSP, or path to an HDF5 file.
+        version : str, optional
+            Version string (e.g. "9.1").
+        isochrone : str, optional
+            "P" (Padova+00) or "T" (BaSTI).
+        imf_type : str, optional
+            IMF shape: "ch" (Chabrier), "ku" (Kroupa universal), "kb" (Kroupa revised),
+            "un" (unimodal), "bi" (bimodal).
         """
+        _ = SSPLibraryConfig(
+            source=source, version=version, isochrone=isochrone, imf_type=imf_type
+        )
+
         repo_filename = self._get_repository(source, version)
         self._assert_repository_file(repo_filename)
 
-        # Opening the relevant file in the repository and selecting the desired
-        # models at init
-        f = h5py.File(repo_filename, "r")
-        total_nspec = len(f["age"])
+        with _load_repository_file(repo_filename) as f:
+            wave, spec, meta, avail_alphas, avail_imfs, nspec, fixed_alpha = (
+                _select_models(f, isochrone, imf_type)
+            )
 
-        idx = np.logical_and(
-            np.equal(f["imf_type"][...], imf_type.encode()),
-            np.equal(f["isochrone"][...], isochrone.encode()),
-        )
-        self.nspec = np.sum(idx)
-        if self.nspec == 0:
-            raise ValueError("No cases found with those specs.")
-
-        avail_alphas = np.unique(f["alpha"][idx])
-        self.fixed_alpha = len(avail_alphas) == 1
-        self.avail_alphas = avail_alphas[~np.isnan(avail_alphas)]
-
-        avail_imfs = np.unique(f["imf_slope"][idx])
-        self.avail_imfs = avail_imfs[~np.isnan(avail_imfs)]
-
-        logger.debug(f"{self.nspec} / {total_nspec} cases found")
-        logger.debug(f"Fixed_alpha: {self.fixed_alpha}")
-
-        if self.fixed_alpha:
-            logger.debug(f"Available alphas: {self.avail_alphas}")
-
-        wave = np.array(f["wave"])
-        spec = np.array(f["spec/" + isochrone + "/" + imf_type + "/data"])[...]
-
+        self.nspec = nspec
+        self.fixed_alpha = fixed_alpha
+        self.avail_alphas = avail_alphas
+        self.avail_imfs = avail_imfs
         self.source = source
         self.version = version
 
-        fullpath = np.array(np.array(f["filename"][idx]), dtype="str")[0]
-        filename = []
-        for fullpath in np.array(np.array(f["filename"][idx]), dtype="str"):
-            filename.append((fullpath.split("/"))[-1].split(".fits")[0])
+        logger.debug(f"{self.nspec} cases loaded (fixed_alpha={self.fixed_alpha})")
 
-        meta = {
-            "index": np.arange(self.nspec),
-            "isochrone": np.array(np.array(f["isochrone"][idx]), dtype="str"),
-            "imf_type": np.array(np.array(f["imf_type"][idx]), dtype="str"),
-            "filename": np.array(filename),
-        }
-        # Standard set of keys available in the repository that are taken
-        # care of manually
-        base_keys = ["spec", "wave", "isochrone", "imf_type", "filename"]
-        # Other information in the repository, store them as arrays
-        for k in f.keys():
-            if k not in base_keys:
-                meta[k] = np.array(f[k])[idx]
-                if k in _ssp_attr_units:
-                    meta[k] <<= _ssp_attr_units[k]
+        spectra = _build_spectra(wave, spec, meta)
+        super().__init__(spectra)
 
-        f.close()
-
-        super().__init__(
-            Spectra(
-                spectral_axis=Quantity(wave, unit=u.AA),
-                flux=Quantity(spec.T, unit=u.L_sun / u.M_sun / u.AA),
-                meta=meta,
-            )
-        )
-
-        lsf_wave, lsf_fhwm = self._compute_lsf(source)
+        lsf_wave, lsf_fwhm = self._compute_lsf(source)
         self._models.meta["lsf_wave"] = lsf_wave
-        self._models.meta["lsf_fwhm"] = lsf_fhwm
+        self._models.meta["lsf_fwhm"] = lsf_fwhm
 
-        logger.info(source + " models loaded")
+        logger.info(f"{source} models loaded")
 
     @u.quantity_input
     def in_range(
@@ -172,31 +205,30 @@ class SSPLibrary(Repository):
         mass: u.Quantity[u.Msun] = u.Quantity(1, unit=u.Msun),
     ) -> Spectra:
         """
-        Extracts all SSP models within selected limits
+        Return all SSP models whose parameters fall within the given limits.
 
         Parameters
         ----------
-        age_lims:
-            tuple with age limits
-        met_lims:
-            tuple with metallicity limits
-        alpha_lims:
-            tuple with alpha limits
-        imf_slope_lims:
-            tuple with IMF slope limits
-        mass:
-            mass of each SSP
-
-        Raises
-        ------
-        ValueError
-            If there is no matching SSP.
+        age_lims : (low, high) ~astropy.units.Quantity
+            Age limits (e.g. Gyr).
+        met_lims : (low, high) ~astropy.units.Quantity
+            Metallicity limits (dex).
+        alpha_lims : (low, high) ~astropy.units.Quantity, optional
+            [alpha/Fe] limits (ignored if library has fixed alpha).
+        imf_slope_lims : (low, high), optional
+            IMF slope limits (default (0, 5)).
+        mass : ~astropy.units.Quantity, optional
+            Mass to assign to each SSP (default 1 Msun).
 
         Returns
         -------
         Spectra
-            Spectra in the selected ranges
+            Spectra in the selected parameter ranges.
 
+        Raises
+        ------
+        ValueError
+            If no SSP matches the ranges.
         """
 
         logger.debug("Searching for models within parameters range")
@@ -245,41 +277,30 @@ class SSPLibrary(Repository):
         mass: Optional[u.Quantity[u.Msun]] = None,
     ) -> Spectra:
         """
-        Extracts a selected set of models available from the library.
+        Return SSP models at the exact grid points specified by the input lists.
+
+        No interpolation is performed; each (age, met, alpha, imf_slope) must
+        match a library grid point. All input lists must have the same length.
 
         Parameters
         ----------
-        age :
-            list of ages to extract
-        met :
-            list of metallicities to extract
-        alpha :
-            list of alphas to extract
-        imf_slope :
-            list of IMF slopes to extract
-        mass : default 1 solar mass
-            mass of each SSP
-
-        Notes
-        -----
-        All lists must have the same length.
-        This function does not perform any interpolation.
-        Values in the inputs have to be valid ages, mets, alpha, and imf_slopes
-        for the input isochrone and imf_type.
-
-        Raises
-        ------
-        ValueError
-            If inputs do not have the same shape or there is no resulting SSP.
-
-        Warns
-        -----
-        If the number of output spectra is different that the input values.
+        age, met : array-like
+            Ages (Gyr) and metallicities (dex) to extract.
+        alpha : array-like, optional
+            [alpha/Fe] values (required if library has variable alpha).
+        imf_slope : array-like, optional
+            IMF slopes at each point.
+        mass : ~astropy.units.Quantity, optional
+            Mass per SSP (default 1 Msun per spectrum).
 
         Returns
         -------
         Spectra
 
+        Raises
+        ------
+        ValueError
+            If lengths differ or a requested grid point is not in the library.
         """
         if alpha is not None and self.fixed_alpha:
             raise ValueError(
@@ -363,32 +384,32 @@ class SSPLibrary(Repository):
         mass: u.Quantity[u.Msun] = Quantity(value=1.0, unit=u.Msun),
     ) -> Spectra:
         """
-        Retrieve the closest SSP avaiable in the library
+        Return the nearest library SSP to the requested (age, met, alpha, imf_slope).
+
+        "Closest" is defined by the Delaunay triangulation: the grid point with
+        the largest barycentric weight for the requested point is returned
+        (no flux interpolation).
 
         Parameters
         ----------
-        age:
-            Desired age
-        met:
-            Desired metallicity
-        alpha:
-            Desired alpha
-        imf_slope:
-            Desired IMF slope
-        mass:
-            Mass of the SSP
+        age, met : ~astropy.units.Quantity
+            Desired age (Gyr) and metallicity (dex).
+        alpha : ~astropy.units.Quantity, optional
+            Desired [alpha/Fe] (dex).
+        imf_slope : ~astropy.units.Quantity, optional
+            Desired IMF slope.
+        mass : ~astropy.units.Quantity, optional
+            Mass of the SSP (default 1 Msun).
 
         Returns
         -------
         Spectra
-            Closest spectra from the repository.
+            The single closest spectrum (or one per input if arrays given).
 
         Raises
         ------
         RuntimeError
-            If the values are out of the grid.
-        ValueError
-            If the provided parameters do not have the same shape.
+            If the requested point is outside the library grid.
         """
         return self.interpolate(
             age=age, met=met, alpha=alpha, imf_slope=imf_slope, mass=mass, closest=True
@@ -407,46 +428,45 @@ class SSPLibrary(Repository):
         force_interp: List = [],
     ) -> Spectra:
         """
-        Interpolates SSP models for certain parameters using Delaunay triangulation
+        Interpolate SSP flux at arbitrary (age, met, alpha, imf_slope) using Delaunay triangulation.
+
+        The library grid is triangulated in parameter space. For each requested
+        point, the enclosing simplex (the set of grid points forming the
+        Delaunay cell that contains the point) is found and flux is computed as
+        a barycentric-weighted sum of the vertex spectra. Optionally return
+        only the closest grid point (closest=True) or the simplex vertex spectra
+        with weights in meta (simplex=True).
 
         Parameters
         ----------
-        age:
-            Desired age
-        met:
-            Desired metallicity
-        alpha:
-            Desired alpha
-        imf_slope:
-            Desired IMF slope
-        mass:
-            Mass of the SSP
-        closest:
-            Return the closest spectra, rather than performing the interpolation.
-            If only one interpolation is performed, all the spectra in the simplex
-            vertices are returned.
-        simplex:
-            If only one set of input parameters is given, return all the spectra
-            that form part of the simplex used for the interpolation. These spectra
-            have the weights information in their `meta` dictionary.
-        force_interp:
-            Force the interpolation over the indicated variables, even if the
-            asked alpha/imf_slope is sampled in the repository. Valid values
-            are "alpha" and "imf_slope".
+        age, met : ~astropy.units.Quantity
+            Desired age (Gyr) and metallicity (dex).
+        alpha : ~astropy.units.Quantity, optional
+            Desired [alpha/Fe] (dex).
+        imf_slope : ~astropy.units.Quantity, optional
+            Desired IMF slope.
+        mass : ~astropy.units.Quantity, optional
+            Mass per SSP (default 1 Msun).
+        closest : bool, optional
+            If True, return the nearest grid spectrum instead of interpolating.
+        simplex : bool, optional
+            If True and a single point is requested, return the vertex spectra
+            of the enclosing simplex (with weights in meta).
+        force_interp : list, optional
+            Force interpolation over these dimensions even when the value
+            is on the grid; e.g. ["alpha", "imf_slope"].
 
         Returns
         -------
         Spectra
-            Interpolated spectrum.
-            If closest == True, return the closest spectra from the repository,
-            rather than doing the interpolation.
+            Interpolated spectrum (or closest/simplex spectra if requested).
 
         Raises
         ------
         RuntimeError
-            If the values are out of the grid.
+            If any requested point is outside the grid.
         ValueError
-            If the provided parameters do not have the same shape.
+            If input parameter shapes are inconsistent.
         """
         # Preprocess the input
         single_alpha = alpha is not None and np.ndim(alpha) == 0
@@ -695,18 +715,22 @@ class SSPLibrary(Repository):
 
         return lsf_wave, lsf_fwhm * u.AA
 
-    def from_sfh(self, sfh: SFH) -> Spectra:
+    def from_sfh(self, sfh: StarFormationHistory) -> Spectra:
         """
-        Compute the spectra derived from the input SFH.
+        Synthesize a composite spectrum from a star formation history (SFH).
+
+        Interpolates SSPs at each (age, metallicity, [alpha/Fe], IMF) in the SFH,
+        weights by the SFH time-bin mass, and sums to produce one spectrum.
 
         Parameters
         ----------
-        sfh:
-            Star formation history
+        sfh : StarFormationHistory
+            Star formation history with time, SFR, met, alpha, imf (and time_weights).
 
         Returns
         -------
         Spectra
+            Single spectrum (mass-weighted sum of interpolated SSPs).
         """
 
         # We make an initial call to interpolate (ssp_model_class) to
@@ -749,3 +773,10 @@ class SSPLibrary(Repository):
         return Spectra(
             spectral_axis=self.models.spectral_axis, flux=ospec, meta=new_meta
         )
+
+
+class SSPLibrary(SingleStellarPopulationLibrary):
+    """Alias for SingleStellarPopulationLibrary."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

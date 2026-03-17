@@ -18,10 +18,6 @@ repos:
         exclude: tests/utils.py
       - id: requirements-txt-fixer
       - id: fix-encoding-pragma
-  - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.12.0
-    hooks:
-      - id: reorder-python-imports
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: "v0.12.5"
     hooks:

@@ -37,6 +37,7 @@ autodoc_mock_imports = ["rcfile"]
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "myst_parser",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
@@ -54,6 +55,11 @@ bibtex_default_style = "plain"
 
 autosummary_generate = True
 numpydoc_class_members_toctree = False
+
+# Exclude Pydantic BaseModel inherited members whose docstrings cause RST parse errors
+autodoc_default_options = {
+    "exclude-members": "model_json_schema",
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

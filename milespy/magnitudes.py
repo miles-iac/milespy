@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
+"""Magnitude computation from spectra and filter response (AB and Vega zeropoints)."""
+
 from __future__ import annotations
 
 import logging
 import sys
+from typing import Literal
 
 import numpy as np
 from astropy import units as u
 from astropy.io import ascii
 from astropy.io import fits
 from astropy.units import Quantity
+from specutils.utils.wcs_utils import vac_to_air
+from pydantic import BaseModel
 from scipy.interpolate import interp1d
 
 from .configuration import get_config_file
@@ -17,6 +22,13 @@ from .filter import Filter
 logger = logging.getLogger("milespy.magnitudes")
 
 solar_ref_spec = get_config_file("sun_mod_001.fits")
+
+
+class MagnitudeComputationConfig(BaseModel):
+    """Validates zeropoint and options for magnitude computation."""
+
+    zeropoint: Literal["AB", "VEGA"]
+    sun: bool = False
 
 
 class Magnitude(dict):
@@ -67,110 +79,132 @@ def _load_zerofile(zeropoint):
 zerosed = {"AB": _load_zerofile("AB"), "VEGA": _load_zerofile("VEGA")}
 
 
+def _find_wavelength_limits(filter_: Filter) -> tuple[float, float]:
+    """Return (wlow, whi) in Ångström for the filter's valid response range."""
+    good = filter_.wave > 0.0
+    return float(np.amin(filter_.wave[good])), float(np.amax(filter_.wave[good]))
+
+
+def _select_spectral_range(
+    wave: np.ndarray, flux: np.ndarray, wlow: float, whi: float
+) -> tuple[np.ndarray, np.ndarray] | None:
+    """Extract wave and flux in [wlow, whi]; return None if spectrum does not cover the range."""
+    w = (wave >= wlow) & (wave <= whi)
+    if not np.any(w):
+        return None
+    return wave[w], flux[..., w]
+
+
+def _interpolate_filter_response(filter_: Filter, wave_sub: np.ndarray) -> np.ndarray:
+    """Interpolate filter transmissivity onto the given wavelength grid (Ångström)."""
+    good = filter_.wave > 0.0
+    interp = interp1d(filter_.wave[good], filter_.trans[good])
+    return interp(wave_sub)
+
+
+def _compute_reference_flux(
+    zeropoint_sed: dict, response: np.ndarray, wave_sub: np.ndarray
+) -> float:
+    """Integrate zeropoint SED times response over wave_sub (trapezoid)."""
+    ref_flux = np.interp(wave_sub, zeropoint_sed["wave"], zeropoint_sed["flux"])
+    return float(np.trapezoid(ref_flux * response, x=wave_sub))
+
+
+def _compute_magnitude_from_flux(
+    flux_sub: np.ndarray,
+    response: np.ndarray,
+    wave_sub: np.ndarray,
+    ref_flux: float,
+    cfact: float,
+    zeropoint: Literal["AB", "VEGA"],
+) -> np.ndarray:
+    """Compute magnitude from flux density, response, and zeropoint; apply cfact and AB term if needed."""
+    cvel = 2.99792458e18  # Speed of light in Ångström/s
+    f = np.trapezoid(flux_sub * response, x=wave_sub, axis=-1)
+    mag = -2.5 * np.log10(f / ref_flux)
+    fmag = mag + cfact
+    if zeropoint == "AB":
+        fmag = fmag + 2.5 * np.log10(cvel) - 48.6  # Oke & Gunn 83
+    return fmag
+
+
 def compute_mags(
-    wave: Quantity, flux: Quantity, filters: [Filter], zeropoint, sun=False
+    wave: Quantity,
+    flux: Quantity,
+    filters: list[Filter],
+    zeropoint: str,
+    sun: bool = False,
 ) -> Magnitude:
     """
-    Compute the magnitudes given a spectra and a set of fluxes
+    Compute magnitudes for a spectrum in the given filters.
 
-    Core implementation of the magnitude computation, including the checks for
-    the filter wavelength limits
+    Wavelength and flux are converted to canonical units: wavelength in Ångström,
+    flux in any spectral flux density unit (e.g. erg/s/cm²/Å or L_sun/Å). The
+    spectrum must cover each filter's wavelength range.
 
     Parameters
     ----------
-    wave : array
-        Wavelength of the spectrum
-    flux : array
-        Spectrum
+    wave : ~astropy.units.Quantity
+        Wavelength (e.g. u.AA).
+    flux : ~astropy.units.Quantity
+        Spectral flux density (same length as wave on the last axis).
     filters : list[Filter]
-        List of filters for which the magnitude is to be computed
+        Filters as provided by :meth:`milespy.filter.get_filters`.
     zeropoint : str
-        Type of zero point. Either AB or VEGA
-    sun : bool
-        Flag to determine if the output is absolute magnitudes (True) or in
-        flux (False) ??
+        "AB" or "VEGA".
+    sun : bool, optional
+        If True, output is in absolute magnitudes (assuming input spectrum is
+        absolute flux, e.g. solar). If False, output is in apparent magnitude
+        (input interpreted as flux at observer; default).
 
     Returns
     -------
     Magnitude
+        Dictionary-like mapping filter name -> magnitude (array or scalar).
     """
-    # TODO: take into account the units
-    flux = flux.to_value()
-    wave = wave.to_value()
-    # Defining some variables
-    cvel = 2.99792458e18  # Speed of light in Angstron/sec
+    cfg = MagnitudeComputationConfig(zeropoint=zeropoint, sun=sun)
+    zeropoint = cfg.zeropoint
+    sun = cfg.sun
+
+    wave_q = Quantity(wave, u.AA)
+    flux_q = Quantity(flux)
+    flux_arr = flux_q.to_value()
+    wave_arr = wave_q.to_value(u.AA)
+
     dl = 1e-5  # 10 pc in Mpc, z=0; for absolute magnitudes
     if sun:
         cfact = -5.0 * np.log10(4.84e-6 / 10.0)  # for absolute magnitudes
     else:
-        cfact = 5.0 * np.log10(1.7684e8 * dl)  # from lum[erg/s/A] to flux [erg/s/A/cm2]
+        cfact = 5.0 * np.log10(1.7684e8 * dl)  # from lum to flux [erg/s/A/cm2]
 
-    # Default is nan to mark an invalid range/filter
-    outmags = Magnitude((f.name, np.full(flux.shape[:-1], np.nan)) for f in filters)
+    outmags = Magnitude((f.name, np.full(flux_arr.shape[:-1], np.nan)) for f in filters)
+    zp_sed = zerosed[zeropoint]
 
-    # Computing the magnitude for each filter
     for filt in filters:
-        # Finding the wavelength limits of the filters
-        good = filt.wave > 0.0
-        wlow = np.amin(filt.wave[good])
-        whi = np.amax(filt.wave[good])
-
-        # Selecting the relevant pixels in the input spectrum
-        w = (wave >= wlow) & (wave <= whi)
-        tmp_wave = wave[w]
-        tmp_flux = flux[..., w]
-        if (np.amin(wave) > wlow) or (np.amax(wave) < whi):
+        wlow, whi = _find_wavelength_limits(filt)
+        selected = _select_spectral_range(wave_arr, flux_arr, wlow, whi)
+        if selected is None:
             logger.warning(
-                f"Filter {filt.name} [{wlow},{whi}] is outside of"
-                f"the spectral range [{np.amin(wave)}, {np.amax(wave)}]"
+                f"Filter {filt.name} [{wlow},{whi}] is outside of "
+                f"the spectral range [{np.amin(wave_arr)}, {np.amax(wave_arr)}]"
+            )
+            continue
+        tmp_wave, tmp_flux = selected
+        if np.amin(wave_arr) > wlow or np.amax(wave_arr) < whi:
+            logger.warning(
+                f"Filter {filt.name} [{wlow},{whi}] is outside of "
+                f"the spectral range [{np.amin(wave_arr)}, {np.amax(wave_arr)}]"
             )
             continue
 
-        # Interpolate the filter response to data wavelength
-        interp = interp1d(
-            filt.wave[good],
-            filt.trans[good],
+        response = _interpolate_filter_response(filt, tmp_wave)
+        ref_flux = _compute_reference_flux(zp_sed, response, tmp_wave)
+        fmag = _compute_magnitude_from_flux(
+            tmp_flux, response, tmp_wave, ref_flux, cfact, zeropoint
         )
-        response = interp(tmp_wave)
-
-        # Calculating the magnitude in the desired system
-        vega = np.interp(
-            tmp_wave, zerosed[zeropoint]["wave"], zerosed[zeropoint]["flux"]
-        )
-        vega_f = np.trapezoid(vega * response, x=tmp_wave)
-
-        f = np.trapezoid(tmp_flux * response, x=tmp_wave, axis=-1)
-        mag = -2.5 * np.log10(f / vega_f)
-        fmag = mag + cfact
-        if zeropoint == "AB":
-            fmag = fmag + 2.5 * np.log10(cvel) - 48.6  # oke & gunn 83
-
         outmags[filt.name] = fmag
 
     return outmags
-
-
-def vacuum2air(wave_vac):
-    """
-    Converts wavelength from vacuum to air
-
-    Parameters
-    ----------
-    array
-        Wavelength in vacuum system
-
-    Returns
-    -------
-    array
-        Vector with wavelength in air system
-
-    """
-
-    wave_air = wave_vac / (
-        1.0 + 2.735182e-4 + 131.4182 / wave_vac**2 + 2.76249e8 / wave_vac**4
-    )
-
-    return wave_air
 
 
 def _load_solar_spectrum():
@@ -191,31 +225,39 @@ def _load_solar_spectrum():
     hdu = fits.open(solar_ref_spec)
     tab = hdu[1].data
 
-    wave_air = Quantity(vacuum2air(tab["WAVELENGTH"]), unit=u.AA)
-    flux = Quantity(tab["FLUX"], unit=u.erg / (u.cm**2 * u.s * u.AA))
+    # Do not load too short wavelengths as we do not need them and they can
+    # not be reliable converted with `vac_to_air`.
+    mask = tab["WAVELENGTH"] > 2000.0
+    wave_air = vac_to_air(
+        Quantity(tab["WAVELENGTH"][mask], unit=u.AA), method="Morton2000"
+    )
+    flux = Quantity(tab["FLUX"][mask], unit=u.erg / (u.cm**2 * u.s * u.AA))
 
     return wave_air, flux
 
 
-def sun_magnitude(filters: list[Filter] = [], zeropoint="AB") -> Magnitude:
+def sun_magnitude(
+    filters: list[Filter] | None = None, zeropoint: str = "AB"
+) -> Magnitude:
     """
-    Computes the magnitude of Sun in the desired filters
+    Compute the Sun's absolute magnitudes in the desired filters.
 
     Parameters
     ----------
-    filters: list[Filter]
-        Filters as provided by :meth:`milespy.filter.get`
-    zeropoint:
-        Type of zero point. Valid inputs are AB/VEGA
+    filters : list[Filter], optional
+        Filters as provided by :meth:`milespy.filter.get_filters`. Default empty list.
+    zeropoint : str, optional
+        "AB" or "VEGA" (default "AB").
 
     Returns
     -------
     Magnitude
-        Dictionary with solar mags for each filter
-
+        Dictionary with solar absolute magnitude for each filter.
     """
+    if filters is None:
+        filters = []
+    MagnitudeComputationConfig(zeropoint=zeropoint, sun=True)
     logger.info("Computing solar absolute magnitudes...")
-
     wave, flux = _load_solar_spectrum()
     outmags = compute_mags(wave, flux, filters, zeropoint, sun=True)
 

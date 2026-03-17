@@ -7,7 +7,7 @@ The following configuration options are available in ``milespy``:
  * ``repository_folder``: folder where the repositories will be searched and downloaded. By default it is
    the installation forder of ``milespy``.
 
-You can change them by creating a configuration file in any of the following locations
+You can change them by creating a TOML configuration file in any of the following locations
 (in order of increasing priority):
 
  * /etc/milespy/config
@@ -17,6 +17,11 @@ You can change them by creating a configuration file in any of the following loc
  * ~/.milespy/config
  * ~/.milespyrc
  * .milespyrc
+
+For example::
+
+  [milespy]
+  auto_download=true
 
 Or by setting the environment variable ``MILESPY_VAR``, where ``VAR`` is the configuration
 option in upper case.

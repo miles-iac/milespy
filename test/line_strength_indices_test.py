@@ -2,7 +2,7 @@
 import astropy.units as u
 import numpy as np
 
-import milespy.ls_indices as lslib
+import milespy.line_strength_indices as lslib
 from milespy.spectra import Spectra
 
 
@@ -14,12 +14,35 @@ def test_cube_ls(miles_single):
 
     cube = Spectra(flux=flux, spectral_axis=wave)
 
-    names = lslib.search("Fe.*")
-    indeces = lslib.get(names)
+    names = lslib.search_indices_in_database("Fe.*")
+    indeces = lslib.get_indices_from_database(names)
     outls = cube.line_strength(indeces)
 
     assert outls["Fe4033"].shape == cube.dim
     np.testing.assert_allclose(outls["Fe4033"], 0.45146105, rtol=1e-5)
+
+
+def test_redshift_ls_index(miles_single):
+    miles_z = miles_single.redshift_spectra(1.0)
+
+    names = lslib.search_indices_in_database("Fe4033")
+    indeces = lslib.get_indices_from_database(names)
+    outls = miles_z.line_strength(indeces)
+
+    # NB: redshifting the spectra also changes the LS indices
+    np.testing.assert_allclose(outls["Fe4033"], 0.45146105, rtol=1e-5)
+
+
+def test_velocity_shift_ls_index(miles_single):
+    miles_z = miles_single.velocity_shift(100.0 * u.km / u.s)
+
+    names = lslib.search_indices_in_database("Fe4033")
+    indeces = lslib.get_indices_from_database(names)
+    outls = miles_z.line_strength(indeces)
+
+    # NB: a velocity shift does not change the redshift of the spectra, so the
+    # LS indices are not invariant
+    assert np.not_equal(outls["Fe4033"], 0.45146105)
 
 
 def test_custom_ls_index(miles_single):
@@ -40,8 +63,8 @@ def test_custom_ls_index(miles_single):
 
 
 def test_ls_indices(miles_single):
-    lsnames = lslib.search(".*")
-    indeces = lslib.get(lsnames)
+    lsnames = lslib.search_indices_in_database(".*")
+    indeces = lslib.get_indices_from_database(lsnames)
     outls = miles_single.line_strength(indeces)
     ref = {
         "Fe3619": np.array([4.2427661]),
@@ -121,3 +144,11 @@ def test_ls_indices(miles_single):
 
     for k in ref.keys():
         np.testing.assert_allclose(ref[k], outls[k], rtol=1e-5, err_msg=k)
+
+
+def test_list_all():
+    lsall0 = lslib.list_all()
+    lsall1 = lslib.list_all_indices()
+
+    assert len(lsall0) == len(lsall1)
+    assert len(lsall0) == 175

@@ -25,6 +25,7 @@ SSP models
    :toctree: _autosummary
    :recursive:
 
+   milespy.ssp_library.SingleStellarPopulationLibrary
    milespy.ssp_library.SSPLibrary
 
 SFH analysis
@@ -33,7 +34,8 @@ SFH analysis
    :toctree: _autosummary
    :recursive:
 
-   milespy.sfh.SFH
+   milespy.star_formation_history.StarFormationHistory
+   milespy.star_formation_history.SFH
 
 
 Spectra manipulation
@@ -51,4 +53,5 @@ Other tools
    :recursive:
 
    milespy.filter
+   milespy.line_strength_indices
    milespy.magnitudes

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""Star formation history (SFH) definitions and synthesis of composite spectra from SSPs."""
+
 import logging
 from typing import Optional
 
@@ -6,27 +8,32 @@ import numpy as np
 from astropy import units as u
 from scipy.integrate import trapezoid
 
-logger = logging.getLogger("milespy.sfh")
+logger = logging.getLogger("milespy.star_formation_history")
 
 DEFAULT_NBINS = 20
 
 
-class SFH:
+class StarFormationHistory:
     """
-    Class for manipulating star formation histories (SFH) and create derived spectra
+    Star formation history (SFH) container and synthesis of composite spectra from SSPs.
+
+    Holds time bins (look-back time), star formation rate (SFR), metallicity,
+    [alpha/Fe], and IMF slope at each time. Use the sfr_*, met_*, alpha_*, imf_*
+    methods to set evolution models, then pass this object to SSPLibrary.from_sfh
+    to synthesize a spectrum.
 
     Attributes
     ----------
-    time: ~astropy.units.Quantity
-        Look-back time
-    sfr: ~astropy.units.Quantity
-        Values of the star formation rate (SFR) at each time
-    met: ~astropy.units.Quantity
-        Values of the metallicity at each time (dex)
-    alpha: ~astropy.units.Quantity
-        Values of [alpha/Fe] at each time (dex)
-    imf: ~astropy.units.Quantity
-        Values of the IMF slope
+    time : ~astropy.units.Quantity
+        Look-back time array (e.g. Gyr).
+    sfr : ~astropy.units.Quantity
+        Star formation rate (SFR) at each time (e.g. Msun/Gyr).
+    met : ~astropy.units.Quantity
+        Metallicity [M/H] at each time (dex).
+    alpha : ~astropy.units.Quantity
+        [alpha/Fe] at each time (dex).
+    imf : ~astropy.units.Quantity
+        Initial mass function (IMF) slope at each time (dimensionless).
     """
 
     @u.quantity_input
@@ -34,12 +41,12 @@ class SFH:
         self, time: u.Quantity[u.Gyr] = np.linspace(0.035, 13.5, DEFAULT_NBINS) << u.Gyr
     ):
         """
-        Create a base SFH object
+        Create a base SFH object.
 
         Parameters
         ----------
-        time: ~astropy.units.Quantity
-            Look-back time array for the SFH samples
+        time : ~astropy.units.Quantity
+            Look-back time array for the SFH samples (e.g. Gyr).
         """
         nbins = len(time)
         self.time = time
@@ -47,6 +54,21 @@ class SFH:
         self.met = np.zeros(nbins) << u.dex
         self.alpha = np.zeros(nbins) << u.dex
         self.imf = np.full(nbins, 1.3) << u.dimensionless_unscaled
+
+    @property
+    def star_formation_rate(self) -> u.Quantity:
+        """Star formation rate at each time bin (alias for sfr)."""
+        return self.sfr
+
+    @property
+    def metallicity(self) -> u.Quantity:
+        """Metallicity [M/H] at each time bin (alias for met)."""
+        return self.met
+
+    @property
+    def initial_mass_function_slope(self) -> u.Quantity:
+        """IMF slope at each time bin (alias for imf)."""
+        return self.imf
 
     @staticmethod
     def _process_param(argname, arg, refname, ref, offset=0):
@@ -289,7 +311,7 @@ class SFH:
     @staticmethod
     def _linear(time, start, end, t_start, t_end):
         for inp in (start, end, t_start, t_end):
-            SFH._validate_scalar(inp)
+            StarFormationHistory._validate_scalar(inp)
 
         slope = (start - end) / (t_start - t_end)
         out = np.empty(time.shape)
@@ -308,7 +330,7 @@ class SFH:
     @staticmethod
     def _sigmoid(time, start, end, tc, gamma):
         for inp in (start, end, tc, gamma):
-            SFH._validate_scalar(inp)
+            StarFormationHistory._validate_scalar(inp)
 
         return (end - start) / (1.0 + np.exp(-gamma * (tc - time))) + start
 
@@ -381,7 +403,7 @@ class SFH:
         """Linear metallicity evolution
 
         The metallicity evolves as a ReLU function, i.e., constant at the beginning
-        and linearly varing afterwards.
+        and linearly varying afterwards.
 
         Parameters
         ----------
@@ -408,7 +430,7 @@ class SFH:
         """Linear [alpha/Fe] evolution
 
         The [alpha/Fe] evolves as a ReLU function, i.e., constant at the beginning
-        and linearly varing afterwards.
+        and linearly varying afterwards.
 
         Parameters
         ----------
@@ -435,7 +457,7 @@ class SFH:
         """Linear IMF slope evolution
 
         The IMF slope evolves as a ReLU function, i.e., constant at the beginning
-        and linearly varing afterwards.
+        and linearly varying afterwards.
 
         Parameters
         ----------
@@ -479,3 +501,10 @@ class SFH:
 
         """
         self.imf = self._sigmoid(self.time, start, end, tc, gamma)
+
+
+class SFH(StarFormationHistory):
+    """Alias for StarFormationHistory."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 readme = "README.md"
 maintainers = [{ name = "Isaac Alonso Asensio", email = "isaac.alonso.asensio@iac.es" }]
 dependencies = [
+    "pydantic>=2,<3",
     "h5py>=3.11.0,<4",
     "scipy>=1.10",
     "astropy>=6",
@@ -33,6 +34,7 @@ dev = [
 docs = [
     "Sphinx>=7.1.2,<8",
     "sphinx-rtd-theme>=2.0.0,<3",
+    "myst-parser>=4.0,<5",
     "sphinxcontrib-napoleon>=0.7,<0.8",
     "numpydoc>=1.7.0,<2",
     "nbsphinx>=0.9.4,<0.10",
