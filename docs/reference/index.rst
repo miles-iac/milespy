@@ -53,5 +53,5 @@ Other tools
    :recursive:
 
    milespy.filter
-   milespy.ls_indices
+   milespy.line_strength_indices
    milespy.magnitudes
