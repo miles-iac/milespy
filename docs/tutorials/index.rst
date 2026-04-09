@@ -6,7 +6,7 @@ Most the the content is written as notebooks, such that can be easily reproduced
 We encourage you to skim through all of them as they highlight different functionalities of milespy, specutils and astropy in general.
 
 .. nbgallery::
-   SSP spectra manitulation <example_ssp.ipynb>
+   SSP spectra manipulation <example_ssp.ipynb>
    SFH definition <example_sfh.ipynb>
    Navigate the stellar library <example_stellar_library.ipynb>
    Generate color grid prediction <example_color_grid.ipynb>
