@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.0rc5"
+__version__ = "1.0rc6"
 
 
 from .ssp_library import SingleStellarPopulationLibrary
