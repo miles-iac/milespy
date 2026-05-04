@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """HDF5-based model repository management and optional download of MILES/EMILES/CaT data."""
+
 import logging
 import os
+from pathlib import Path
 
 import astropy.units as u
 import h5py
-import requests
+import pooch
 from specutils.manipulation import spectral_slab
-from tqdm import tqdm
 
 from .configuration import config
 from .configuration import def_repo_folder
@@ -15,13 +16,24 @@ from .configuration import def_repo_folder
 logger = logging.getLogger("milespy.repository")
 
 
-repository_url = {
-    "MILES_STARS_v9.1": "https://cloud.iac.es/index.php/s/TKEwKfSiaZePYsx/download/MILES_STARS_v9.1.hdf5",  # noqa
-    "MILES_SSP_v9.1": "https://cloud.iac.es/index.php/s/wz3xS9jj7zDe7Hs/download/MILES_SSP_v9.1.hdf5",  # noqa
-    "sMILES_SSP_v9.1": "https://cloud.iac.es/index.php/s/KsJFXKB7LLmGrxN/download/sMILES_SSP_v9.1.hdf5",  # noqa
-    "EMILES_SSP_v9.1": "https://cloud.iac.es/index.php/s/2CqEBsreXdeK2Pd/download/EMILES_SSP_v9.1.hdf5",  # noqa
-    "CaT_STARS_v9.1": "https://cloud.iac.es/index.php/s/jCt2TzD8DMFXXdZ/download/CaT_STARS_v9.1.hdf5",  # noqa
-    "CaT_SSP_v9.1": "https://cloud.iac.es/index.php/s/ex3Ep9jA5eG6Pwt/download/CaT_SSP_v9.1.hdf5",  # noqa
+ZENODO_DOI = "10.5281/zenodo.19741547"
+
+repository_files = {
+    "MILES_STARS_v9.1": "MILES_STARS_v9.1.hdf5",
+    "MILES_SSP_v9.1": "MILES_SSP_v9.1.hdf5",
+    "sMILES_SSP_v9.1": "sMILES_SSP_v9.1.hdf5",
+    "EMILES_SSP_v9.1": "EMILES_SSP_v9.1.hdf5",
+    "CaT_STARS_v9.1": "CaT_STARS_v9.1.hdf5",
+    "CaT_SSP_v9.1": "CaT_SSP_v9.1.hdf5",
+}
+
+repository_hashes = {
+    "MILES_STARS_v9.1": "md5:8488c82fbf083cf4a519a3a9fe2e58ac",
+    "MILES_SSP_v9.1": "md5:f925504bedeb8bd64670132b67f9dbf1",
+    "sMILES_SSP_v9.1": "md5:648cb9ecc27b5d9f5d6d959d3d9d10ec",
+    "EMILES_SSP_v9.1": "md5:5ab72bdf97cf887bcb2dbab90976e2a1",
+    "CaT_STARS_v9.1": " md5:03ec120ac215c280bd4a9af991884744",
+    "CaT_SSP_v9.1": " md5:86e96758188d5f29813ff54310b10da3",
 }
 
 
@@ -55,36 +67,43 @@ class Repository:
 
     def _download_repository(self, base_name: str, output_path: str) -> None:
         """
-        Download the repository file for base_name from the configured URL to output_path.
+        Download the repository file for base_name from Zenodo to output_path.
 
         Parameters
         ----------
         base_name : str
-            Key in repository_url (e.g. "MILES_SSP_v9.1").
+            Key in repository_files (e.g. "MILES_SSP_v9.1").
         output_path : str
             Local path where the HDF5 file will be written.
         """
-        response = requests.get(repository_url[base_name], stream=True)
+        file_name = repository_files[base_name]
+        known_hash = repository_hashes.get(base_name)
+        if known_hash is None:
+            logger.warning(
+                f"No known hash for {base_name}; downloading without hash validation."
+            )
+        repo_dir = Path(output_path).parent
+        repo_dir.mkdir(parents=True, exist_ok=True)
+        fetched_path = pooch.retrieve(
+            url=f"doi:{ZENODO_DOI}/{file_name}",
+            known_hash=known_hash,
+            fname=file_name,
+            path=repo_dir,
+            progressbar=True,
+        )
+        # Keep backwards-compatible behavior: return file in the expected location.
+        if Path(fetched_path).as_posix() != Path(output_path).as_posix():
+            os.replace(fetched_path, output_path)
 
-        total_size = int(response.headers.get("content-length", 0))
-        block_size = 1024
-
-        with tqdm(total=total_size, unit="B", unit_scale=True) as progress_bar:
-            with open(output_path, "wb") as file:
-                for data in response.iter_content(block_size):
-                    progress_bar.update(len(data))
-                    file.write(data)
-
-        if total_size != 0 and progress_bar.n != total_size:
-            raise RuntimeError("Unable to download file")
-
-        logger.debug(f"Downloaded {base_name} repository to {output_path}")
+        logger.debug(
+            f"Downloaded {base_name} from Zenodo DOI {ZENODO_DOI} to {output_path}"
+        )
 
     def _get_repository(self, source: str, version: str) -> str:
         """
         Resolve the path to the repository HDF5 file, downloading if missing and allowed.
 
-        If source + version matches a known key in repository_url, the file is
+        If source + version matches a known key in repository_files, the file is
         looked up in the configured repository folder (or default); if missing,
         it may be downloaded when auto_download is True or the user confirms.
         Otherwise, source is returned as-is (treated as a local path).
@@ -109,7 +128,7 @@ class Repository:
 
         logger.debug(f"Loading models in {repo_filename}")
 
-        if base_name in repository_url.keys():
+        if base_name in repository_files.keys():
             if not os.path.exists(repo_filename):
                 logger.warning("Unable to locate repository")
                 if "auto_download" in config.keys() and config["auto_download"]:

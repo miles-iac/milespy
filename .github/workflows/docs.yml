@@ -10,12 +10,22 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     if: ${{ ! contains(github.event.head_commit.message, '[no docs]') }}
+    env:
+      MILESPY_AUTO_DOWNLOAD: "1"
+      MILESPY_REPOSITORY_FOLDER: ${{ github.workspace }}/.milespy-repository/
 
     steps:
     - run: sudo apt -y update && sudo apt-get -y install pandoc
     - uses: actions/checkout@v4
     - name: Setup the environment
       uses: ./.github/actions/setup
+    - name: Cache model repository
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.MILESPY_REPOSITORY_FOLDER }}
+        key: milespy-models-${{ runner.os }}-${{ hashFiles('milespy/repository.py') }}
+        restore-keys: |
+          milespy-models-${{ runner.os }}-
     - name: Build documentation
       run: make doc
     - name: Upload static files as artifact
