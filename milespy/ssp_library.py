@@ -18,6 +18,8 @@ from tqdm import tqdm
 from .configuration import get_config_file
 from .interpolation_utils import interp_weights
 from .repository import Repository
+from .repository import _resolve_companion_path
+from .repository import _variance_source_name
 from .spectra import Spectra
 from .star_formation_history import StarFormationHistory
 
@@ -149,6 +151,7 @@ class SingleStellarPopulationLibrary(Repository):
         version: str = "9.1",
         isochrone: str = "P",
         imf_type: str = "ch",
+        load_variance: bool = False,
     ):
         """
         Load an SSP library for the given source, version, isochrone, and IMF type.
@@ -164,6 +167,9 @@ class SingleStellarPopulationLibrary(Repository):
         imf_type : str, optional
             IMF shape: "ch" (Chabrier), "ku" (Kroupa universal), "kb" (Kroupa revised),
             "un" (unimodal), "bi" (bimodal).
+        load_variance : bool, optional
+            If True, also load the companion variance HDF5 file (e.g.
+            ``MILES_SSP_VAR_v9.2.hdf5``) and attach it as ``meta['flux_var']``.
         """
         _ = SSPLibraryConfig(
             source=source, version=version, isochrone=isochrone, imf_type=imf_type
@@ -189,11 +195,65 @@ class SingleStellarPopulationLibrary(Repository):
         spectra = _build_spectra(wave, spec, meta)
         super().__init__(spectra)
 
+        if load_variance:
+            self._load_variance_spectra(
+                source, version, isochrone, imf_type, wave, meta
+            )
+
         lsf_wave, lsf_fwhm = self._compute_lsf(source)
         self._models.meta["lsf_wave"] = lsf_wave
         self._models.meta["lsf_fwhm"] = lsf_fwhm
 
         logger.info(f"{source} models loaded")
+
+    def _load_variance_spectra(
+        self,
+        source: str,
+        version: str,
+        isochrone: str,
+        imf_type: str,
+        wave: np.ndarray,
+        mean_meta: dict,
+    ) -> None:
+        """Load companion variance spectra and attach them as meta['flux_var']."""
+        var_path = _resolve_companion_path(source, version)
+        if var_path is None:
+            var_source = _variance_source_name(source) or f"{source}_VAR"
+            expected = f"{var_source}_v{version}.hdf5"
+            raise FileNotFoundError(
+                f"Variance repository file not found. Expected companion file: {expected}"
+            )
+
+        self._assert_repository_file(var_path)
+        with _load_repository_file(var_path) as f:
+            var_wave, var_spec, var_meta, _, _, var_nspec, _ = _select_models(
+                f, isochrone, imf_type
+            )
+
+        if var_nspec != self.nspec:
+            raise ValueError(
+                f"Variance library has {var_nspec} models but mean library has {self.nspec}"
+            )
+        if not np.allclose(wave, var_wave):
+            raise ValueError(
+                "Mean and variance libraries have different wavelength grids"
+            )
+
+        for key in ("age", "met", "alpha", "imf_slope"):
+            if not np.allclose(mean_meta[key], var_meta[key], equal_nan=True):
+                raise ValueError(
+                    f"Mean and variance libraries differ in '{key}' metadata"
+                )
+
+        var_spectra = _build_spectra(var_wave, var_spec, var_meta)
+        self._models.meta["flux_var"] = var_spectra.flux
+
+    def _slice_models(self, idx) -> Spectra:
+        """Return a slice of the model library, including variance if present."""
+        out = Spectra.__getitem__(self.models, idx)
+        if "flux_var" in self.models.meta:
+            out.meta["flux_var"] = self.models.meta["flux_var"][idx]
+        return out
 
     @u.quantity_input
     def in_range(
@@ -263,7 +323,7 @@ class SingleStellarPopulationLibrary(Repository):
         if ncases == 0:
             raise ValueError("No matching SSPs")
 
-        out = Spectra.__getitem__(self.models, idx)._apply_mass(mass)
+        out = self._slice_models(idx)._apply_mass(mass)
 
         return out
 
@@ -370,7 +430,7 @@ class SingleStellarPopulationLibrary(Repository):
                     f"Asked for {ncases} SSPs, but found only {ngood} matching ones"
                 )
 
-        out = Spectra.__getitem__(self.models, good)._apply_mass(mass)
+        out = self._slice_models(good)._apply_mass(mass)
 
         return out
 
@@ -592,6 +652,12 @@ class SingleStellarPopulationLibrary(Repository):
                 value=np.empty((ninterp, self.models.data.shape[1])),
                 unit=self.models.flux.unit,
             )
+            has_var = "flux_var" in self.models.meta
+            if has_var:
+                flux_var = Quantity(
+                    value=np.empty((ninterp, self.models.data.shape[1])),
+                    unit=self.models.meta["flux_var"].unit,
+                )
 
             new_meta = {
                 "imf_type": np.full(ninterp, self.models.meta["imf_type"][0]),
@@ -610,7 +676,10 @@ class SingleStellarPopulationLibrary(Repository):
             base_keys = list(new_meta.keys())
             for k in self.models.meta.keys():
                 if k not in new_meta.keys():
-                    if len(self.models.meta[k]) > 1:
+                    if (
+                        len(self.models.meta[k]) > 1
+                        and np.ndim(self.models.meta[k]) == 1
+                    ):
                         if "U" not in self.models.meta[k].dtype.kind:
                             new_meta[k] = np.empty(
                                 ninterp, dtype=self.models.meta[k].dtype
@@ -637,8 +706,8 @@ class SingleStellarPopulationLibrary(Repository):
 
             if closest:
                 if simplex and ninterp == 1:
-                    out = Spectra.__getitem__(
-                        self.models, self.models.meta["index"][idx][vtx]
+                    out = self._slice_models(
+                        self.models.meta["index"][idx][vtx]
                     )._apply_mass(mass)
                     return out
                 else:
@@ -646,16 +715,25 @@ class SingleStellarPopulationLibrary(Repository):
 
             else:
                 spec[i, :] = np.dot(self.models.flux[idx, :][vtx].T, wts)
+                if has_var:
+                    flux_var[i, :] = np.dot(
+                        self.models.meta["flux_var"][idx, :][vtx].T, wts
+                    )
 
                 # Interpolate the rest of the meta if possible
                 for k in new_meta:
-                    if len(self.models.meta[k]) > 1:
+                    if (
+                        len(self.models.meta[k]) > 1
+                        and np.ndim(self.models.meta[k]) == 1
+                    ):
                         if k not in base_keys:
                             new_meta[k][i] = np.dot(self.models.meta[k][idx][vtx], wts)
 
         if closest:
-            out = Spectra.__getitem__(self.models, closest_idx)._apply_mass(mass)
+            out = self._slice_models(closest_idx)._apply_mass(mass)
         else:
+            if has_var:
+                new_meta["flux_var"] = flux_var
             out = Spectra(spectral_axis=wave, flux=spec, meta=new_meta)._apply_mass(
                 mass
             )
@@ -688,6 +766,8 @@ class SingleStellarPopulationLibrary(Repository):
 
         lsf_wave = self.models.spectral_axis
         npix = self.models.npix
+        if source.endswith("_VAR"):
+            source = source[: -len("_VAR")]
         if source == "MILES_SSP" or source == "sMILES_SSP":
             lsf_fwhm = 2.51 * np.ones(npix)
 
@@ -732,6 +812,12 @@ class SingleStellarPopulationLibrary(Repository):
         Spectra
             Single spectrum (mass-weighted sum of interpolated SSPs).
         """
+
+        if "flux_var" in self.models.meta:
+            logger.warning(
+                "from_sfh() synthesizes mean spectra only; variance is not combined. "
+                "Do not use this output for SBF calculations."
+            )
 
         # We make an initial call to interpolate (ssp_model_class) to
         # obtain the values of the triangulation to be used extensively below

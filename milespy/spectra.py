@@ -20,6 +20,7 @@ from .line_strength_indices import line_strength_index
 from .line_strength_indices import LineStrengthDict
 from .line_strength_indices import LineStrengthIndex
 from .magnitudes import compute_mags
+from .magnitudes import compute_sbf_mags
 from .magnitudes import Magnitude
 from .magnitudes import sun_magnitude
 
@@ -89,6 +90,11 @@ class Spectra(Spectrum):
         if len(self.data.shape) > 1:
             return int(np.prod(self.data.shape[:-1]))
         return 1
+
+    @property
+    def has_variance(self) -> bool:
+        """True if variance spectra are attached in meta['flux_var']."""
+        return "flux_var" in self.meta
 
     def __getitem__(self, item):
         out = super().__getitem__(item)
@@ -389,6 +395,69 @@ class Spectra(Spectrum):
 
         return outmags
 
+    def sbf(self) -> Spectra:
+        """
+        Return the surface brightness fluctuation (SBF) spectrum (variance / mean).
+
+        Returns
+        -------
+        Spectra
+            New instance with flux = flux_var / flux.
+
+        Raises
+        ------
+        ValueError
+            If variance spectra are not available.
+        """
+        if not self.has_variance:
+            raise ValueError(
+                "Variance spectra not available. Load the library with "
+                "load_variance=True."
+            )
+        meta = copy(self.meta)
+        flux_var = meta.pop("flux_var")
+        return Spectra(
+            spectral_axis=self.spectral_axis,
+            flux=flux_var / self.flux,
+            meta=meta,
+        )
+
+    def sbf_magnitudes(
+        self,
+        filters: list[Filter] | None = None,
+        zeropoint: str = "AB",
+    ) -> Magnitude:
+        """
+        Compute SBF magnitudes (Vazdekis et al. 2020, eq. 8).
+
+        Parameters
+        ----------
+        filters : list[Filter], optional
+            Filters as provided by :meth:`milespy.filter.get_filters`.
+        zeropoint : str, optional
+            'AB' or 'VEGA'.
+
+        Returns
+        -------
+        Magnitude
+            Dictionary mapping filter name to SBF magnitude (per spectrum).
+        """
+        if not self.has_variance:
+            raise ValueError(
+                "Variance spectra not available. Load the library with "
+                "load_variance=True."
+            )
+        if filters is None:
+            filters = []
+        logger.info("Computing SBF magnitudes")
+        return compute_sbf_mags(
+            self.spectral_axis,
+            self.flux,
+            self.meta["flux_var"],
+            filters,
+            zeropoint,
+        )
+
     def line_strength(self, indeces: list[LineStrengthIndex]) -> LineStrengthDict:
         """
         Compute line-strength (Lick/IDS) indices for the spectra.
@@ -558,5 +627,7 @@ class Spectra(Spectrum):
         out = Spectra(
             flux=self.flux * m, spectral_axis=self.spectral_axis, meta=copy(self.meta)
         )
+        if "flux_var" in self.meta:
+            out.meta["flux_var"] = self.meta["flux_var"] * (m**2)
         out._update_mass(mass)
         return out

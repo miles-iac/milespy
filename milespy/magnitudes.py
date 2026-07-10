@@ -207,6 +207,44 @@ def compute_mags(
     return outmags
 
 
+def compute_sbf_mags(
+    wave: Quantity,
+    flux_mean: Quantity,
+    flux_var: Quantity,
+    filters: list[Filter],
+    zeropoint: str,
+    sun: bool = False,
+) -> Magnitude:
+    """
+    Compute surface brightness fluctuation (SBF) magnitudes (Vazdekis et al. 2020, eq. 8).
+
+    Parameters
+    ----------
+    wave : ~astropy.units.Quantity
+        Wavelength (e.g. u.AA).
+    flux_mean : ~astropy.units.Quantity
+        Mean SSP spectral flux density.
+    flux_var : ~astropy.units.Quantity
+        Variance SSP spectral flux density (same units as flux_mean squared).
+    filters : list[Filter]
+        Filters as provided by :meth:`milespy.filter.get_filters`.
+    zeropoint : str
+        "AB" or "VEGA".
+    sun : bool, optional
+        Passed through to :func:`compute_mags` for absolute magnitudes.
+
+    Returns
+    -------
+    Magnitude
+        Dictionary-like mapping filter name -> SBF magnitude.
+    """
+    m_mean = compute_mags(wave, flux_mean, filters, zeropoint, sun=sun)
+    m_sqrt_var = compute_mags(wave, np.sqrt(flux_var), filters, zeropoint, sun=sun)
+    return Magnitude(
+        (filt.name, 2.0 * m_sqrt_var[filt.name] - m_mean[filt.name]) for filt in filters
+    )
+
+
 def _load_solar_spectrum():
     """
     Loads the references solar spectrum

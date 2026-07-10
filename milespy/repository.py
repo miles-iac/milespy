@@ -25,7 +25,37 @@ repository_files = {
     "EMILES_SSP_v9.1": "EMILES_SSP_v9.1.hdf5",
     "CaT_STARS_v9.1": "CaT_STARS_v9.1.hdf5",
     "CaT_SSP_v9.1": "CaT_SSP_v9.1.hdf5",
+    "MILES_SSP_v9.2": "MILES_SSP_v9.2.hdf5",
+    "MILES_SSP_VAR_v9.2": "MILES_SSP_VAR_v9.2.hdf5",
 }
+
+_VARIANCE_SOURCE_MAP = {
+    "MILES_SSP": "MILES_SSP_VAR",
+    "EMILES_SSP": "EMILES_SSP_VAR",
+}
+
+
+def _variance_source_name(source: str) -> str | None:
+    """Return the variance companion source name, if one exists."""
+    return _VARIANCE_SOURCE_MAP.get(source)
+
+
+def _resolve_companion_path(source: str, version: str) -> str | None:
+    """Return the path to the variance companion HDF5 file, if it exists locally."""
+    var_source = _variance_source_name(source)
+    if var_source is None:
+        return None
+
+    base_name = var_source + "_v" + version
+    if "repository_folder" in config:
+        repo_filename = config["repository_folder"] + base_name + ".hdf5"
+    else:
+        repo_filename = def_repo_folder.as_posix() + "/" + base_name + ".hdf5"
+
+    if os.path.exists(repo_filename):
+        return repo_filename
+    return None
+
 
 repository_hashes = {
     "MILES_STARS_v9.1": "md5:8488c82fbf083cf4a519a3a9fe2e58ac",
@@ -141,7 +171,7 @@ class Repository:
                         self._download_repository(base_name, repo_filename)
         else:
             logger.debug(f"Not known URL for {base_name}, trying to load it as a file")
-            return source
+            return repo_filename
 
         return repo_filename
 
