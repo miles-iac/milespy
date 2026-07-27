@@ -22,6 +22,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    # Exact matplotlib pin so that text rendering (bundled FreeType) is
+    # identical across all tested Python versions and matches the baseline
+    # images. Regenerate baselines (make reference-img) when bumping this.
+    "matplotlib==3.10.3",
     "black>=24.4.2,<25",
     "pre-commit~=3.5",
     "pylint>=3.2.0,<4",
@@ -29,7 +33,8 @@ dev = [
     "pytest-mpl>=0.17.0,<0.18",
     "pytest-html>=4.1.1,<5",
     "coverage>=7.5.4,<8",
-    "ruff>=0.12.5",
+    # Pinned so lint/format results are reproducible between CI and local runs
+    "ruff==0.12.5",
 ]
 docs = [
     "Sphinx>=7.1.2,<8",
