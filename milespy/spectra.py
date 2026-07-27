@@ -276,7 +276,9 @@ class Spectra(Spectrum):
             outshape = self.flux.shape
             outflux = np.empty(outshape)
             for index in np.ndindex(outshape[:-1]):
-                flux = Spectra._gaussian_filter1d(self.flux[index].value, sigma)
+                flux = Spectra._gaussian_filter1d(
+                    self.flux[index].value, sigma.to_value(self.spectral_axis.unit)
+                )
                 s = slice(None)
                 outflux[index + (s,)] = flux
 

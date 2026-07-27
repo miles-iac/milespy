@@ -53,6 +53,11 @@ def test_convolve_array(emiles_single):
     return plot_lsf(spec)
 
 
+def test_convolve_multi(miles_multi):
+    lsf = 8.4 << u.AA
+    _ = miles_multi.convolve(lsf)
+
+
 @pytest.mark.mpl_image_compare
 def test_trim_after_convolve(emiles_single):
     spec0 = emiles_single.convolve(10 * u.AA)

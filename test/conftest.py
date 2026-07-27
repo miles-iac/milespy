@@ -23,6 +23,16 @@ def miles_single(miles_ssp):
 
 
 @pytest.fixture
+def miles_multi(miles_ssp):
+    return miles_ssp.in_range(
+        age_lims=[0.499, 14.1] << u.Gyr,
+        met_lims=[-1.80, 0.27] << u.dex,
+        alpha_lims=[-0.3, 0.7] << u.dex,
+        imf_slope_lims=np.array([1.3, 1.3]),
+    )
+
+
+@pytest.fixture
 def miles_cube(miles_single):
     wave = miles_single.spectral_axis
     flux = u.Quantity(np.random.random((30, 30, 4300)), unit=u.L_sun / u.AA)
