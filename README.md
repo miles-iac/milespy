@@ -3,6 +3,8 @@
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![PyPi](https://img.shields.io/pypi/v/milespy)](https://pypi.org/project/milespy)
 ![Python Version from PEP 621 TOML](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fmiles-iac%2Fmilespy%2Frefs%2Fheads%2Fmain%2Fpyproject.toml)
+[![pyOpenSci Peer-Reviewed](https://pyopensci.org/badges/peer-reviewed.svg)](https://github.com/pyOpenSci/software-review/issues/issue-number)
+[![DOI](https://zenodo.org/badge/936035728.svg)](https://doi.org/10.5281/zenodo.21771038)
 ![Test badge](https://github.com/miles-iac/milespy/actions/workflows/test.yml/badge.svg)
 [![Docs badge](https://github.com/miles-iac/milespy/actions/workflows/docs.yml/badge.svg)](https://miles-iac.github.io/milespy/)
 ![Coverage Status](https://raw.githubusercontent.com/miles-iac/milespy/coverage-badge/coverage.svg?raw=true)
